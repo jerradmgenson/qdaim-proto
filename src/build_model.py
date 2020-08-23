@@ -17,9 +17,9 @@ from sklearn.preprocessing import StandardScaler
 
 
 DATASET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal', 'target']
-DEFAULT_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'target']
+DEFAULT_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope']
 MODEL_BASE_NAME = 'heart_disease_model'
-TRAINING_ITERATIONS = 1
+TRAINING_ITERATIONS = 30
 SVC_PARAMETER_GRID = [
     {'C': [1, 10, 100, 1000], 'kernel': ['linear']},
     {'C': [1, 10, 100, 1000], 'kernel': ['rbf', 'sigmoid'], 'gamma': [0.001, 0.0001]},
@@ -39,7 +39,7 @@ RFC_PARAMETER_GRID = [
 ]
 
 MLP_PARAMETER_GRID = [
-    {'hidden_layer_sizes': [(10,), (5,), (3,), (10, 10), (10, 5), (10, 3), (5, 5), (5, 3), (3, 3)], 'activation': ['logistic', 'tanh', 'relu'], 'solver': ['lbfgs'], 'alpha': [.0001, .001, .01]},
+    {'hidden_layer_sizes': [(10,), (5,), (3,), (10, 10), (10, 5), (10, 3), (5, 5), (5, 3), (3, 3)], 'activation': ['logistic', 'tanh', 'relu'], 'solver': ['lbfgs'], 'alpha': [.0001, .001, .01], 'max_iter': [300, 600, 900]},
 ]
 
 Model = namedtuple('Model', 'class_ name abbreviation parameter_grid')
@@ -203,22 +203,22 @@ def train_model(model_class, parameter_grid, input_data, target_data, iterations
 
 def validate_model(model, input_data, target_data):
     predictions = model.predict(input_data)
-    true_positives = 0
-    true_negatives = 0
-    false_positives = 0
-    false_negatives = 0
+    true_positives = 0.0
+    true_negatives = 0.0
+    false_positives = 0.0
+    false_negatives = 0.0
     for prediction, target in zip(predictions, target_data):
         if prediction == 1 and target == 1:
-            true_positives += 1
+            true_positives += 1.0
 
         elif prediction == 1 and target == 0:
-            false_positives += 1
+            false_positives += 1.0
 
         elif prediction == 0 and target == 1:
-            false_negatives += 1
+            false_negatives += 1.0
 
         else:
-            true_negatives += 1
+            true_negatives += 1.0
 
     model.accuracy = (true_positives + true_negatives) / len(input_data)
     model.precision = true_positives / (true_positives + false_positives)
