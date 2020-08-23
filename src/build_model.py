@@ -4,10 +4,37 @@ import pickle
 
 import pandas as pd
 from sklearn import svm
+from sklearn.model_selection import GridSearchCV
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import SGDClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neural_network import MLPClassifier
 
 
 DATASET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal', 'target']
-DEFAULT_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'chol', 'restecg']
+DEFAULT_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'target']
+TRAINING_ITERATIONS = 1
+SVC_PARAMETER_GRID = [
+    {'C': [1, 10, 100, 1000], 'kernel': ['linear']},
+    {'C': [1, 10, 100, 1000], 'kernel': ['rbf', 'sigmoid'], 'gamma': [0.001, 0.0001]},
+    {'C': [1, 10, 100, 1000], 'kernel': ['poly'], 'gamma': [0.001, 0.0001], 'degree': [2, 3, 4]},
+]
+
+KNC_PARAMETER_GRID = [
+    {'n_neighbors': [3, 5, 10, 15], 'weights': ['uniform', 'distance'],  'algorithm': ['ball_tree', 'kd_tree', 'brute'], 'p': [1, 2], 'n_jobs': [-1]}
+]
+
+SGD_PARAMETER_GRID = [
+    {'loss': ['hinge', 'log', 'modified_huber', 'squared_hinge', 'perceptron'], 'penalty': ['l1', 'l2', 'elasticnet'], 'n_jobs': [-1]},
+]
+
+DTC_PARAMETER_GRID = [
+    {'criterion': ['gini', 'entropy'], 'splitter': ['best', 'random']},
+]
+
+MLP_PARAMETER_GRID = [
+    {'hidden_layer_sizes': [(10,), (5,), (3,), (10, 10), (10, 5), (10, 3), (5, 5), (5, 3), (3, 3)], 'activation': ['logistic', 'tanh', 'relu'], 'solver': ['lbfgs'], 'alpha': [.0001, .001, .01]},
+]
 
 
 def main():
@@ -98,10 +125,39 @@ def configure_logging(log_level):
 
 
 def train_model(input_data, target_data):
-    classifier = svm.SVC()
-    classifier.fit(input_data, target_data)
+    best_model = None
+    for _ in range(TRAINING_ITERATIONS):
+        svc = svm.SVC()
+        svc_model = GridSearchCV(svc, SVC_PARAMETER_GRID)
+        svc_model.fit(input_data, target_data)
+        if best_model is None or svc_model.best_score_ > best_model.best_score_:
+            best_model = svc_model
 
-    return classifier
+        knc = KNeighborsClassifier()
+        knc_model = GridSearchCV(knc, KNC_PARAMETER_GRID)
+        knc_model.fit(input_data, target_data)
+        if knc_model.best_score_ > best_model.best_score_:
+            best_model = knc_model
+
+        sgd = SGDClassifier()
+        sgd_model = GridSearchCV(sgd, SGD_PARAMETER_GRID)
+        sgd_model.fit(input_data, target_data)
+        if sgd_model.best_score_ > best_model.best_score_:
+            best_model = sgd_model
+
+        dtc = DecisionTreeClassifier()
+        dtc_model = GridSearchCV(dtc, DTC_PARAMETER_GRID)
+        dtc_model.fit(input_data, target_data)
+        if dtc_model.best_score_ > best_model.best_score_:
+            best_model = dtc_model
+
+        mlp = MLPClassifier()
+        mlp_model = GridSearchCV(mlp, MLP_PARAMETER_GRID)
+        mlp_model.fit(input_data, target_data)
+        if mlp_model.best_score_ > best_model.best_score_:
+            best_model = mlp_model
+
+    return best_model
 
 
 def validate_model(model, input_data, target_data):
