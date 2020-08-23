@@ -9,6 +9,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import SGDClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import StandardScaler
 
 
 DATASET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal', 'target']
@@ -43,7 +44,6 @@ def main():
     logger.info('Loading cardiac dataset from %s.', command_line_arguments.input_path)
     cardiac_dataset = pd.read_csv(command_line_arguments.input_path)
     logger.info('Done loading cardiac dataset.')
-    logger.info('Training heart disease model on cardiac dataset.')
     if command_line_arguments.columns:
         reduced_dataset = cardiac_dataset[command_line_arguments.columns + ['target']]
 
@@ -53,11 +53,14 @@ def main():
     shuffled_dataset = reduced_dataset.sample(frac=1)
     input_data = shuffled_dataset.values[:, 0:-1]
     target_data = shuffled_dataset.values[:, -1]
-    training_rows = int(len(input_data) * (1 - command_line_arguments.testing_fraction))
-    training_inputs = input_data[:training_rows]
+    scaler = StandardScaler().fit(input_data)
+    scaled_inputs = scaler.transform(input_data)
+    training_rows = int(len(scaled_inputs) * (1 - command_line_arguments.testing_fraction))
+    training_inputs = scaled_inputs[:training_rows]
     training_targets = target_data[:training_rows]
-    testing_inputs = input_data[training_rows:]
+    testing_inputs = scaled_inputs[training_rows:]
     testing_targets = target_data[training_rows:]
+    logger.info('Training heart disease model on cardiac dataset.')
     heart_disease_model = train_model(training_inputs, training_targets)
     logger.info('Done training heart disease model.')
     logger.info('Validating heart disease model.')
@@ -70,6 +73,11 @@ def main():
                 heart_disease_model.specificity)
 
     logger.info('Saving heart disease model to %s.', command_line_arguments.output_path)
+    heart_disease_model.training_inputs = training_inputs
+    heart_disease_model.training_targets = training_targets
+    heart_disease_model.testing_inputs = testing_inputs
+    heart_disease_model.testing_targets = testing_targets
+    heart_disease_model.scaler = scaler
     save_model(heart_disease_model, command_line_arguments.output_path)
     logger.info('Heart disease model saved successfully.')
 
