@@ -1,7 +1,11 @@
+import random
 import argparse
 import logging
 import pickle
+from pathlib import Path
+from collections import namedtuple
 
+import numpy as np
 import pandas as pd
 from sklearn import svm
 from sklearn.model_selection import GridSearchCV
@@ -14,6 +18,7 @@ from sklearn.preprocessing import StandardScaler
 
 DATASET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal', 'target']
 DEFAULT_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'target']
+MODEL_BASE_NAME = 'heart_disease_model'
 TRAINING_ITERATIONS = 1
 SVC_PARAMETER_GRID = [
     {'C': [1, 10, 100, 1000], 'kernel': ['linear']},
@@ -37,64 +42,113 @@ MLP_PARAMETER_GRID = [
     {'hidden_layer_sizes': [(10,), (5,), (3,), (10, 10), (10, 5), (10, 3), (5, 5), (5, 3), (3, 3)], 'activation': ['logistic', 'tanh', 'relu'], 'solver': ['lbfgs'], 'alpha': [.0001, .001, .01]},
 ]
 
+Model = namedtuple('Model', 'class_ name abbreviation parameter_grid')
+
+MODELS = (Model(svm.SVC, 'support vector machine', 'svc', SVC_PARAMETER_GRID),
+          Model(KNeighborsClassifier, 'k-nearest neighbors', 'knc', KNC_PARAMETER_GRID),
+          Model(RandomForestClassifier, 'random forest', 'rfc', RFC_PARAMETER_GRID),
+          Model(SGDClassifier, 'stochastic gradient descent', 'sgc', SGD_PARAMETER_GRID),
+          Model(MLPClassifier, 'multilayer perceptron', 'mlp', MLP_PARAMETER_GRID))
+
 
 def main():
     command_line_arguments = parse_command_line()
-    logger = configure_logging(command_line_arguments.log_level)
-    logger.info('Loading cardiac dataset from %s.', command_line_arguments.input_path)
-    cardiac_dataset = pd.read_csv(command_line_arguments.input_path)
-    logger.info('Done loading cardiac dataset.')
+    configure_logging(command_line_arguments.log_level)
+    print('Loading cardiac dataset from {}.'.format(command_line_arguments.input_path))
+    cardiac_dataset = pd.read_csv(str(command_line_arguments.input_path))
+    print('Done loading cardiac dataset.')
     if command_line_arguments.columns:
         reduced_dataset = cardiac_dataset[command_line_arguments.columns + ['target']]
 
     else:
         reduced_dataset = cardiac_dataset[DEFAULT_COLUMNS + ['target']]
 
+    print('Initial dataset')
+    print(reduced_dataset)
+    np.random.seed(command_line_arguments.random_seed)
     shuffled_dataset = reduced_dataset.sample(frac=1)
     input_data = shuffled_dataset.values[:, 0:-1]
     target_data = shuffled_dataset.values[:, -1]
     scaler = StandardScaler().fit(input_data)
     scaled_inputs = scaler.transform(input_data)
-    training_rows = int(len(scaled_inputs) * (1 - command_line_arguments.testing_fraction))
+    training_rows = int(len(scaled_inputs) * (1 - command_line_arguments.validation_fraction))
     training_inputs = scaled_inputs[:training_rows]
     training_targets = target_data[:training_rows]
-    testing_inputs = scaled_inputs[training_rows:]
-    testing_targets = target_data[training_rows:]
-    logger.info('Training heart disease model on cardiac dataset.')
-    heart_disease_model = train_model(training_inputs, training_targets)
-    logger.info('Done training heart disease model.')
-    logger.info('Validating heart disease model.')
-    validate_model(heart_disease_model, testing_inputs, testing_targets)
-    logger.info('Done validating heart disease model.')
-    logger.info('Accuracy: %f  Precision: %f Sensitivity: %f Specificity: %f',
-                heart_disease_model.accuracy,
-                heart_disease_model.precision,
-                heart_disease_model.sensitivity,
-                heart_disease_model.specificity)
+    print('\nTraining data ({} rows)'.format(len(training_inputs)))
+    print(training_inputs)
+    validation_inputs = scaled_inputs[training_rows:]
+    validation_targets = target_data[training_rows:]
+    print('\nValidation data ({} rows)'.format(len(validation_inputs)))
+    print(validation_inputs)
+    print('\nRandom number generator seed: {}'.format(command_line_arguments.random_seed))
 
-    logger.info('Saving heart disease model to %s.', command_line_arguments.output_path)
-    heart_disease_model.training_inputs = training_inputs
-    heart_disease_model.training_targets = training_targets
-    heart_disease_model.testing_inputs = testing_inputs
-    heart_disease_model.testing_targets = testing_targets
-    heart_disease_model.scaler = scaler
-    save_model(heart_disease_model, command_line_arguments.output_path)
-    logger.info('Heart disease model saved successfully.')
+    for model in MODELS:
+        build_model(model.class_,
+                    model.name,
+                    model.abbreviation,
+                    model.parameter_grid,
+                    scaler,
+                    command_line_arguments.random_seed,
+                    command_line_arguments.output_path,
+                    training_inputs,
+                    training_targets,
+                    validation_inputs,
+                    validation_targets)
+
+
+def build_model(model_class,
+                name,
+                abbreviation,
+                parameter_grid,
+                scaler,
+                random_seed,
+                output_path,
+                training_inputs,
+                training_targets,
+                validation_inputs,
+                validation_targets):
+    print('\nConstructing {} model from dataset.'.format(name))
+    model = train_model(model_class,
+                        parameter_grid,
+                        training_inputs,
+                        training_targets,
+                        TRAINING_ITERATIONS)
+
+    model.scaler = scaler
+    model.random_seed = random_seed
+    validate_model(model, validation_inputs, validation_targets)
+    print_model_results(model, name)
+    final_output_path = output_path / (MODEL_BASE_NAME + '_{}.dat'.format(abbreviation))
+    save_model(model, final_output_path)
+    print('Saved {} model to {}'.format(name, final_output_path))
+
+
+def print_model_results(model, name):
+    print('Result for {} model.'.format(name))
+    print('Accuracy:    {}'.format(model.accuracy))
+    print('Precision:   {}'.format(model.precision))
+    print('Sensitivity: {}'.format(model.sensitivity))
+    print('Specificity: {}'.format(model.specificity))
 
 
 def parse_command_line():
     parser = argparse.ArgumentParser(description='Build a machine learning model to predict heart disease.')
-    parser.add_argument('input_path', help='Path to the input cardiac dataset.')
-    parser.add_argument('output_path', help='Path to output the heart disease model to.')
-    parser.add_argument('--testing_fraction',
-                        type=testing_fraction,
+    parser.add_argument('input_path', type=Path, help='Path to the input cardiac dataset.')
+    parser.add_argument('output_path', type=Path, help='Path to output the heart disease model to.')
+    parser.add_argument('--validation_fraction',
+                        type=validation_fraction,
                         default=0.2,
-                        help='The fraction of the dataset to use for testing as a decimal between 0 and 1.')
+                        help='The fraction of the dataset to use for validation as a decimal between 0 and 1.')
 
     parser.add_argument('--columns',
-                        type=heart_disease_data_column,
+                        type=dataset_column,
                         nargs='+',
                         help='Columns in the heart disease dataset to use as inputs to the model.')
+
+    parser.add_argument('--random_seed',
+                        type=int,
+                        default=random.randint(1, 10000000),
+                        help='Initial integer to seed the random number generator with.')
 
     parser.add_argument('--log_level',
                         choices=('critical', 'error', 'warning', 'info', 'debug'),
@@ -104,15 +158,15 @@ def parse_command_line():
     return parser.parse_args()
 
 
-def testing_fraction(n):
+def validation_fraction(n):
     x = float(n)
     if x < 0 or x > 1:
-        raise ValueError('testing_fraction must not be less than 0 or greater than 1.')
+        raise ValueError('validation_fraction must not be less than 0 or greater than 1.')
 
     return x
 
 
-def heart_disease_data_column(n):
+def dataset_column(n):
     if n not in DATASET_COLUMNS:
         raise ValueError('column must be one of {}'.format(DATASET_COLUMNS))
 
@@ -132,38 +186,17 @@ def configure_logging(log_level):
     return logger
 
 
-def train_model(input_data, target_data):
+def train_model(model_class, parameter_grid, input_data, target_data, iterations):
     best_model = None
-    for _ in range(TRAINING_ITERATIONS):
-        svc = svm.SVC()
-        svc_model = GridSearchCV(svc, SVC_PARAMETER_GRID)
-        svc_model.fit(input_data, target_data)
-        if best_model is None or svc_model.best_score_ > best_model.best_score_:
-            best_model = svc_model
+    for _ in range(iterations):
+        base_model = model_class()
+        grid_search_model = GridSearchCV(base_model, parameter_grid)
+        grid_search_model.fit(input_data, target_data)
+        if best_model is None or grid_search_model.best_score_ > best_model.best_score_:
+            best_model = grid_search_model
 
-        knc = KNeighborsClassifier()
-        knc_model = GridSearchCV(knc, KNC_PARAMETER_GRID)
-        knc_model.fit(input_data, target_data)
-        if knc_model.best_score_ > best_model.best_score_:
-            best_model = knc_model
-
-        sgd = SGDClassifier()
-        sgd_model = GridSearchCV(sgd, SGD_PARAMETER_GRID)
-        sgd_model.fit(input_data, target_data)
-        if sgd_model.best_score_ > best_model.best_score_:
-            best_model = sgd_model
-
-        rfc = RandomForestClassifier()
-        rfc_model = GridSearchCV(rfc, RFC_PARAMETER_GRID)
-        rfc_model.fit(input_data, target_data)
-        if rfc_model.best_score_ > best_model.best_score_:
-            best_model = rfc_model
-
-        mlp = MLPClassifier()
-        mlp_model = GridSearchCV(mlp, MLP_PARAMETER_GRID)
-        mlp_model.fit(input_data, target_data)
-        if mlp_model.best_score_ > best_model.best_score_:
-            best_model = mlp_model
+    best_model.training_inputs = input_data
+    best_model.training_targets = target_data
 
     return best_model
 
@@ -191,10 +224,12 @@ def validate_model(model, input_data, target_data):
     model.precision = true_positives / (true_positives + false_positives)
     model.sensitivity = true_positives / (true_positives + false_negatives)
     model.specificity = true_negatives / (true_negatives + false_positives)
+    model.validation_inputs = input_data
+    model.validation_targets = target_data
 
 
 def save_model(model, output_path):
-    with open(output_path, 'wb') as output_file:
+    with output_path.open('wb') as output_file:
         pickle.dump(model, output_file)
 
 
