@@ -7,7 +7,7 @@ from sklearn import svm
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import SGDClassifier
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 
 
@@ -28,8 +28,8 @@ SGD_PARAMETER_GRID = [
     {'loss': ['hinge', 'log', 'modified_huber', 'squared_hinge', 'perceptron'], 'penalty': ['l1', 'l2', 'elasticnet'], 'n_jobs': [-1]},
 ]
 
-DTC_PARAMETER_GRID = [
-    {'criterion': ['gini', 'entropy'], 'splitter': ['best', 'random']},
+RFC_PARAMETER_GRID = [
+    {'n_estimators': [50, 100, 200, 1000], 'max_samples': [0.1, 0.4, 0.8, 1], 'criterion': ['gini', 'entropy'], 'n_jobs': [-1]},
 ]
 
 MLP_PARAMETER_GRID = [
@@ -145,11 +145,11 @@ def train_model(input_data, target_data):
         if sgd_model.best_score_ > best_model.best_score_:
             best_model = sgd_model
 
-        dtc = DecisionTreeClassifier()
-        dtc_model = GridSearchCV(dtc, DTC_PARAMETER_GRID)
-        dtc_model.fit(input_data, target_data)
-        if dtc_model.best_score_ > best_model.best_score_:
-            best_model = dtc_model
+        rfc = RandomForestClassifier()
+        rfc_model = GridSearchCV(rfc, RFC_PARAMETER_GRID)
+        rfc_model.fit(input_data, target_data)
+        if rfc_model.best_score_ > best_model.best_score_:
+            best_model = rfc_model
 
         mlp = MLPClassifier()
         mlp_model = GridSearchCV(mlp, MLP_PARAMETER_GRID)
