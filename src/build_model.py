@@ -2,6 +2,8 @@ import random
 import argparse
 import logging
 import pickle
+import time
+import subprocess
 from pathlib import Path
 from collections import namedtuple
 
@@ -19,27 +21,27 @@ from sklearn.preprocessing import StandardScaler
 DATASET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal', 'target']
 DEFAULT_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope']
 MODEL_BASE_NAME = 'heart_disease_model'
-TRAINING_ITERATIONS = 30
 SVC_PARAMETER_GRID = [
-    {'C': [1, 10, 100, 1000], 'kernel': ['linear']},
-    {'C': [1, 10, 100, 1000], 'kernel': ['rbf', 'sigmoid'], 'gamma': [0.001, 0.0001]},
-    {'C': [1, 10, 100, 1000], 'kernel': ['poly'], 'gamma': [0.001, 0.0001], 'degree': [2, 3, 4]},
+    {'C': [0.001, 0.1, 0.5, 1, 2, 10, 100, 1000], 'kernel': ['linear'], 'cache_size': [500]},
+    {'C': [0.001, 0.1, 0.5, 1, 2, 10, 100, 1000], 'kernel': ['rbf', 'sigmoid'], 'gamma': [0.001, 0.0001], 'cache_size': [500]},
+    {'C': [0.001, 0.1, 0.5, 1, 2, 10, 100, 1000], 'kernel': ['poly'], 'gamma': [0.001, 0.0001], 'degree': [2, 3, 4], 'cache_size': [500]},
 ]
 
 KNC_PARAMETER_GRID = [
-    {'n_neighbors': [3, 5, 10, 15], 'weights': ['uniform', 'distance'],  'algorithm': ['ball_tree', 'kd_tree', 'brute'], 'p': [1, 2], 'n_jobs': [-1]}
+    {'n_neighbors': [3, 5, 10, 15], 'weights': ['uniform', 'distance'],  'algorithm': ['ball_tree', 'kd_tree', 'brute'], 'p': [1, 2, 3], 'n_jobs': [-1]}
 ]
 
 SGD_PARAMETER_GRID = [
-    {'loss': ['hinge', 'log', 'modified_huber', 'squared_hinge', 'perceptron'], 'penalty': ['l1', 'l2', 'elasticnet'], 'n_jobs': [-1]},
+    {'loss': ['hinge', 'log', 'modified_huber', 'squared_hinge', 'perceptron'], 'penalty': ['l1', 'l2', 'elasticnet'], 'alpha': 10.0**-np.arange(1,7), 'n_jobs': [-1], 'max_iter': [1000, 1500, 2000]},
 ]
 
 RFC_PARAMETER_GRID = [
-    {'n_estimators': [50, 100, 200, 1000], 'max_samples': [0.1, 0.4, 0.8, 1], 'criterion': ['gini', 'entropy'], 'n_jobs': [-1]},
+    {'n_estimators': [50, 100, 200, 1000], 'max_features': [None, 'sqrt'], 'max_samples': [0.1, 0.4, 0.8, 1], 'criterion': ['gini', 'entropy'], 'max_depth': [None, 3, 6, 12], 'min_samples_split': [2, 4, 8], 'n_jobs': [-1]},
 ]
 
 MLP_PARAMETER_GRID = [
-    {'hidden_layer_sizes': [(10,), (5,), (3,), (10, 10), (10, 5), (10, 3), (5, 5), (5, 3), (3, 3)], 'activation': ['logistic', 'tanh', 'relu'], 'solver': ['lbfgs'], 'alpha': [.0001, .001, .01], 'max_iter': [300, 600, 900]},
+    {'hidden_layer_sizes': [(10,), (5,), (3,), (10, 10), (10, 5), (10, 3), (5, 5), (5, 3), (3, 3)], 'solver': ['adam']},
+    {'hidden_layer_sizes': [(10,), (5,), (3,), (10, 10), (10, 5), (10, 3), (5, 5), (5, 3), (3, 3)], 'activation': ['logistic', 'tanh', 'relu'], 'solver': ['sgd'], 'alpha': 10.0 ** -np.arange(1, 7), 'max_iter': [1000, 1500, 2000], 'learning_rate': ['constant', 'invscaling', 'adaptive'], 'learning_rate_init': [0.0001, 0.001, 0.01, 0.1]},
 ]
 
 Model = namedtuple('Model', 'class_ name abbreviation parameter_grid')
@@ -52,9 +54,10 @@ MODELS = (Model(svm.SVC, 'support vector machine', 'svc', SVC_PARAMETER_GRID),
 
 
 def main():
+    start_time = time.time()
     command_line_arguments = parse_command_line()
     configure_logging(command_line_arguments.log_level)
-    print('Loading cardiac dataset from {}.'.format(command_line_arguments.input_path))
+    print('Loading cardiac dataset from {}'.format(command_line_arguments.input_path))
     cardiac_dataset = pd.read_csv(str(command_line_arguments.input_path))
     print('Done loading cardiac dataset.')
     if command_line_arguments.columns:
@@ -63,8 +66,6 @@ def main():
     else:
         reduced_dataset = cardiac_dataset[DEFAULT_COLUMNS + ['target']]
 
-    print('Initial dataset')
-    print(reduced_dataset)
     np.random.seed(command_line_arguments.random_seed)
     shuffled_dataset = reduced_dataset.sample(frac=1)
     input_data = shuffled_dataset.values[:, 0:-1]
@@ -74,53 +75,50 @@ def main():
     training_rows = int(len(scaled_inputs) * (1 - command_line_arguments.validation_fraction))
     training_inputs = scaled_inputs[:training_rows]
     training_targets = target_data[:training_rows]
-    print('\nTraining data ({} rows)'.format(len(training_inputs)))
-    print(training_inputs)
     validation_inputs = scaled_inputs[training_rows:]
     validation_targets = target_data[training_rows:]
-    print('\nValidation data ({} rows)'.format(len(validation_inputs)))
-    print(validation_inputs)
-    print('\nRandom number generator seed: {}'.format(command_line_arguments.random_seed))
-
+    commit_hash = get_commit_hash()
+    print('Training dataset row count: {}'.format(len(training_inputs)))
+    print('Validation dataset row count: {}'.format(len(validation_inputs)))
+    print('Random number generator seed: {}'.format(command_line_arguments.random_seed))
+    print('Training iterations: {}'.format(command_line_arguments.training_iterations))
+    print('Commit hash: {}'.format(commit_hash))
     for model in MODELS:
-        build_model(model.class_,
-                    model.name,
-                    model.abbreviation,
-                    model.parameter_grid,
-                    scaler,
-                    command_line_arguments.random_seed,
-                    command_line_arguments.output_path,
-                    training_inputs,
-                    training_targets,
-                    validation_inputs,
-                    validation_targets)
+        if model.name == 'stochastic gradient descent':
+            model.parameter_grid[0]['max_iter'] = [np.ceil(10**6 / len(training_inputs))]
+
+        print('\nConstructing {} model from dataset...'.format(model.name))
+        classifier = train_model(model.class_,
+                                 model.parameter_grid,
+                                 training_inputs,
+                                 training_targets,
+                                 command_line_arguments.training_iterations)
+
+        classifier.scaler = scaler
+        classifier.random_seed = command_line_arguments.random_seed
+        classifier.training_iterations = command_line_arguments.training_iterations
+        classifier.commit_hash = commit_hash
+        classifier.validation = 'UNVALIDATED'
+        validate_model(classifier, validation_inputs, validation_targets)
+        print_model_results(classifier, model.name)
+        final_output_path = (command_line_arguments.output_path
+                             / (MODEL_BASE_NAME + '_{}.dat'.format(model.abbreviation)))
+
+        save_model(classifier, final_output_path)
+        print('Saved {} model to {}'.format(model.name, final_output_path))
+
+    print('Runtime: {} seconds'.format(time.time() - start_time))
 
 
-def build_model(model_class,
-                name,
-                abbreviation,
-                parameter_grid,
-                scaler,
-                random_seed,
-                output_path,
-                training_inputs,
-                training_targets,
-                validation_inputs,
-                validation_targets):
-    print('\nConstructing {} model from dataset.'.format(name))
-    model = train_model(model_class,
-                        parameter_grid,
-                        training_inputs,
-                        training_targets,
-                        TRAINING_ITERATIONS)
+def get_commit_hash():
+    try:
+        if subprocess.check_output(['git', 'diff']).strip():
+            return ''
 
-    model.scaler = scaler
-    model.random_seed = random_seed
-    validate_model(model, validation_inputs, validation_targets)
-    print_model_results(model, name)
-    final_output_path = output_path / (MODEL_BASE_NAME + '_{}.dat'.format(abbreviation))
-    save_model(model, final_output_path)
-    print('Saved {} model to {}'.format(name, final_output_path))
+        return subprocess.check_output(['git', 'rev-parse', '--verify', 'HEAD']).decode('utf-8').strip()
+
+    except FileNotFoundError:
+        return ''
 
 
 def print_model_results(model, name):
@@ -149,6 +147,11 @@ def parse_command_line():
                         type=int,
                         default=random.randint(1, 10000000),
                         help='Initial integer to seed the random number generator with.')
+
+    parser.add_argument('--training_iterations',
+                        type=int,
+                        default=1,
+                        help='Number of iterations to use when training the model.')
 
     parser.add_argument('--log_level',
                         choices=('critical', 'error', 'warning', 'info', 'debug'),
@@ -188,17 +191,19 @@ def configure_logging(log_level):
 
 def train_model(model_class, parameter_grid, input_data, target_data, iterations):
     best_model = None
-    for _ in range(iterations):
+    for iteration in range(iterations):
+        print('training iteration #{}'.format(iteration + 1))
         base_model = model_class()
         grid_search_model = GridSearchCV(base_model, parameter_grid)
         grid_search_model.fit(input_data, target_data)
         if best_model is None or grid_search_model.best_score_ > best_model.best_score_:
             best_model = grid_search_model
 
-    best_model.training_inputs = input_data
-    best_model.training_targets = target_data
+    classifier = best_model.best_estimator_
+    classifier.training_inputs = input_data
+    classifier.training_targets = target_data
 
-    return best_model
+    return classifier
 
 
 def validate_model(model, input_data, target_data):
