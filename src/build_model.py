@@ -20,6 +20,7 @@ from sklearn.preprocessing import StandardScaler
 
 DATASET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal', 'target']
 DEFAULT_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope']
+GITHUB_URL = 'https://github.com/jerradmgenson/cardiac'
 MODEL_BASE_NAME = 'heart_disease_model'
 SVC_PARAMETER_GRID = [
     {'C': [0.001, 0.1, 0.5, 1, 2, 10, 100, 1000], 'kernel': ['linear'], 'cache_size': [500]},
@@ -99,6 +100,7 @@ def main():
         classifier.training_iterations = command_line_arguments.training_iterations
         classifier.commit_hash = commit_hash
         classifier.validation = 'UNVALIDATED'
+        classifier.url = GITHUB_URL
         validate_model(classifier, validation_inputs, validation_targets)
         print_model_results(classifier, model.name)
         final_output_path = (command_line_arguments.output_path
