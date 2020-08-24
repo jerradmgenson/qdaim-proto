@@ -42,17 +42,12 @@ RFC_PARAMETER_GRID = [
     {'n_estimators': [50, 100, 200], 'max_features': [None, 'sqrt'], 'max_samples': [0.1, 0.4, 0.8, 1], 'criterion': ['gini', 'entropy'], 'min_samples_split': [2, 4, 8]},
 ]
 
-MLP_PARAMETER_GRID = [
-    {'hidden_layer_sizes': [(10,), (5,), (3,), (10, 5), (10, 3), (5, 3)], 'activation': ['logistic', 'tanh', 'relu'], 'solver': ['sgd'], 'alpha': 10.0 ** -np.arange(1, 7), 'max_iter': [1500, 2000], 'learning_rate': ['constant', 'invscaling', 'adaptive'], 'learning_rate_init': [0.001, 0.01, 0.1]},
-]
-
 Model = namedtuple('Model', 'class_ name abbreviation parameter_grid')
 
 MODELS = (Model(svm.SVC, 'support vector machine', 'svc', SVC_PARAMETER_GRID),
           Model(KNeighborsClassifier, 'k-nearest neighbors', 'knc', KNC_PARAMETER_GRID),
           Model(RandomForestClassifier, 'random forest', 'rfc', RFC_PARAMETER_GRID),
-          Model(SGDClassifier, 'stochastic gradient descent', 'sgc', SGD_PARAMETER_GRID),
-          Model(MLPClassifier, 'multilayer perceptron', 'mlp', MLP_PARAMETER_GRID))
+          Model(SGDClassifier, 'stochastic gradient descent', 'sgc', SGD_PARAMETER_GRID))
 
 
 def main():
