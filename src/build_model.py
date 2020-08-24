@@ -4,6 +4,8 @@ import logging
 import pickle
 import time
 import subprocess
+import multiprocessing
+import os
 from pathlib import Path
 from collections import namedtuple
 
@@ -29,20 +31,20 @@ SVC_PARAMETER_GRID = [
 ]
 
 KNC_PARAMETER_GRID = [
-    {'n_neighbors': [3, 5, 10, 15], 'weights': ['uniform', 'distance'],  'algorithm': ['ball_tree', 'kd_tree', 'brute'], 'p': [1, 2, 3], 'n_jobs': [-1]}
+    {'n_neighbors': [3, 5, 10, 15], 'weights': ['uniform', 'distance'],  'algorithm': ['ball_tree', 'kd_tree', 'brute'], 'p': [1, 2, 3]}
 ]
 
 SGD_PARAMETER_GRID = [
-    {'loss': ['hinge', 'log', 'modified_huber', 'squared_hinge', 'perceptron'], 'penalty': ['l1', 'l2', 'elasticnet'], 'alpha': 10.0**-np.arange(1,7), 'n_jobs': [-1], 'max_iter': [1000, 1500, 2000]},
+    {'loss': ['hinge', 'log', 'modified_huber', 'squared_hinge', 'perceptron'], 'penalty': ['l1', 'l2', 'elasticnet'], 'alpha': 10.0**-np.arange(1,7), 'max_iter': [1500, 2000]},
 ]
 
 RFC_PARAMETER_GRID = [
-    {'n_estimators': [50, 100, 200, 1000], 'max_features': [None, 'sqrt'], 'max_samples': [0.1, 0.4, 0.8, 1], 'criterion': ['gini', 'entropy'], 'max_depth': [None, 3, 6, 12], 'min_samples_split': [2, 4, 8], 'n_jobs': [-1]},
+    {'n_estimators': [50, 100, 200, 1000], 'max_features': [None, 'sqrt'], 'max_samples': [0.1, 0.4, 0.8, 1], 'criterion': ['gini', 'entropy'], 'max_depth': [None, 3, 6, 12], 'min_samples_split': [2, 4, 8]},
 ]
 
 MLP_PARAMETER_GRID = [
     {'hidden_layer_sizes': [(10,), (5,), (3,), (10, 10), (10, 5), (10, 3), (5, 5), (5, 3), (3, 3)], 'solver': ['adam']},
-    {'hidden_layer_sizes': [(10,), (5,), (3,), (10, 10), (10, 5), (10, 3), (5, 5), (5, 3), (3, 3)], 'activation': ['logistic', 'tanh', 'relu'], 'solver': ['sgd'], 'alpha': 10.0 ** -np.arange(1, 7), 'max_iter': [1000, 1500, 2000], 'learning_rate': ['constant', 'invscaling', 'adaptive'], 'learning_rate_init': [0.0001, 0.001, 0.01, 0.1]},
+    {'hidden_layer_sizes': [(10,), (5,), (3,), (10, 10), (10, 5), (10, 3), (5, 5), (5, 3), (3, 3)], 'activation': ['logistic', 'tanh', 'relu'], 'solver': ['sgd'], 'alpha': 10.0 ** -np.arange(1, 7), 'max_iter': [1500, 2000], 'learning_rate': ['constant', 'invscaling', 'adaptive'], 'learning_rate_init': [0.0001, 0.001, 0.01, 0.1]},
 ]
 
 Model = namedtuple('Model', 'class_ name abbreviation parameter_grid')
@@ -84,30 +86,38 @@ def main():
     print('Random number generator seed: {}'.format(command_line_arguments.random_seed))
     print('Training iterations: {}'.format(command_line_arguments.training_iterations))
     print('Commit hash: {}'.format(commit_hash))
-    for model in MODELS:
-        if model.name == 'stochastic gradient descent':
-            model.parameter_grid[0]['max_iter'] = [np.ceil(10**6 / len(training_inputs))]
+    jobs = []
+    for model_args in MODELS:
+        if model_args.name == 'stochastic gradient descent':
+            model_args.parameter_grid[0]['max_iter'] = [np.ceil(10**6 / len(training_inputs))]
 
-        print('\nConstructing {} model from dataset...'.format(model.name))
-        classifier = train_model(model.class_,
-                                 model.parameter_grid,
-                                 training_inputs,
-                                 training_targets,
-                                 command_line_arguments.training_iterations)
+        jobs.extend([(model_args, training_inputs, training_targets)] * command_line_arguments.training_iterations)
 
-        classifier.scaler = scaler
-        classifier.random_seed = command_line_arguments.random_seed
-        classifier.training_iterations = command_line_arguments.training_iterations
-        classifier.commit_hash = commit_hash
-        classifier.validation = 'UNVALIDATED'
-        classifier.url = GITHUB_URL
-        validate_model(classifier, validation_inputs, validation_targets)
-        print_model_results(classifier, model.name)
-        final_output_path = (command_line_arguments.output_path
-                             / (MODEL_BASE_NAME + '_{}.dat'.format(model.abbreviation)))
+    with multiprocessing.Pool(command_line_arguments.cpu) as pool:
+        models = pool.map(train_model, jobs)
 
-        save_model(classifier, final_output_path)
-        print('Saved {} model to {}'.format(model.name, final_output_path))
+    best_model = None
+    for count, model in enumerate(models):
+        if best_model is None or model.best_score > best_model.best_score:
+            best_model = model
+
+        if (count + 1) % command_line_arguments.training_iterations == 0:
+            best_model.scaler = scaler
+            best_model.random_seed = command_line_arguments.random_seed
+            best_model.training_iterations = command_line_arguments.training_iterations
+            best_model.commit_hash = commit_hash
+            best_model.validation = 'UNVALIDATED'
+            best_model.url = GITHUB_URL
+            best_model.training_inputs = training_inputs
+            best_model.training_targets = training_targets
+            validate_model(best_model, validation_inputs, validation_targets)
+            print_model_results(best_model, best_model.name)
+            final_output_path = (command_line_arguments.output_path
+                                 / (MODEL_BASE_NAME + '_{}.dat'.format(best_model.abbreviation)))
+
+            save_model(best_model, final_output_path)
+            print('Saved {} model to {}'.format(best_model.name, final_output_path))
+            best_model = None
 
     print('Runtime: {} seconds'.format(time.time() - start_time))
 
@@ -124,7 +134,7 @@ def get_commit_hash():
 
 
 def print_model_results(model, name):
-    print('Result for {} model.'.format(name))
+    print('\nResults for {} model:'.format(name))
     print('Accuracy:    {}'.format(model.accuracy))
     print('Precision:   {}'.format(model.precision))
     print('Sensitivity: {}'.format(model.sensitivity))
@@ -154,6 +164,11 @@ def parse_command_line():
                         type=int,
                         default=1,
                         help='Number of iterations to use when training the model.')
+
+    parser.add_argument('--cpu',
+                        type=int,
+                        default=os.cpu_count(),
+                        help='Number of processes to use for training models.')
 
     parser.add_argument('--log_level',
                         choices=('critical', 'error', 'warning', 'info', 'debug'),
@@ -191,21 +206,19 @@ def configure_logging(log_level):
     return logger
 
 
-def train_model(model_class, parameter_grid, input_data, target_data, iterations):
-    best_model = None
-    for iteration in range(iterations):
-        print('training iteration #{}'.format(iteration + 1))
-        base_model = model_class()
-        grid_search_model = GridSearchCV(base_model, parameter_grid)
-        grid_search_model.fit(input_data, target_data)
-        if best_model is None or grid_search_model.best_score_ > best_model.best_score_:
-            best_model = grid_search_model
+def train_model(job):
+    model_args = job[0]
+    training_inputs = job[1]
+    training_targets = job[2]
+    base_model = model_args.class_()
+    grid_estimator = GridSearchCV(base_model, model_args.parameter_grid)
+    grid_estimator.fit(training_inputs, training_targets)
+    model = grid_estimator.best_estimator_
+    model.best_score = grid_estimator.best_score_
+    model.name = model_args.name
+    model.abbreviation = model_args.abbreviation
 
-    classifier = best_model.best_estimator_
-    classifier.training_inputs = input_data
-    classifier.training_targets = target_data
-
-    return classifier
+    return model
 
 
 def validate_model(model, input_data, target_data):
