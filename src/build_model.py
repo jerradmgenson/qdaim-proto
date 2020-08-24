@@ -39,12 +39,11 @@ SGD_PARAMETER_GRID = [
 ]
 
 RFC_PARAMETER_GRID = [
-    {'n_estimators': [50, 100, 200, 1000], 'max_features': [None, 'sqrt'], 'max_samples': [0.1, 0.4, 0.8, 1], 'criterion': ['gini', 'entropy'], 'max_depth': [None, 3, 6, 12], 'min_samples_split': [2, 4, 8]},
+    {'n_estimators': [50, 100, 200], 'max_features': [None, 'sqrt'], 'max_samples': [0.1, 0.4, 0.8, 1], 'criterion': ['gini', 'entropy'], 'min_samples_split': [2, 4, 8]},
 ]
 
 MLP_PARAMETER_GRID = [
-    {'hidden_layer_sizes': [(10,), (5,), (3,), (10, 10), (10, 5), (10, 3), (5, 5), (5, 3), (3, 3)], 'solver': ['adam']},
-    {'hidden_layer_sizes': [(10,), (5,), (3,), (10, 10), (10, 5), (10, 3), (5, 5), (5, 3), (3, 3)], 'activation': ['logistic', 'tanh', 'relu'], 'solver': ['sgd'], 'alpha': 10.0 ** -np.arange(1, 7), 'max_iter': [1500, 2000], 'learning_rate': ['constant', 'invscaling', 'adaptive'], 'learning_rate_init': [0.0001, 0.001, 0.01, 0.1]},
+    {'hidden_layer_sizes': [(10,), (5,), (3,), (10, 5), (10, 3), (5, 3)], 'activation': ['logistic', 'tanh', 'relu'], 'solver': ['sgd'], 'alpha': 10.0 ** -np.arange(1, 7), 'max_iter': [1500, 2000], 'learning_rate': ['constant', 'invscaling', 'adaptive'], 'learning_rate_init': [0.001, 0.01, 0.1]},
 ]
 
 Model = namedtuple('Model', 'class_ name abbreviation parameter_grid')
