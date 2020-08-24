@@ -63,6 +63,7 @@ def main():
     else:
         reduced_dataset = cardiac_dataset[DEFAULT_COLUMNS + ['target']]
 
+    random.seed(command_line_arguments.random_seed)
     np.random.seed(command_line_arguments.random_seed)
     shuffled_dataset = reduced_dataset.sample(frac=1)
     input_data = shuffled_dataset.values[:, 0:-1]
