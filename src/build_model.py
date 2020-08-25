@@ -16,7 +16,6 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import SGDClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
 
 
@@ -70,13 +69,18 @@ def main():
     target_data = shuffled_dataset.values[:, -1]
     scaler = StandardScaler().fit(input_data)
     scaled_inputs = scaler.transform(input_data)
-    training_rows = int(len(scaled_inputs) * (1 - command_line_arguments.validation_fraction))
-    training_inputs = scaled_inputs[:training_rows]
-    training_targets = target_data[:training_rows]
-    validation_inputs = scaled_inputs[training_rows:]
-    validation_targets = target_data[training_rows:]
+    validation_rows = int(len(scaled_inputs) * command_line_arguments.validation_fraction)
+    testing_rows = int(len(scaled_inputs) * command_line_arguments.testing_fraction)
+    testing_end = validation_rows + testing_rows
+    validation_inputs = scaled_inputs[:validation_rows]
+    validation_targets = target_data[:validation_rows]
+    testing_inputs = scaled_inputs[validation_rows:testing_end]
+    testing_targets = scaled_inputs[validation_rows:testing_end]
+    training_inputs = scaled_inputs[testing_end:]
+    training_targets = target_data[testing_end:]
     commit_hash = get_commit_hash()
     print('Training dataset row count: {}'.format(len(training_inputs)))
+    print('Testing dataset row count: {}'.format(len(testing_inputs)))
     print('Validation dataset row count: {}'.format(len(validation_inputs)))
     print('Random number generator seed: {}'.format(command_line_arguments.random_seed))
     print('Training iterations: {}'.format(command_line_arguments.training_iterations))
@@ -86,7 +90,8 @@ def main():
         if model_args.name == 'stochastic gradient descent':
             model_args.parameter_grid[0]['max_iter'] = [np.ceil(10**6 / len(training_inputs))]
 
-        jobs.extend([(model_args, training_inputs, training_targets)] * command_line_arguments.training_iterations)
+        job = model_args, training_inputs, training_targets, testing_inputs, testing_targets
+        jobs.extend([job] * command_line_arguments.training_iterations)
 
     with multiprocessing.Pool(command_line_arguments.cpu) as pool:
         models = pool.map(train_model, jobs)
@@ -97,15 +102,21 @@ def main():
             best_model = model
 
         if (count + 1) % command_line_arguments.training_iterations == 0:
+            best_model.command_line_arguments = command_line_arguments
             best_model.scaler = scaler
             best_model.random_seed = command_line_arguments.random_seed
-            best_model.training_iterations = command_line_arguments.training_iterations
             best_model.commit_hash = commit_hash
             best_model.validation = 'UNVALIDATED'
             best_model.url = GITHUB_URL
             best_model.training_inputs = training_inputs
             best_model.training_targets = training_targets
-            validate_model(best_model, validation_inputs, validation_targets)
+            best_model.validation_inputs = validation_inputs
+            best_model.validation_targets = validation_targets
+            model_quality = validate_model(best_model, validation_inputs, validation_targets)
+            best_model.accuracy = model_quality.accuracy
+            best_model.precision = model_quality.precision
+            best_model.sensitivity = model_quality.sensitivity
+            best_model.specificity = model_quality.specificity
             print_model_results(best_model, best_model.name)
             final_output_path = (command_line_arguments.output_path
                                  / (MODEL_BASE_NAME + '_{}.dat'.format(best_model.abbreviation)))
@@ -144,6 +155,11 @@ def parse_command_line():
                         type=validation_fraction,
                         default=0.2,
                         help='The fraction of the dataset to use for validation as a decimal between 0 and 1.')
+
+    parser.add_argument('--testing_fraction',
+                        type=validation_fraction,
+                        default=0.1,
+                        help='The fraction of the dataset to use for testing as a decimal between 0 and 1.')
 
     parser.add_argument('--columns',
                         type=dataset_column,
@@ -205,8 +221,13 @@ def train_model(job):
     model_args = job[0]
     training_inputs = job[1]
     training_targets = job[2]
+    testing_inputs = job[3]
+    testing_targets = job[4]
+    calculate_score = create_scorer(testing_inputs, testing_targets)
     base_model = model_args.class_()
-    grid_estimator = GridSearchCV(base_model, model_args.parameter_grid)
+    grid_estimator = GridSearchCV(base_model, model_args.parameter_grid,
+                                  scoring=calculate_score)
+
     grid_estimator.fit(training_inputs, training_targets)
     model = grid_estimator.best_estimator_
     model.best_score = grid_estimator.best_score_
@@ -214,6 +235,16 @@ def train_model(job):
     model.abbreviation = model_args.abbreviation
 
     return model
+
+
+def create_scorer(testing_inputs, testing_targets):
+    def calculate_score(model, x, y):
+        model_quality = validate_model(model, testing_inputs, testing_targets)
+        return model_quality.accuracy
+
+
+ModelQuality = namedtuple('ModelQuality',
+                          'accuracy precision sensitivity specificity')
 
 
 def validate_model(model, input_data, target_data):
@@ -235,12 +266,12 @@ def validate_model(model, input_data, target_data):
         else:
             true_negatives += 1.0
 
-    model.accuracy = (true_positives + true_negatives) / len(input_data)
-    model.precision = true_positives / (true_positives + false_positives)
-    model.sensitivity = true_positives / (true_positives + false_negatives)
-    model.specificity = true_negatives / (true_negatives + false_positives)
-    model.validation_inputs = input_data
-    model.validation_targets = target_data
+    accuracy = (true_positives + true_negatives) / len(input_data)
+    precision = true_positives / (true_positives + false_positives)
+    sensitivity = true_positives / (true_positives + false_negatives)
+    specificity = true_negatives / (true_negatives + false_positives)
+
+    return ModelQuality(accuracy, precision, sensitivity, specificity)
 
 
 def save_model(model, output_path):
