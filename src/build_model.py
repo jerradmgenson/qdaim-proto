@@ -17,6 +17,7 @@ from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import SGDClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
 
 
 DATASET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal', 'target']
@@ -24,21 +25,21 @@ DEFAULT_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'th
 GITHUB_URL = 'https://github.com/jerradmgenson/cardiac'
 MODEL_BASE_NAME = 'heart_disease_model'
 SVC_PARAMETER_GRID = [
-    {'C': [0.001, 0.1, 0.5, 1, 2, 10, 100, 1000], 'kernel': ['linear'], 'cache_size': [500]},
-    {'C': [0.001, 0.1, 0.5, 1, 2, 10, 100, 1000], 'kernel': ['rbf', 'sigmoid'], 'gamma': [0.001, 0.0001], 'cache_size': [500]},
-    {'C': [0.001, 0.1, 0.5, 1, 2, 10, 100, 1000], 'kernel': ['poly'], 'gamma': [0.001, 0.0001], 'degree': [2, 3, 4], 'cache_size': [500]},
+    {'model__C': [0.001, 0.1, 0.5, 1, 2, 10, 100, 1000], 'model__kernel': ['linear'], 'model__cache_size': [500]},
+    {'model__C': [0.001, 0.1, 0.5, 1, 2, 10, 100, 1000], 'model__kernel': ['rbf', 'sigmoid'], 'model__gamma': [0.001, 0.0001], 'model__cache_size': [500]},
+    {'model__C': [0.001, 0.1, 0.5, 1, 2, 10, 100, 1000], 'model__kernel': ['poly'], 'model__gamma': [0.001, 0.0001], 'model__degree': [2, 3, 4], 'model__cache_size': [500]},
 ]
 
 KNC_PARAMETER_GRID = [
-    {'n_neighbors': [3, 5, 10, 15], 'weights': ['uniform', 'distance'],  'algorithm': ['ball_tree', 'kd_tree', 'brute'], 'p': [1, 2, 3]}
+    {'model__n_neighbors': [3, 5, 10, 15], 'model__weights': ['uniform', 'distance'],  'model__algorithm': ['ball_tree', 'kd_tree', 'brute'], 'model__p': [1, 2, 3]}
 ]
 
 SGD_PARAMETER_GRID = [
-    {'loss': ['hinge', 'log', 'modified_huber', 'squared_hinge', 'perceptron'], 'penalty': ['l1', 'l2', 'elasticnet'], 'alpha': 10.0**-np.arange(1,7), 'max_iter': [1500, 2000]},
+    {'model__loss': ['hinge', 'log', 'modified_huber', 'squared_hinge', 'perceptron'], 'model__penalty': ['l1', 'l2', 'elasticnet'], 'model__alpha': 10.0**-np.arange(1,7), 'model__max_iter': [1500, 2000]},
 ]
 
 RFC_PARAMETER_GRID = [
-    {'n_estimators': [50, 100, 200], 'max_features': [None, 'sqrt'], 'max_samples': [0.1, 0.4, 0.8, 1], 'criterion': ['gini', 'entropy'], 'min_samples_split': [2, 4, 8]},
+    {'model__n_estimators': [50, 100, 200], 'model__max_features': [None, 'sqrt'], 'model__max_samples': [0.1, 0.4, 0.8, 1], 'model__criterion': ['gini', 'entropy'], 'model__min_samples_split': [2, 4, 8]},
 ]
 
 Model = namedtuple('Model', 'class_ name abbreviation parameter_grid')
@@ -67,28 +68,25 @@ def main():
     shuffled_dataset = reduced_dataset.sample(frac=1)
     input_data = shuffled_dataset.values[:, 0:-1]
     target_data = shuffled_dataset.values[:, -1]
-    scaler = StandardScaler().fit(input_data)
-    scaled_inputs = scaler.transform(input_data)
-    validation_rows = int(len(scaled_inputs) * command_line_arguments.validation_fraction)
-    testing_rows = int(len(scaled_inputs) * command_line_arguments.testing_fraction)
+    validation_rows = int(len(input_data) * command_line_arguments.validation_fraction)
+    testing_rows = int(len(input_data) * command_line_arguments.testing_fraction)
     testing_end = validation_rows + testing_rows
-    validation_inputs = scaled_inputs[:validation_rows]
+    validation_inputs = input_data[:validation_rows]
     validation_targets = target_data[:validation_rows]
-    testing_inputs = scaled_inputs[validation_rows:testing_end]
-    testing_targets = scaled_inputs[validation_rows:testing_end]
-    training_inputs = scaled_inputs[testing_end:]
+    testing_inputs = input_data[validation_rows:testing_end]
+    testing_targets = input_data[validation_rows:testing_end]
+    training_inputs = input_data[testing_end:]
     training_targets = target_data[testing_end:]
     commit_hash = get_commit_hash()
-    print('Training dataset row count: {}'.format(len(training_inputs)))
-    print('Testing dataset row count: {}'.format(len(testing_inputs)))
-    print('Validation dataset row count: {}'.format(len(validation_inputs)))
+    print('Training dataset rows: {}'.format(len(training_inputs)))
+    print('Testing dataset rows: {}'.format(len(testing_inputs)))
+    print('Validation dataset rows: {}'.format(len(validation_inputs)))
     print('Random number generator seed: {}'.format(command_line_arguments.random_seed))
-    print('Training iterations: {}'.format(command_line_arguments.training_iterations))
     print('Commit hash: {}'.format(commit_hash))
     jobs = []
     for model_args in MODELS:
         if model_args.name == 'stochastic gradient descent':
-            model_args.parameter_grid[0]['max_iter'] = [np.ceil(10**6 / len(training_inputs))]
+            model_args.parameter_grid[0]['model__max_iter'] = [np.ceil(10**6 / len(training_inputs))]
 
         job = model_args, training_inputs, training_targets, testing_inputs, testing_targets
         jobs.extend([job] * command_line_arguments.training_iterations)
@@ -103,7 +101,6 @@ def main():
 
         if (count + 1) % command_line_arguments.training_iterations == 0:
             best_model.command_line_arguments = command_line_arguments
-            best_model.scaler = scaler
             best_model.random_seed = command_line_arguments.random_seed
             best_model.commit_hash = commit_hash
             best_model.validation = 'UNVALIDATED'
@@ -225,7 +222,8 @@ def train_model(job):
     testing_targets = job[4]
     calculate_score = create_scorer(testing_inputs, testing_targets)
     base_model = model_args.class_()
-    grid_estimator = GridSearchCV(base_model, model_args.parameter_grid,
+    pipeline = Pipeline(steps=[('scaler', StandardScaler()), ('model', base_model)])
+    grid_estimator = GridSearchCV(pipeline, model_args.parameter_grid,
                                   scoring=calculate_score)
 
     grid_estimator.fit(training_inputs, training_targets)
