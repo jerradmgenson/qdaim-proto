@@ -88,7 +88,13 @@ def main():
         if model_args.name == 'stochastic gradient descent':
             model_args.parameter_grid[0]['model__max_iter'] = [np.ceil(10**6 / len(training_inputs))]
 
-        job = model_args, training_inputs, training_targets, testing_inputs, testing_targets
+        job = (model_args,
+               training_inputs,
+               training_targets,
+               testing_inputs,
+               testing_targets,
+               command_line_arguments.score_metric)
+
         jobs.extend([job] * command_line_arguments.training_iterations)
 
     with multiprocessing.Pool(command_line_arguments.cpu) as pool:
@@ -114,6 +120,7 @@ def main():
             best_model.precision = model_quality.precision
             best_model.sensitivity = model_quality.sensitivity
             best_model.specificity = model_quality.specificity
+            best_model.confidence = model_quality.confidence
             print_model_results(best_model, best_model.name)
             final_output_path = (command_line_arguments.output_path
                                  / (MODEL_BASE_NAME + '_{}.dat'.format(best_model.abbreviation)))
@@ -142,6 +149,7 @@ def print_model_results(model, name):
     print('Precision:   {}'.format(model.precision))
     print('Sensitivity: {}'.format(model.sensitivity))
     print('Specificity: {}'.format(model.specificity))
+    print('Confidence: {}'.format(model.confidence))
 
 
 def parse_command_line():
@@ -177,6 +185,11 @@ def parse_command_line():
                         type=int,
                         default=os.cpu_count(),
                         help='Number of processes to use for training models.')
+
+    parser.add_argument('--score_metric',
+                        choices=('accuracy', 'precision', 'sensitivity', 'specificity', 'confidence'),
+                        default='sensitivity',
+                        help='Metric to use when scoring models in hyperparameter tuning.')
 
     parser.add_argument('--log_level',
                         choices=('critical', 'error', 'warning', 'info', 'debug'),
@@ -220,7 +233,8 @@ def train_model(job):
     training_targets = job[2]
     testing_inputs = job[3]
     testing_targets = job[4]
-    calculate_score = create_scorer(testing_inputs, testing_targets)
+    score_metric = job[5]
+    calculate_score = create_scorer(testing_inputs, testing_targets, score_metric)
     base_model = model_args.class_()
     pipeline = Pipeline(steps=[('scaler', StandardScaler()), ('model', base_model)])
     grid_estimator = GridSearchCV(pipeline, model_args.parameter_grid,
@@ -235,14 +249,14 @@ def train_model(job):
     return model
 
 
-def create_scorer(testing_inputs, testing_targets):
+def create_scorer(testing_inputs, testing_targets, score_metric):
     def calculate_score(model, x, y):
         model_quality = validate_model(model, testing_inputs, testing_targets)
-        return model_quality.accuracy
+        return getattr(model_quality, score_metric)
 
 
 ModelQuality = namedtuple('ModelQuality',
-                          'accuracy precision sensitivity specificity')
+                          'accuracy precision sensitivity specificity confidence')
 
 
 def validate_model(model, input_data, target_data):
@@ -268,8 +282,9 @@ def validate_model(model, input_data, target_data):
     precision = true_positives / (true_positives + false_positives)
     sensitivity = true_positives / (true_positives + false_negatives)
     specificity = true_negatives / (true_negatives + false_positives)
+    confidence = true_positives / (true_positives + false_positives)
 
-    return ModelQuality(accuracy, precision, sensitivity, specificity)
+    return ModelQuality(accuracy, precision, sensitivity, specificity, confidence)
 
 
 def save_model(model, output_path):
