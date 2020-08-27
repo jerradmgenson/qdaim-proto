@@ -54,7 +54,7 @@ MODELS = (Model(svm.SVC, 'support vector machine', 'svc', SVC_PARAMETER_GRID),
 
 
 Config = namedtuple('Config',
-                    'input_path validation_fraction columns random_seed training_iterations scoring')
+                    'input_path validation_fraction columns random_seed scoring')
 
 
 Scores = namedtuple('Scores',
@@ -95,29 +95,24 @@ def main():
                training_targets,
                config.scoring)
 
-        jobs.extend([job] * config.training_iterations)
+        jobs.append(job)
 
     with multiprocessing.Pool(command_line_arguments.cpu) as pool:
         models = pool.map(train_model, jobs)
 
-    best_model = None
-    for count, model in enumerate(models):
-        if best_model is None or model.best_score > best_model.best_score:
-            best_model = model
+    for model in models:
+        model.commit_hash = commit_hash
+        model.validation = 'UNVALIDATED'
+        model.github_url = GITHUB_URL
+        scores = validate_model(model, validation_inputs, validation_targets)
+        model.scores = scores
+        print_model_results(model, model.name)
+        output_path = (command_line_arguments.output_path
+                       / (MODEL_BASE_NAME + '_{}.dat'.format(model.abbreviation)))
 
-        if (count + 1) % config.training_iterations == 0:
-            best_model.commit_hash = commit_hash
-            best_model.validation = 'UNVALIDATED'
-            best_model.github_url = GITHUB_URL
-            scores = validate_model(best_model, validation_inputs, validation_targets)
-            best_model.scores = scores
-            print_model_results(best_model, best_model.name)
-            output_path = (command_line_arguments.output_path
-                           / (MODEL_BASE_NAME + '_{}.dat'.format(best_model.abbreviation)))
-
-            save_model(best_model, output_path)
-            print('Saved {} model to {}'.format(best_model.name, output_path))
-            best_model = None
+        save_model(model, output_path)
+        print('Saved {} model to {}'.format(model.name, output_path))
+        model = None
 
     print('Runtime: {} seconds'.format(time.time() - start_time))
 
