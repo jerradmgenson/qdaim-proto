@@ -3,5 +3,6 @@
     "validation_fraction": 0.2,
     "columns": ["age", "sex", "cp", "trestbps", "chol", "fbs", "restecg", "thalach", "exang", "oldpeak", "slope"],
     "random_seed": 3307259,
-    "scoring": "informedness"
+    "scoring": "informedness",
+    "algorithm": "sgd"
 }

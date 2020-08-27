@@ -4,7 +4,6 @@ import logging
 import pickle
 import time
 import subprocess
-import multiprocessing
 import os
 import json
 from pathlib import Path
@@ -24,7 +23,6 @@ from sklearn.pipeline import Pipeline
 GIT_ROOT = Path(subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode('utf-8').strip())
 CONFIG_FILE_PATH = GIT_ROOT / 'config.json'
 OUTPUT_PATH = GIT_ROOT / 'build'
-DATASET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal', 'target']
 GITHUB_URL = 'https://github.com/jerradmgenson/cardiac'
 MODEL_BASE_NAME = 'heart_disease_model'
 SVC_PARAMETER_GRID = [
@@ -47,14 +45,14 @@ RFC_PARAMETER_GRID = [
 
 Model = namedtuple('Model', 'class_ name abbreviation parameter_grid')
 
-MODELS = (Model(svm.SVC, 'support vector machine', 'svc', SVC_PARAMETER_GRID),
-          Model(KNeighborsClassifier, 'k-nearest neighbors', 'knc', KNC_PARAMETER_GRID),
+MODELS = (Model(svm.SVC, 'support vector machine', 'svm', SVC_PARAMETER_GRID),
+          Model(KNeighborsClassifier, 'k-nearest neighbors', 'knn', KNC_PARAMETER_GRID),
           Model(RandomForestClassifier, 'random forest', 'rfc', RFC_PARAMETER_GRID),
-          Model(SGDClassifier, 'stochastic gradient descent', 'sgc', SGD_PARAMETER_GRID))
+          Model(SGDClassifier, 'stochastic gradient descent', 'sgd', SGD_PARAMETER_GRID))
 
 
 Config = namedtuple('Config',
-                    'input_path validation_fraction columns random_seed scoring')
+                    'input_path validation_fraction columns random_seed scoring algorithm')
 
 
 Scores = namedtuple('Scores',
@@ -64,7 +62,7 @@ Scores = namedtuple('Scores',
 def main():
     start_time = time.time()
     command_line_arguments = parse_command_line()
-    configure_logging(command_line_arguments.log_level)
+    logger = configure_logging(command_line_arguments.log_level)
     config = read_config_file(CONFIG_FILE_PATH)
     print('Loading cardiac dataset from {}'.format(config.input_path))
     cardiac_dataset = pd.read_csv(str(config.input_path))
@@ -85,34 +83,37 @@ def main():
     print('Validation dataset rows: {}'.format(len(validation_inputs)))
     print('Random number generator seed: {}'.format(config.random_seed))
     print('Commit hash: {}'.format(commit_hash))
-    jobs = []
-    for model_args in MODELS:
-        if model_args.name == 'stochastic gradient descent':
-            model_args.parameter_grid[0]['model__max_iter'] = [np.ceil(10**6 / len(training_inputs))]
+    try:
+        model_args = [x for x in MODELS if x.abbreviation == config.algorithm][0]
 
-        job = (model_args,
-               training_inputs,
-               training_targets,
-               config.scoring)
+    except IndexError:
+        logger.error('Invalid machine learning algorithm `{}`'.format(config.algorithm))
+        return 1
 
-        jobs.append(job)
+    calculate_score = create_scorer(config.scoring)
+    base_model = model_args.class_()
+    pipeline = Pipeline(steps=[('scaler', StandardScaler()), ('model', base_model)])
+    grid_estimator = GridSearchCV(pipeline, model_args.parameter_grid,
+                                  scoring=calculate_score,
+                                  n_jobs=command_line_arguments.cpu)
 
-    with multiprocessing.Pool(command_line_arguments.cpu) as pool:
-        models = pool.map(train_model, jobs)
+    grid_estimator.fit(training_inputs, training_targets)
+    model = grid_estimator.best_estimator_
+    model.best_score = grid_estimator.best_score_
+    model.name = model_args.name
+    model.abbreviation = model_args.abbreviation
+    model.commit_hash = commit_hash
+    model.validation = 'UNVALIDATED'
+    model.github_url = GITHUB_URL
+    scores = validate_model(model, validation_inputs, validation_targets)
+    model.scores = scores
+    print_model_results(model, model.name)
+    output_path = (command_line_arguments.output_path
+                   / (MODEL_BASE_NAME + '_{}.dat'.format(model.abbreviation)))
 
-    for model in models:
-        model.commit_hash = commit_hash
-        model.validation = 'UNVALIDATED'
-        model.github_url = GITHUB_URL
-        scores = validate_model(model, validation_inputs, validation_targets)
-        model.scores = scores
-        print_model_results(model, model.name)
-        output_path = (command_line_arguments.output_path
-                       / (MODEL_BASE_NAME + '_{}.dat'.format(model.abbreviation)))
-
-        save_model(model, output_path)
-        print('Saved {} model to {}'.format(model.name, output_path))
-        model = None
+    save_model(model, output_path)
+    print('Saved {} model to {}'.format(model.name, output_path))
+    model = None
 
     print('Runtime: {} seconds'.format(time.time() - start_time))
 
@@ -162,21 +163,6 @@ def parse_command_line():
     return parser.parse_args()
 
 
-def validation_fraction(n):
-    x = float(n)
-    if x < 0 or x > 1:
-        raise ValueError('validation_fraction must not be less than 0 or greater than 1.')
-
-    return x
-
-
-def dataset_column(n):
-    if n not in DATASET_COLUMNS:
-        raise ValueError('column must be one of {}'.format(DATASET_COLUMNS))
-
-    return n
-
-
 def configure_logging(log_level):
     log_level_number = getattr(logging, log_level.upper())
     logger = logging.getLogger(__name__)
@@ -188,26 +174,6 @@ def configure_logging(log_level):
     logger.addHandler(console_handler)
 
     return logger
-
-
-def train_model(job):
-    model_args = job[0]
-    training_inputs = job[1]
-    training_targets = job[2]
-    scoring = job[3]
-    calculate_score = create_scorer(scoring)
-    base_model = model_args.class_()
-    pipeline = Pipeline(steps=[('scaler', StandardScaler()), ('model', base_model)])
-    grid_estimator = GridSearchCV(pipeline, model_args.parameter_grid,
-                                  scoring=calculate_score)
-
-    grid_estimator.fit(training_inputs, training_targets)
-    model = grid_estimator.best_estimator_
-    model.best_score = grid_estimator.best_score_
-    model.name = model_args.name
-    model.abbreviation = model_args.abbreviation
-
-    return model
 
 
 def create_scorer(scoring):
