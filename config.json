@@ -1,6 +1,7 @@
 {
-    "input_path": "{GIT_ROOT}/data/heart_data.csv",
-    "validation_fraction": 0.2,
+    "training_dataset": "{GIT_ROOT}/data/training_dataset.csv",
+    "testing_dataset": "{GIT_ROOT}/data/testing_dataset.csv",
+    "testing_fraction": 0.2,
     "columns": ["age", "sex", "cp", "trestbps", "chol", "fbs", "restecg", "thalach", "exang", "oldpeak", "slope"],
     "random_seed": 3307259,
     "scoring": "informedness",

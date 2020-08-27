@@ -23,6 +23,8 @@ from sklearn.pipeline import Pipeline
 GIT_ROOT = Path(subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode('utf-8').strip())
 CONFIG_FILE_PATH = GIT_ROOT / 'config.json'
 OUTPUT_PATH = GIT_ROOT / 'build'
+TESTING_DATASET_PATH = GIT_ROOT / 'data/testing_dataset.csv'
+TRAINING_DATASET_PATH = GIT_ROOT / 'data/training_dataset.csv'
 GITHUB_URL = 'https://github.com/jerradmgenson/cardiac'
 MODEL_BASE_NAME = 'heart_disease_model'
 SVC_PARAMETER_GRID = [
@@ -52,7 +54,7 @@ MODELS = (Model(svm.SVC, 'support vector machine', 'svm', SVC_PARAMETER_GRID),
 
 
 Config = namedtuple('Config',
-                    'input_path validation_fraction columns random_seed scoring algorithm')
+                    'training_dataset testing_dataset testing_fraction columns random_seed scoring algorithm')
 
 
 Scores = namedtuple('Scores',
@@ -64,23 +66,22 @@ def main():
     command_line_arguments = parse_command_line()
     logger = configure_logging(command_line_arguments.log_level)
     config = read_config_file(CONFIG_FILE_PATH)
-    print('Loading cardiac dataset from {}'.format(config.input_path))
-    cardiac_dataset = pd.read_csv(str(config.input_path))
-    print('Done loading cardiac dataset.')
-    reduced_dataset = cardiac_dataset[config.columns + ['target']]
     random.seed(config.random_seed)
     np.random.seed(config.random_seed)
-    shuffled_dataset = reduced_dataset.sample(frac=1)
-    input_data = shuffled_dataset.values[:, 0:-1]
-    target_data = shuffled_dataset.values[:, -1]
-    validation_rows = int(len(input_data) * config.validation_fraction)
-    validation_inputs = input_data[:validation_rows]
-    validation_targets = target_data[:validation_rows]
-    training_inputs = input_data[validation_rows:]
-    training_targets = target_data[validation_rows:]
+    print('Loading training dataset from {}'.format(config.training_dataset))
+    training_dataset = pd.read_csv(str(config.training_dataset))
+    print('Loading training dataset from {}'.format(config.testing_dataset))
+    testing_dataset = pd.read_csv(str(config.testing_dataset))
+    print('Done loading datasets.')
+    training_array = training_dataset[config.columns + ['target']].to_numpy()
+    testing_array = testing_dataset[config.columns + ['target']].to_numpy()
+    training_inputs = training_array[:, 0:-1]
+    training_targets = training_array[:, -1]
+    testing_inputs = testing_array[:, 0:-1]
+    testing_targets = testing_array[:, -1]
     commit_hash = get_commit_hash()
     print('Training dataset rows: {}'.format(len(training_inputs)))
-    print('Validation dataset rows: {}'.format(len(validation_inputs)))
+    print('Testing dataset rows: {}'.format(len(testing_inputs)))
     print('Random number generator seed: {}'.format(config.random_seed))
     print('Commit hash: {}'.format(commit_hash))
     try:
@@ -104,8 +105,8 @@ def main():
     model.abbreviation = model_args.abbreviation
     model.commit_hash = commit_hash
     model.validation = 'UNVALIDATED'
-    model.github_url = GITHUB_URL
-    scores = validate_model(model, validation_inputs, validation_targets)
+    model.repository = GITHUB_URL
+    scores = validate_model(model, testing_inputs, testing_targets)
     model.scores = scores
     print_model_results(model, model.name)
     output_path = (command_line_arguments.output_path
@@ -122,7 +123,8 @@ def read_config_file(path):
     with path.open() as config_fp:
         config_json = json.load(config_fp)
 
-    config_json['input_path'] = config_json['input_path'].replace('{GIT_ROOT}', str(GIT_ROOT))
+    config_json['training_dataset'] = config_json['training_dataset'].replace('{GIT_ROOT}', str(GIT_ROOT))
+    config_json['testing_dataset'] = config_json['testing_dataset'].replace('{GIT_ROOT}', str(GIT_ROOT))
     return Config(**config_json)
 
 
