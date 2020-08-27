@@ -22,11 +22,11 @@ from sklearn.pipeline import Pipeline
 
 GIT_ROOT = Path(subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode('utf-8').strip())
 CONFIG_FILE_PATH = GIT_ROOT / 'config.json'
-OUTPUT_PATH = GIT_ROOT / 'build'
+DEFAULT_OUTPUT_PATH = GIT_ROOT / 'build/heart_disease_model.dat'
 TESTING_DATASET_PATH = GIT_ROOT / 'data/testing_dataset.csv'
 TRAINING_DATASET_PATH = GIT_ROOT / 'data/training_dataset.csv'
 GITHUB_URL = 'https://github.com/jerradmgenson/cardiac'
-MODEL_BASE_NAME = 'heart_disease_model'
+
 SVC_PARAMETER_GRID = [
     {'model__C': [0.001, 0.1, 0.5, 1, 2, 10, 100, 1000], 'model__kernel': ['linear'], 'model__cache_size': [500]},
     {'model__C': [0.001, 0.1, 0.5, 1, 2, 10, 100, 1000], 'model__kernel': ['rbf', 'sigmoid'], 'model__gamma': [0.001, 0.0001], 'model__cache_size': [500]},
@@ -54,7 +54,7 @@ MODELS = (Model(svm.SVC, 'support vector machine', 'svm', SVC_PARAMETER_GRID),
 
 
 Config = namedtuple('Config',
-                    'training_dataset testing_dataset testing_fraction columns random_seed scoring algorithm')
+                    'training_dataset testing_dataset columns random_seed scoring algorithm')
 
 
 Scores = namedtuple('Scores',
@@ -80,10 +80,6 @@ def main():
     testing_inputs = testing_array[:, 0:-1]
     testing_targets = testing_array[:, -1]
     commit_hash = get_commit_hash()
-    print('Training dataset rows: {}'.format(len(training_inputs)))
-    print('Testing dataset rows: {}'.format(len(testing_inputs)))
-    print('Random number generator seed: {}'.format(config.random_seed))
-    print('Commit hash: {}'.format(commit_hash))
     try:
         model_args = [x for x in MODELS if x.abbreviation == config.algorithm][0]
 
@@ -91,6 +87,11 @@ def main():
         logger.error('Invalid machine learning algorithm `{}`'.format(config.algorithm))
         return 1
 
+    print('Training dataset rows: {}'.format(len(training_inputs)))
+    print('Testing dataset rows: {}'.format(len(testing_inputs)))
+    print('Random number generator seed: {}'.format(config.random_seed))
+    print('Commit hash: {}'.format(commit_hash))
+    print('Algorithm: {}'.format(model_args.name))
     calculate_score = create_scorer(config.scoring)
     base_model = model_args.class_()
     pipeline = Pipeline(steps=[('scaler', StandardScaler()), ('model', base_model)])
@@ -108,12 +109,12 @@ def main():
     model.repository = GITHUB_URL
     scores = validate_model(model, testing_inputs, testing_targets)
     model.scores = scores
-    print_model_results(model, model.name)
-    output_path = (command_line_arguments.output_path
-                   / (MODEL_BASE_NAME + '_{}.dat'.format(model.abbreviation)))
+    print('\nScores for {} model:'.format(model.name))
+    for metric, value in model.scores._asdict().items():
+        print('{}:    {}'.format(metric, value))
 
-    save_model(model, output_path)
-    print('Saved {} model to {}'.format(model.name, output_path))
+    save_model(model, command_line_arguments.output_path)
+    print('Saved {} model to {}'.format(model.name, command_line_arguments.output_path))
     model = None
 
     print('Runtime: {} seconds'.format(time.time() - start_time))
@@ -139,16 +140,10 @@ def get_commit_hash():
         return ''
 
 
-def print_model_results(model, name):
-    print('\nScores for {}:'.format(name))
-    for metric, value in model.scores._asdict().items():
-        print('{}:    {}'.format(metric, value))
-
-
 def parse_command_line():
     parser = argparse.ArgumentParser(description='Build a machine learning model to predict heart disease.')
     parser.add_argument('-o', '--output_path',
-                        default=OUTPUT_PATH,
+                        default=DEFAULT_OUTPUT_PATH,
                         type=Path,
                         help='Path to output the heart disease model to.')
 
