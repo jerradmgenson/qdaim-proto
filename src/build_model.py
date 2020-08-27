@@ -26,11 +26,11 @@ from sklearn.pipeline import Pipeline
 
 
 GIT_ROOT = Path(subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode('utf-8').strip())
+GITHUB_URL = 'https://github.com/jerradmgenson/cardiac'
 CONFIG_FILE_PATH = GIT_ROOT / 'config.json'
 DEFAULT_OUTPUT_PATH = GIT_ROOT / 'build/heart_disease_model.dat'
 TESTING_DATASET_PATH = GIT_ROOT / 'data/testing_dataset.csv'
 TRAINING_DATASET_PATH = GIT_ROOT / 'data/training_dataset.csv'
-GITHUB_URL = 'https://github.com/jerradmgenson/cardiac'
 
 SVC_PARAMETER_GRID = [
     {'model__C': [0.001, 0.1, 0.5, 1, 2, 10, 100, 1000], 'model__kernel': ['linear'], 'model__cache_size': [500]},
@@ -75,8 +75,10 @@ def main():
     np.random.seed(config.random_seed)
     training_dataset = pd.read_csv(str(config.training_dataset))
     testing_dataset = pd.read_csv(str(config.testing_dataset))
-    training_array = training_dataset[config.columns + ['target']].to_numpy()
-    testing_array = testing_dataset[config.columns + ['target']].to_numpy()
+    training_subset = training_dataset[config.columns + ['target']]
+    training_array = training_subset.to_numpy()
+    testing_subset = testing_dataset[config.columns + ['target']]
+    testing_array = testing_subset.to_numpy()
     training_inputs = training_array[:, 0:-1]
     training_targets = training_array[:, -1]
     testing_inputs = testing_array[:, 0:-1]
@@ -94,10 +96,10 @@ def main():
     print('Using columns: {}'.format(config.columns))
     print('Random number generator seed: {}'.format(config.random_seed))
     print('Scoring method: {}'.format(config.scoring))
-    print('Machine learning algorithm: {}'.format(model_args.name))
+    print('Algorithm: {}'.format(model_args.name))
     print('Training dataset rows: {}'.format(len(training_inputs)))
     print('Testing dataset rows: {}'.format(len(testing_inputs)))
-    print('Commit hash: {}'.format(commit_hash))
+    print('Commit hash: {}\n'.format(commit_hash))
     calculate_score = create_scorer(config.scoring)
     base_model = model_args.class_()
     pipeline = Pipeline(steps=[('scaler', StandardScaler()), ('model', base_model)])
@@ -119,17 +121,23 @@ def main():
     model.threadpoolctl_version = threadpoolctl.__version__
     model.operating_system = platform.system() + ' ' + platform.version() + ' ' + platform.release()
     model.architecture = platform.processor()
-    scores = validate_model(model, testing_inputs, testing_targets)
-    print('\nScores for {} model:'.format(model_args.name))
+    scores, predictions = validate_model(model, testing_inputs, testing_targets)
+    print('\nModel scores:')
     for metric, value in scores._asdict().items():
         setattr(model, metric, value)
         print('{}:    {}'.format(metric, value))
 
+    validation_dataset = testing_subset.copy(deep=True)
+    validation_dataset['prediction'] = predictions
+    save_validation(validation_dataset, command_line_arguments.output_path)
     save_model(model, command_line_arguments.output_path)
-    print('Saved {} model to {}'.format(model_args.name,
-                                        command_line_arguments.output_path))
-
+    print('\nSaved model to {}'.format(command_line_arguments.output_path))
     print('Runtime: {} seconds'.format(time.time() - start_time))
+
+
+def save_validation(dataset, output_path):
+    dataset_path = output_path.with_name(output_path.stem + '_validation.csv')
+    dataset.to_csv(dataset_path, index=None)
 
 
 def read_config_file(path):
@@ -215,12 +223,13 @@ def validate_model(model, input_data, target_data):
     sensitivity = true_positives / (true_positives + false_negatives)
     specificity = true_negatives / (true_negatives + false_positives)
     informedness = sensitivity + specificity - 1
+    scores = Scores(accuracy=accuracy,
+                    precision=precision,
+                    sensitivity=sensitivity,
+                    specificity=specificity,
+                    informedness=informedness)
 
-    return Scores(accuracy=accuracy,
-                  precision=precision,
-                  sensitivity=sensitivity,
-                  specificity=specificity,
-                  informedness=informedness)
+    return scores, predictions
 
 
 def save_model(model, output_path):
