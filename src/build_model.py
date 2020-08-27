@@ -73,17 +73,12 @@ def main():
     input_data = shuffled_dataset.values[:, 0:-1]
     target_data = shuffled_dataset.values[:, -1]
     validation_rows = int(len(input_data) * command_line_arguments.validation_fraction)
-    testing_rows = int(len(input_data) * command_line_arguments.testing_fraction)
-    testing_end = validation_rows + testing_rows
     validation_inputs = input_data[:validation_rows]
     validation_targets = target_data[:validation_rows]
-    testing_inputs = input_data[validation_rows:testing_end]
-    testing_targets = input_data[validation_rows:testing_end]
-    training_inputs = input_data[testing_end:]
-    training_targets = target_data[testing_end:]
+    training_inputs = input_data[validation_rows:]
+    training_targets = target_data[validation_rows:]
     commit_hash = get_commit_hash()
     print('Training dataset rows: {}'.format(len(training_inputs)))
-    print('Testing dataset rows: {}'.format(len(testing_inputs)))
     print('Validation dataset rows: {}'.format(len(validation_inputs)))
     print('Random number generator seed: {}'.format(command_line_arguments.random_seed))
     print('Commit hash: {}'.format(commit_hash))
@@ -95,8 +90,6 @@ def main():
         job = (model_args,
                training_inputs,
                training_targets,
-               testing_inputs,
-               testing_targets,
                command_line_arguments.scoring)
 
         jobs.extend([job] * command_line_arguments.training_iterations)
@@ -157,11 +150,6 @@ def parse_command_line():
                         type=validation_fraction,
                         default=0.2,
                         help='The fraction of the dataset to use for validation as a decimal between 0 and 1.')
-
-    parser.add_argument('--testing_fraction',
-                        type=validation_fraction,
-                        default=0.1,
-                        help='The fraction of the dataset to use for testing as a decimal between 0 and 1.')
 
     parser.add_argument('--columns',
                         type=dataset_column,
@@ -228,10 +216,8 @@ def train_model(job):
     model_args = job[0]
     training_inputs = job[1]
     training_targets = job[2]
-    testing_inputs = job[3]
-    testing_targets = job[4]
-    scoring = job[5]
-    calculate_score = create_scorer(testing_inputs, testing_targets, scoring)
+    scoring = job[3]
+    calculate_score = create_scorer(scoring)
     base_model = model_args.class_()
     pipeline = Pipeline(steps=[('scaler', StandardScaler()), ('model', base_model)])
     grid_estimator = GridSearchCV(pipeline, model_args.parameter_grid,
@@ -246,9 +232,9 @@ def train_model(job):
     return model
 
 
-def create_scorer(testing_inputs, testing_targets, scoring):
-    def calculate_score(model, x, y):
-        scores = validate_model(model, testing_inputs, testing_targets)
+def create_scorer(scoring):
+    def calculate_score(model, inputs, targets):
+        scores = validate_model(model, inputs, targets)
         return getattr(scores, scoring)
 
 
