@@ -1,0 +1,8 @@
+{
+    "input_path": "{GIT_ROOT}/data/heart_data.csv",
+    "validation_fraction": 0.2,
+    "columns": ["age", "sex", "cp", "trestbps", "chol", "fbs", "restecg", "thalach", "exang", "oldpeak", "slope"],
+    "random_seed": 3307259,
+    "training_iterations": 1,
+    "scoring": "informedness"
+}

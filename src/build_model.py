@@ -6,6 +6,7 @@ import time
 import subprocess
 import multiprocessing
 import os
+import json
 from pathlib import Path
 from collections import namedtuple
 
@@ -20,8 +21,10 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
 
+GIT_ROOT = Path(subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode('utf-8').strip())
+CONFIG_FILE_PATH = GIT_ROOT / 'config.json'
+OUTPUT_PATH = GIT_ROOT / 'build'
 DATASET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'ca', 'thal', 'target']
-DEFAULT_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope']
 GITHUB_URL = 'https://github.com/jerradmgenson/cardiac'
 MODEL_BASE_NAME = 'heart_disease_model'
 SVC_PARAMETER_GRID = [
@@ -50,6 +53,10 @@ MODELS = (Model(svm.SVC, 'support vector machine', 'svc', SVC_PARAMETER_GRID),
           Model(SGDClassifier, 'stochastic gradient descent', 'sgc', SGD_PARAMETER_GRID))
 
 
+Config = namedtuple('Config',
+                    'input_path validation_fraction columns random_seed training_iterations scoring')
+
+
 Scores = namedtuple('Scores',
                     'accuracy precision sensitivity specificity informedness')
 
@@ -58,21 +65,17 @@ def main():
     start_time = time.time()
     command_line_arguments = parse_command_line()
     configure_logging(command_line_arguments.log_level)
-    print('Loading cardiac dataset from {}'.format(command_line_arguments.input_path))
-    cardiac_dataset = pd.read_csv(str(command_line_arguments.input_path))
+    config = read_config_file(CONFIG_FILE_PATH)
+    print('Loading cardiac dataset from {}'.format(config.input_path))
+    cardiac_dataset = pd.read_csv(str(config.input_path))
     print('Done loading cardiac dataset.')
-    if command_line_arguments.columns:
-        reduced_dataset = cardiac_dataset[command_line_arguments.columns + ['target']]
-
-    else:
-        reduced_dataset = cardiac_dataset[DEFAULT_COLUMNS + ['target']]
-
-    random.seed(command_line_arguments.random_seed)
-    np.random.seed(command_line_arguments.random_seed)
+    reduced_dataset = cardiac_dataset[config.columns + ['target']]
+    random.seed(config.random_seed)
+    np.random.seed(config.random_seed)
     shuffled_dataset = reduced_dataset.sample(frac=1)
     input_data = shuffled_dataset.values[:, 0:-1]
     target_data = shuffled_dataset.values[:, -1]
-    validation_rows = int(len(input_data) * command_line_arguments.validation_fraction)
+    validation_rows = int(len(input_data) * config.validation_fraction)
     validation_inputs = input_data[:validation_rows]
     validation_targets = target_data[:validation_rows]
     training_inputs = input_data[validation_rows:]
@@ -80,7 +83,7 @@ def main():
     commit_hash = get_commit_hash()
     print('Training dataset rows: {}'.format(len(training_inputs)))
     print('Validation dataset rows: {}'.format(len(validation_inputs)))
-    print('Random number generator seed: {}'.format(command_line_arguments.random_seed))
+    print('Random number generator seed: {}'.format(config.random_seed))
     print('Commit hash: {}'.format(commit_hash))
     jobs = []
     for model_args in MODELS:
@@ -90,9 +93,9 @@ def main():
         job = (model_args,
                training_inputs,
                training_targets,
-               command_line_arguments.scoring)
+               config.scoring)
 
-        jobs.extend([job] * command_line_arguments.training_iterations)
+        jobs.extend([job] * config.training_iterations)
 
     with multiprocessing.Pool(command_line_arguments.cpu) as pool:
         models = pool.map(train_model, jobs)
@@ -102,27 +105,29 @@ def main():
         if best_model is None or model.best_score > best_model.best_score:
             best_model = model
 
-        if (count + 1) % command_line_arguments.training_iterations == 0:
-            best_model.command_line_arguments = command_line_arguments
-            best_model.random_seed = command_line_arguments.random_seed
+        if (count + 1) % config.training_iterations == 0:
             best_model.commit_hash = commit_hash
             best_model.validation = 'UNVALIDATED'
-            best_model.url = GITHUB_URL
-            best_model.training_inputs = training_inputs
-            best_model.training_targets = training_targets
-            best_model.validation_inputs = validation_inputs
-            best_model.validation_targets = validation_targets
+            best_model.github_url = GITHUB_URL
             scores = validate_model(best_model, validation_inputs, validation_targets)
             best_model.scores = scores
             print_model_results(best_model, best_model.name)
-            final_output_path = (command_line_arguments.output_path
-                                 / (MODEL_BASE_NAME + '_{}.dat'.format(best_model.abbreviation)))
+            output_path = (command_line_arguments.output_path
+                           / (MODEL_BASE_NAME + '_{}.dat'.format(best_model.abbreviation)))
 
-            save_model(best_model, final_output_path)
-            print('Saved {} model to {}'.format(best_model.name, final_output_path))
+            save_model(best_model, output_path)
+            print('Saved {} model to {}'.format(best_model.name, output_path))
             best_model = None
 
     print('Runtime: {} seconds'.format(time.time() - start_time))
+
+
+def read_config_file(path):
+    with path.open() as config_fp:
+        config_json = json.load(config_fp)
+
+    config_json['input_path'] = config_json['input_path'].replace('{GIT_ROOT}', str(GIT_ROOT))
+    return Config(**config_json)
 
 
 def get_commit_hash():
@@ -144,37 +149,15 @@ def print_model_results(model, name):
 
 def parse_command_line():
     parser = argparse.ArgumentParser(description='Build a machine learning model to predict heart disease.')
-    parser.add_argument('input_path', type=Path, help='Path to the input cardiac dataset.')
-    parser.add_argument('output_path', type=Path, help='Path to output the heart disease model to.')
-    parser.add_argument('--validation_fraction',
-                        type=validation_fraction,
-                        default=0.2,
-                        help='The fraction of the dataset to use for validation as a decimal between 0 and 1.')
-
-    parser.add_argument('--columns',
-                        type=dataset_column,
-                        nargs='+',
-                        help='Columns in the heart disease dataset to use as inputs to the model.')
-
-    parser.add_argument('--random_seed',
-                        type=int,
-                        default=random.randint(1, 10000000),
-                        help='Initial integer to seed the random number generator with.')
-
-    parser.add_argument('--training_iterations',
-                        type=int,
-                        default=1,
-                        help='Number of iterations to use when training the model.')
+    parser.add_argument('-o', '--output_path',
+                        default=OUTPUT_PATH,
+                        type=Path,
+                        help='Path to output the heart disease model to.')
 
     parser.add_argument('--cpu',
                         type=int,
                         default=os.cpu_count(),
                         help='Number of processes to use for training models.')
-
-    parser.add_argument('--scoring',
-                        choices=Scores._fields,
-                        default='sensitivity',
-                        help='Metric to use when scoring models for hyperparameter tuning.')
 
     parser.add_argument('--log_level',
                         choices=('critical', 'error', 'warning', 'info', 'debug'),
