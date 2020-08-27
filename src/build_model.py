@@ -5,12 +5,17 @@ import pickle
 import time
 import subprocess
 import os
+import platform
 import json
 from pathlib import Path
 from collections import namedtuple
 
 import numpy as np
+import scipy as sp
 import pandas as pd
+import joblib
+import threadpoolctl
+import sklearn
 from sklearn import svm
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
@@ -102,21 +107,27 @@ def main():
 
     grid_estimator.fit(training_inputs, training_targets)
     model = grid_estimator.best_estimator_
-    model.best_score = grid_estimator.best_score_
-    model.name = model_args.name
-    model.abbreviation = model_args.abbreviation
+    model.algorithm = model_args.name
     model.commit_hash = commit_hash
     model.validation = 'UNVALIDATED'
     model.repository = GITHUB_URL
+    model.numpy_version = np.version.version
+    model.scipy_version = sp.version.version
+    model.pandas_version = pd.__version__
+    model.sklearn_version = sklearn.__version__
+    model.joblib_version = joblib.__version__
+    model.threadpoolctl_version = threadpoolctl.__version__
+    model.operating_system = platform.system() + ' ' + platform.version() + ' ' + platform.release()
+    model.architecture = platform.processor()
     scores = validate_model(model, testing_inputs, testing_targets)
-    model.scores = scores
-    print('\nScores for {} model:'.format(model.name))
-    for metric, value in model.scores._asdict().items():
+    print('\nScores for {} model:'.format(model_args.name))
+    for metric, value in scores._asdict().items():
+        setattr(model, metric, value)
         print('{}:    {}'.format(metric, value))
 
     save_model(model, command_line_arguments.output_path)
-    print('Saved {} model to {}'.format(model.name, command_line_arguments.output_path))
-    model = None
+    print('Saved {} model to {}'.format(model_args.name,
+                                        command_line_arguments.output_path))
 
     print('Runtime: {} seconds'.format(time.time() - start_time))
 
