@@ -50,6 +50,10 @@ MODELS = (Model(svm.SVC, 'support vector machine', 'svc', SVC_PARAMETER_GRID),
           Model(SGDClassifier, 'stochastic gradient descent', 'sgc', SGD_PARAMETER_GRID))
 
 
+Scores = namedtuple('Scores',
+                    'accuracy precision sensitivity specificity informedness')
+
+
 def main():
     start_time = time.time()
     command_line_arguments = parse_command_line()
@@ -93,7 +97,7 @@ def main():
                training_targets,
                testing_inputs,
                testing_targets,
-               command_line_arguments.scoring_metric)
+               command_line_arguments.scoring)
 
         jobs.extend([job] * command_line_arguments.training_iterations)
 
@@ -115,13 +119,8 @@ def main():
             best_model.training_targets = training_targets
             best_model.validation_inputs = validation_inputs
             best_model.validation_targets = validation_targets
-            model_quality = validate_model(best_model, validation_inputs, validation_targets)
-            best_model.accuracy = model_quality.accuracy
-            best_model.precision = model_quality.precision
-            best_model.sensitivity = model_quality.sensitivity
-            best_model.specificity = model_quality.specificity
-            best_model.confidence = model_quality.confidence
-            best_model.f1_score = model_quality.f1_score
+            scores = validate_model(best_model, validation_inputs, validation_targets)
+            best_model.scores = scores
             print_model_results(best_model, best_model.name)
             final_output_path = (command_line_arguments.output_path
                                  / (MODEL_BASE_NAME + '_{}.dat'.format(best_model.abbreviation)))
@@ -145,13 +144,9 @@ def get_commit_hash():
 
 
 def print_model_results(model, name):
-    print('\nResults for {} model:'.format(name))
-    print('Accuracy:    {}'.format(model.accuracy))
-    print('Precision:   {}'.format(model.precision))
-    print('Sensitivity: {}'.format(model.sensitivity))
-    print('Specificity: {}'.format(model.specificity))
-    print('Confidence: {}'.format(model.confidence))
-    print('F1 Score: {}'.format(model.f1_score))
+    print('\nScores for {}:'.format(name))
+    for metric, value in model.scores._asdict().items():
+        print('{}:    {}'.format(metric, value))
 
 
 def parse_command_line():
@@ -188,8 +183,8 @@ def parse_command_line():
                         default=os.cpu_count(),
                         help='Number of processes to use for training models.')
 
-    parser.add_argument('--scoring_metric',
-                        choices=('accuracy', 'precision', 'sensitivity', 'specificity', 'confidence', 'f1_score'),
+    parser.add_argument('--scoring',
+                        choices=Scores._fields,
                         default='sensitivity',
                         help='Metric to use when scoring models for hyperparameter tuning.')
 
@@ -235,8 +230,8 @@ def train_model(job):
     training_targets = job[2]
     testing_inputs = job[3]
     testing_targets = job[4]
-    scoring_metric = job[5]
-    calculate_score = create_scorer(testing_inputs, testing_targets, scoring_metric)
+    scoring = job[5]
+    calculate_score = create_scorer(testing_inputs, testing_targets, scoring)
     base_model = model_args.class_()
     pipeline = Pipeline(steps=[('scaler', StandardScaler()), ('model', base_model)])
     grid_estimator = GridSearchCV(pipeline, model_args.parameter_grid,
@@ -251,14 +246,10 @@ def train_model(job):
     return model
 
 
-def create_scorer(testing_inputs, testing_targets, scoring_metric):
+def create_scorer(testing_inputs, testing_targets, scoring):
     def calculate_score(model, x, y):
-        model_quality = validate_model(model, testing_inputs, testing_targets)
-        return getattr(model_quality, scoring_metric)
-
-
-ModelQuality = namedtuple('ModelQuality',
-                          'accuracy precision sensitivity specificity confidence f1_score')
+        scores = validate_model(model, testing_inputs, testing_targets)
+        return getattr(scores, scoring)
 
 
 def validate_model(model, input_data, target_data):
@@ -284,15 +275,13 @@ def validate_model(model, input_data, target_data):
     precision = true_positives / (true_positives + false_positives)
     sensitivity = true_positives / (true_positives + false_negatives)
     specificity = true_negatives / (true_negatives + false_positives)
-    confidence = true_positives / (true_positives + false_positives)
-    f1_score = 2 * (1 / (1 / precision + 1 / sensitivity))
+    informedness = sensitivity + specificity - 1
 
-    return ModelQuality(accuracy,
-                        precision,
-                        sensitivity,
-                        specificity,
-                        confidence,
-                        f1_score)
+    return Scores(accuracy=accuracy,
+                  precision=precision,
+                  sensitivity=sensitivity,
+                  specificity=specificity,
+                  informedness=informedness)
 
 
 def save_model(model, output_path):
