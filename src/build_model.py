@@ -7,6 +7,7 @@ import subprocess
 import os
 import platform
 import json
+import datetime
 from pathlib import Path
 from collections import namedtuple
 
@@ -121,6 +122,10 @@ def main():
     model.threadpoolctl_version = threadpoolctl.__version__
     model.operating_system = platform.system() + ' ' + platform.version() + ' ' + platform.release()
     model.architecture = platform.processor()
+    model.created = datetime.datetime.today().isoformat()
+    username = subprocess.check_output(['git', 'config', 'user.name']).decode('utf-8').strip()
+    email = subprocess.check_output(['git', 'config', 'user.email']).decode('utf-8').strip()
+    model.author = '{} <{}>'.format(username, email)
     scores, predictions = validate_model(model, testing_inputs, testing_targets)
     print('\nModel scores:')
     for metric, value in scores._asdict().items():
