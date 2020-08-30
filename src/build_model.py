@@ -77,6 +77,7 @@ import pickle
 import time
 import subprocess
 import os
+import re
 import sys
 import platform
 import json
@@ -129,9 +130,11 @@ Config = namedtuple('Config',
                     'training_dataset testing_dataset columns random_seed scoring algorithm algorithm_parameters',
                     defaults=(None,))
 
+# Possible scoring methods that may be used for hyperparameter tuning.
+SCORING_METHODS = 'accuracy precision sensitivity specificity informedness'
+
 # Collects model scores together in a single object.
-Scores = namedtuple('Scores',
-                    'accuracy precision sensitivity specificity informedness')
+ModelScores = namedtuple('ModelScores', SCORING_METHODS)
 
 # Contains input data and target data for a single dataset.
 Dataset = namedtuple('Dataset', 'inputs targets')
@@ -153,7 +156,6 @@ def main():
     random.seed(config.random_seed)
     np.random.seed(config.random_seed)
     datasets = load_datasets(config.training_dataset, config.testing_dataset, config.columns)
-    commit_hash = get_commit_hash()
     print('Training dataset: {}'.format(config.training_dataset))
     print('Testing dataset: {}'.format(config.testing_dataset))
     print('Using columns: {}'.format(config.columns))
@@ -162,39 +164,23 @@ def main():
     print('Algorithm: {}'.format(config.algorithm.name))
     print('Training dataset rows: {}'.format(len(datasets.training.inputs)))
     print('Testing dataset rows: {}'.format(len(datasets.testing.inputs)))
-    print('Commit hash: {}\n'.format(commit_hash))
     score_function = create_scorer(config.scoring)
     model = train_model(config.algorithm.class_,
-                        score_function,
-                        command_line_arguments.cpu,
                         datasets.training.inputs,
                         datasets.training.targets,
+                        score_function,
+                        command_line_arguments.cpu,
                         config.algorithm_parameters)
 
-    model.algorithm = config.algorithm.name
-    model.commit_hash = commit_hash
-    model.validation = 'UNVALIDATED'
-    model.repository = GITHUB_URL
-    model.numpy_version = np.version.version
-    model.scipy_version = sp.version.version
-    model.pandas_version = pd.__version__
-    model.sklearn_version = sklearn.__version__
-    model.joblib_version = joblib.__version__
-    model.threadpoolctl_version = threadpoolctl.__version__
-    model.operating_system = platform.system() + ' ' + platform.version() + ' ' + platform.release()
-    model.architecture = platform.processor()
-    model.created = datetime.datetime.today().isoformat()
-    username = subprocess.check_output(['git', 'config', 'user.name']).decode('utf-8').strip()
-    email = subprocess.check_output(['git', 'config', 'user.email']).decode('utf-8').strip()
-    model.author = '{} <{}>'.format(username, email)
-    scores, predictions = validate_model(model,
-                                         datasets.testing.inputs,
-                                         datasets.testing.targets)
+    bind_model_metadata(model)
+    model_scores, predictions = score_model(model,
+                                            datasets.testing.inputs,
+                                            datasets.testing.targets)
 
     print('\nModel scores:')
-    for metric, value in scores._asdict().items():
-        setattr(model, metric, value)
-        print('{}:    {}'.format(metric, value))
+    for metric, score in model_scores._asdict().items():
+        setattr(model, metric, score)
+        print('{}:    {}'.format(metric, score))
 
     validation_dataset = pd.DataFrame(data=datasets.testing.inputs,
                                       index=config.columns)
@@ -209,15 +195,95 @@ def main():
     return 0
 
 
-def train_model(model_class,
-                score_function,
-                cpus,
-                training_inputs,
-                training_targets,
-                parameter_grid=None):
+def run_command(command):
+    """
+    Run the given command in a subprocess and return its output.
+
+    Args
+      command: The command to run as a string.
+
+    Returns
+      Standard output from the subprocess, decoded as a UTF-8 string.
 
     """
 
+    return subprocess.check_output(re.split(r'\s+', command)).decode('utf-8').strip()
+
+
+def bind_model_metadata(model):
+    """
+    Generate metadata and bind it to the model. The following attributes
+    will be assigned to `model`:
+
+    - commit_hash
+    - validated
+    - repository
+    - numpy_version
+    - scipy_version
+    - pandas_version
+    - sklearn_version
+    - joblib_version
+    - threadpoolctl_version
+    - operating_system
+    - architecture
+    - created
+    - author
+
+    Args
+      model: An instance of a scikit-learn estimator.
+
+    Returns
+      None
+
+    """
+
+    model.commit_hash = get_commit_hash()
+    model.validated = False
+    model.repository = GITHUB_URL
+    model.numpy_version = np.version.version
+    model.scipy_version = sp.version.version
+    model.pandas_version = pd.__version__
+    model.sklearn_version = sklearn.__version__
+    model.joblib_version = joblib.__version__
+    model.threadpoolctl_version = threadpoolctl.__version__
+    model.operating_system = platform.system() + ' ' + platform.version() + ' ' + platform.release()
+    model.architecture = platform.processor()
+    model.created = datetime.datetime.today().isoformat()
+    username = run_command('git config user.name')
+    email = run_command('git config user.email')
+    model.author = '{} <{}>'.format(username, email)
+
+
+def train_model(model_class,
+                input_data,
+                target_data,
+                score_function,
+                cpus=1,
+                parameter_grid=None):
+
+    """
+    Train a machine learning model on the given data.
+
+    Args
+      model_class: A scikit-learn estimator class e.g. 'sklearn.svm.SVC'.
+      input_data: A 2D numpy array of inputs to the model, where each
+                  row of the array represents a sample and each column
+                  represents a feature.
+      target_data: A 1D numpy array of model targets. Each element is an
+                   expected output for the corresponding sample in the
+                   input_data array.
+      score_function: A function that takes three parameters - an
+                      estimator, an array of input data, and an array
+                      of target data, and returns a score as a float,
+                      where higher numbers are better.
+      cpus: (Default=1) Number of processes to use for training the model.
+      parameter_grid: (Default=None) A sequence of dicts with possible
+                      hyperparameter values. Used for tuning the
+                      hyperparameters. When present, grid search will be
+                      used to train the model.
+
+    Returns
+      A trained scikit-learn estimator object.
 
     """
 
@@ -230,12 +296,12 @@ def train_model(model_class,
                                       scoring=score_function,
                                       n_jobs=cpus)
 
-        grid_estimator.fit(training_inputs, training_targets)
+        grid_estimator.fit(input_data, target_data)
         model = grid_estimator.best_estimator_
 
     else:
         model = pipeline
-        model.fit(training_inputs, training_targets)
+        model.fit(input_data, target_data)
 
     return model
 
@@ -289,11 +355,34 @@ def split_target(dataframe):
 
 
 def save_validation(dataset, output_path):
+    """
+    Save a validation dataset alongside a model.
+
+    Args
+      dataset: Validation dataset as a pandas dataframe.
+      output_path: Path that the model was saved to.
+
+    Returns
+      None
+
+    """
+
     dataset_path = output_path.with_name(output_path.stem + '_validation.csv')
     dataset.to_csv(dataset_path, index=None)
 
 
 def read_config_file(path):
+    """
+    Read a json configuration file into memory.
+
+    Args
+      path: Path to the configuration file (as a Path object).
+
+    Returns
+      A Config object.
+
+    """
+
     with path.open() as config_fp:
         config_json = json.load(config_fp)
 
@@ -313,17 +402,35 @@ def read_config_file(path):
 
 
 def get_commit_hash():
+    """
+    Get the git commit hash of the current commit.
+
+    Returns
+      The current commit hash as a string. If there are uncommitted
+      changes, or if the current working directory is not in a git
+      reposistory, return the empty string instead.
+
+    """
+
     try:
-        if subprocess.check_output(['git', 'diff']).strip():
+        if run_command('git diff'):
             return ''
 
-        return subprocess.check_output(['git', 'rev-parse', '--verify', 'HEAD']).decode('utf-8').strip()
+        return run_command('git rev-parse --verify HEAD')
 
     except FileNotFoundError:
         return ''
 
 
 def parse_command_line():
+    """
+    Parse the command line using argparse.
+
+    Returns
+      A Namespace object returned by parse_args().
+
+    """
+
     parser = argparse.ArgumentParser(description='Build a machine learning model to predict heart disease.')
     parser.add_argument('-o', '--output_path',
                         default=DEFAULT_OUTPUT_PATH,
@@ -344,6 +451,14 @@ def parse_command_line():
 
 
 def configure_logging(log_level):
+    """
+    Configure the logger for the current module.
+
+    Returns
+      A Logger object for the current module.
+
+    """
+
     log_level_number = getattr(logging, log_level.upper())
     logger = logging.getLogger(__name__)
     logger.setLevel(log_level_number)
@@ -357,12 +472,41 @@ def configure_logging(log_level):
 
 
 def create_scorer(scoring):
+    """
+    Create a scoring function for hyperparameter tuning.
+
+    Args
+      scoring: The scoring method that the function should use. Possible
+               values are enumerated by `SCORING_METHODS`.
+
+    Returns
+      A function that can be passed to the `scoring` parameter of
+      `sklearn.model_selection.GridSearchCV`.
+
+    """
+
     def calculate_score(model, inputs, targets):
-        scores = validate_model(model, inputs, targets)
-        return getattr(scores, scoring)
+        model_scores = score_model(model, inputs, targets)
+        return getattr(model_scores, scoring)
 
 
-def validate_model(model, input_data, target_data):
+def score_model(model, input_data, target_data):
+    """
+    Score the given model on a set of data. The scoring metrics used are
+    accuracy, precision, sensitivity, specificity, and informedness
+    (Youden's J statistic).
+
+    Args
+      model: A trained instance of a scikit-learn estimator.
+      input_data: A 2D numpy array of inputs to the model where the rows
+                  are samples and the columns are features.
+      target_data: A 1D numpy array of expected model outputs.
+
+    Returns
+      An instance of ModelScores.
+
+    """
+
     predictions = model.predict(input_data)
     true_positives = 0.0
     true_negatives = 0.0
@@ -386,16 +530,28 @@ def validate_model(model, input_data, target_data):
     sensitivity = true_positives / (true_positives + false_negatives)
     specificity = true_negatives / (true_negatives + false_positives)
     informedness = sensitivity + specificity - 1
-    scores = Scores(accuracy=accuracy,
-                    precision=precision,
-                    sensitivity=sensitivity,
-                    specificity=specificity,
-                    informedness=informedness)
+    model_scores = ModelScores(accuracy=accuracy,
+                               precision=precision,
+                               sensitivity=sensitivity,
+                               specificity=specificity,
+                               informedness=informedness)
 
-    return scores, predictions
+    return model_scores, predictions
 
 
 def save_model(model, output_path):
+    """
+    Save the given model to disk.
+
+    Args
+      model: An instance of a scikit-learn estimator.
+      output_path: The path to save the model to as a Path object.
+
+    Returns
+      None
+
+    """
+
     with output_path.open('wb') as output_file:
         pickle.dump(model, output_file)
 
