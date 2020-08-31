@@ -127,8 +127,7 @@ SUPPORTED_ALGORITHMS = {
 
 # Stores values from the configuration file.
 Config = namedtuple('Config',
-                    'training_dataset testing_dataset columns random_seed scoring algorithm algorithm_parameters',
-                    defaults=(None,))
+                    'training_dataset testing_dataset columns random_seed scoring algorithm algorithm_parameters')
 
 # Possible scoring methods that may be used for hyperparameter tuning.
 SCORING_METHODS = 'accuracy precision sensitivity specificity informedness'
@@ -172,27 +171,51 @@ def main():
                         command_line_arguments.cpu,
                         config.algorithm_parameters)
 
-    bind_model_metadata(model)
     model_scores, predictions = score_model(model,
                                             datasets.testing.inputs,
                                             datasets.testing.targets)
 
-    print('\nModel scores:')
-    for metric, score in model_scores._asdict().items():
-        setattr(model, metric, score)
-        print('{}:    {}'.format(metric, score))
+    bind_model_metadata(model, model_scores)
+    validation_dataset = create_validation_dataset(datasets.testing.inputs,
+                                                   datasets.testing.targets,
+                                                   predictions,
+                                                   config.columns)
 
-    validation_dataset = pd.DataFrame(data=datasets.testing.inputs,
-                                      index=config.columns)
-
-    validation_dataset['target'] = datasets.testing.target
-    validation_dataset['prediction'] = predictions
     save_validation(validation_dataset, command_line_arguments.output_path)
     save_model(model, command_line_arguments.output_path)
     print('\nSaved model to {}'.format(command_line_arguments.output_path))
     print('Runtime: {} seconds'.format(time.time() - start_time))
 
     return 0
+
+
+def create_validation_dataset(input_data, target_data, prediction_data, columns):
+    """
+    Create a Pandas DataFrame that shows how input samples and expected target
+    data corresponds to the actual outputs predicted by the model.
+
+    Args
+      input_data: A 2D numpy array of inputs to the model, where each
+                  row of the array represents a sample and each column
+                  represents a feature.
+      target_data: A 1D numpy array of model targets. Each element is an
+                   expected output for the corresponding sample in the
+                   input_data array.
+      predicted_data: A 1D numpy array of model targets. Each element is an
+                      actual model output for the corresponding sample in the
+                      input_data array.
+      columns: A list of column names for the model input data.
+
+    Returns
+      An instance of pandas.DataFrame.
+
+    """
+
+    validation_dataset = pd.DataFrame(data=input_data, index=columns)
+    validation_dataset['target'] = target_data
+    validation_dataset['prediction'] = prediction_data
+
+    return validation_dataset
 
 
 def run_command(command):
@@ -210,7 +233,7 @@ def run_command(command):
     return subprocess.check_output(re.split(r'\s+', command)).decode('utf-8').strip()
 
 
-def bind_model_metadata(model):
+def bind_model_metadata(model, scores):
     """
     Generate metadata and bind it to the model. The following attributes
     will be assigned to `model`:
@@ -231,11 +254,17 @@ def bind_model_metadata(model):
 
     Args
       model: An instance of a scikit-learn estimator.
+      scores: An instance of ModelScores.
 
     Returns
       None
 
     """
+
+    print('\nModel scores:')
+    for metric, score in scores._asdict().items():
+        setattr(model, metric, score)
+        print('{}:    {}'.format(metric, score))
 
     model.commit_hash = get_commit_hash()
     model.validated = False
@@ -398,6 +427,9 @@ def read_config_file(path):
     except KeyError:
         raise ValueError('Unknown machine learning algorithm `{}`'.format(config_json['algorithm']))
 
+    if 'algorithm_parameters' not in config_json:
+        config_json['algorithm_parameters'] = None
+
     return Config(**config_json)
 
 
@@ -493,8 +525,7 @@ def create_scorer(scoring):
 def score_model(model, input_data, target_data):
     """
     Score the given model on a set of data. The scoring metrics used are
-    accuracy, precision, sensitivity, specificity, and informedness
-    (Youden's J statistic).
+    accuracy, precision, sensitivity, specificity, and informedness.
 
     Args
       model: A trained instance of a scikit-learn estimator.
@@ -507,36 +538,113 @@ def score_model(model, input_data, target_data):
 
     """
 
-    predictions = model.predict(input_data)
-    true_positives = 0.0
-    true_negatives = 0.0
-    false_positives = 0.0
-    false_negatives = 0.0
-    for prediction, target in zip(predictions, target_data):
-        if prediction == 1 and target == 1:
-            true_positives += 1.0
+    prediction_data = model.predict(input_data)
+    model_scores = ModelScores(accuracy=calculate_accuracy(target_data, prediction_data),
+                               precision=calculate_precision(target_data, prediction_data),
+                               sensitivity=calculate_sensitivity(target_data, prediction_data),
+                               specificity=calculate_specificity(target_data, prediction_data),
+                               informedness=calculate_informedness(target_data, prediction_data))
 
-        elif prediction == 1 and target == 0:
-            false_positives += 1.0
+    return model_scores, prediction_data
 
-        elif prediction == 0 and target == 1:
-            false_negatives += 1.0
 
-        else:
-            true_negatives += 1.0
+def calculate_accuracy(target_data, prediction_data):
+    """
+    Calculate accuracy - the number of correct predictions divided by
+    the total number of predictions
 
-    accuracy = (true_positives + true_negatives) / len(input_data)
-    precision = true_positives / (true_positives + false_positives)
-    sensitivity = true_positives / (true_positives + false_negatives)
-    specificity = true_negatives / (true_negatives + false_positives)
-    informedness = sensitivity + specificity - 1
-    model_scores = ModelScores(accuracy=accuracy,
-                               precision=precision,
-                               sensitivity=sensitivity,
-                               specificity=specificity,
-                               informedness=informedness)
+    """
 
-    return model_scores, predictions
+    correct_predictions = np.sum(target_data == prediction_data)
+    return correct_predictions / len(prediction_data)
+
+
+def calculate_precision(target_data, prediction_data):
+    """
+    Calculate precision - the number of true positives divided by the
+    total number of positive predictions.
+
+    """
+
+    true_positives = calculate_true_positives(target_data, prediction_data)
+    false_positives = calculate_false_positives(target_data, prediction_data)
+    return true_positives / (true_positives + false_positives)
+
+
+def calculate_sensitivity(target_data, prediction_data):
+    """
+    Calculate sensitivity - the proportion of positives that are
+    correctly identified.
+
+    """
+
+    true_positives = calculate_true_positives(target_data, prediction_data)
+    false_negatives = calculate_false_negatives(target_data, prediction_data)
+    return true_positives / (true_positives + false_negatives)
+
+
+def calculate_specificity(target_data, prediction_data):
+    """
+    Calculate sensitivity - the proportion of negatives that are
+    correctly identified.
+
+    """
+
+    true_negatives = calculate_true_negatives(target_data, prediction_data)
+    false_positives = calculate_false_positives(target_data, prediction_data)
+    return true_negatives / (true_negatives + false_positives)
+
+
+def calculate_informedness(target_data, prediction_data):
+    """
+    Calculate informedness (aka Youden's J statistic).
+    This is the sensitivity + specificity - 1.
+
+    """
+
+    return (calculate_sensitivity(target_data, prediction_data)
+            + calculate_specificity(target_data, prediction_data)
+            - 1)
+
+
+def calculate_true_positives(target_data, prediction_data):
+    """
+    Calculate the number of positives (1's) in prediction_data that agree with
+    the corresponding element of target_data.
+
+    """
+
+    return np.sum(((target_data == 1).astype(int) + (prediction_data == 1).astype(int)) == 2)
+
+
+def calculate_false_positives(target_data, prediction_data):
+    """
+    Calculate the number of positives (1's) in prediction_data that disagree with
+    the corresponding element of target_data.
+
+    """
+
+    return np.sum(((target_data == 0).astype(int) + (prediction_data == 1).astype(int)) == 2)
+
+
+def calculate_true_negatives(target_data, prediction_data):
+    """
+    Calculate the number of negatives (0's) in prediction_data that agree with
+    the corresponding element of target_data.
+
+    """
+
+    return np.sum(((target_data == 0).astype(int) + (prediction_data == 0).astype(int)) == 2)
+
+
+def calculate_false_negatives(target_data, prediction_data):
+    """
+    Calculate the number of negatives (0's) in prediction_data that disagree with
+    the corresponding element of target_data.
+
+    """
+
+    return np.sum(((target_data == 1).astype(int) + (prediction_data == 0).astype(int)) == 2)
 
 
 def save_model(model, output_path):
