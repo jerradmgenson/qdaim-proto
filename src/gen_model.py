@@ -101,7 +101,8 @@ from sklearn.pipeline import Pipeline
 
 
 # Path to the root of the git repository.
-GIT_ROOT = Path(subprocess.check_output(['git', 'rev-parse', '--show-toplevel']).decode('utf-8').strip())
+GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
+GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
 
 # URL for the repository on Github.
 GITHUB_URL = 'https://github.com/jerradmgenson/cardiac'
@@ -127,7 +128,13 @@ SUPPORTED_ALGORITHMS = {
 
 # Stores values from the configuration file.
 Config = namedtuple('Config',
-                    'training_dataset testing_dataset columns random_seed scoring algorithm algorithm_parameters')
+                    ('training_dataset',
+                     'testing_dataset',
+                     'columns',
+                     'random_seed',
+                     'scoring',
+                     'algorithm',
+                     'algorithm_parameters'))
 
 # Possible scoring methods that may be used for hyperparameter tuning.
 SCORING_METHODS = 'accuracy precision sensitivity specificity informedness'
@@ -472,7 +479,8 @@ def parse_command_line():
 
     """
 
-    parser = argparse.ArgumentParser(description='Build a machine learning model to predict heart disease.')
+    description = 'Build a machine learning model to predict heart disease.'
+    parser = argparse.ArgumentParser(description=description)
     parser.add_argument('-o', '--output_path',
                         default=DEFAULT_OUTPUT_PATH,
                         type=Path,
@@ -527,8 +535,10 @@ def create_scorer(scoring):
     """
 
     def calculate_score(model, inputs, targets):
-        model_scores = score_model(model, inputs, targets)
+        model_scores, _ = score_model(model, inputs, targets)
         return getattr(model_scores, scoring)
+
+    return calculate_score
 
 
 def score_model(model, input_data, target_data):
