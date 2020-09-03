@@ -211,7 +211,7 @@ def create_validation_dataset(input_data, target_data, prediction_data, columns)
 
     """
 
-    validation_dataset = pd.DataFrame(data=input_data, index=columns)
+    validation_dataset = pd.DataFrame(data=input_data, columns=columns)
     validation_dataset['target'] = target_data
     validation_dataset['prediction'] = prediction_data
 
@@ -356,9 +356,9 @@ def load_datasets(training_dataset, testing_dataset, columns):
     testing_subset = testing_dataset[columns + ['target']]
 
     return Datasets(training=Dataset(inputs=split_inputs(training_subset),
-                                     targets=split_target(training_subset),
+                                     targets=split_target(training_subset)),
                     testing=Dataset(inputs=split_inputs(testing_subset),
-                                    targets=split_target(testing_subset))))
+                                    targets=split_target(testing_subset)))
 
 
 def split_inputs(dataframe):
@@ -428,7 +428,16 @@ def read_config_file(path):
         raise ValueError('Unknown machine learning algorithm `{}`'.format(config_json['algorithm']))
 
     if 'algorithm_parameters' not in config_json:
-        config_json['algorithm_parameters'] = None
+        config_json['algorithm_parameters'] = []
+
+    # Prepend algorithm parameters with `model__` so they can be fed to
+    # scikit-learn Pipeline without raising a ValueError.
+    modified_algorithm_parameters = []
+    for parameter_set in config_json['algorithm_parameters']:
+        modified_parameter_set = {'model__' + key: value for key, value in parameter_set.items()}
+        modified_algorithm_parameters.append(modified_parameter_set)
+
+    config_json['algorithm_parameters'] = modified_algorithm_parameters
 
     return Config(**config_json)
 

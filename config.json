@@ -4,13 +4,13 @@
     "columns": ["age", "sex", "cp", "trestbps", "chol", "fbs", "restecg", "thalach", "exang", "oldpeak", "slope"],
     "random_seed": 3307259,
     "scoring": "informedness",
-    "algorithm": "sgd"
+    "algorithm": "sgd",
     "algorithm_parameters":
     [
 	{
 	    "loss": ["hinge", "log", "modified_huber", "squared_hinge", "perceptron"],
 	    "penalty": ["l1", "l2", "elasticnet"],
-	    "alpha": [1.e-01, 1.e-02, 1.e-03, 1.e-04, 1.e-05, 1.e-06],
+	    "alpha": [1e-01, 1e-02, 1e-03, 1e-04, 1e-05, 1e-06],
 	    "max_iter": [1500, 200]
 	}
     ]
