@@ -164,7 +164,7 @@ def main():
     datasets = load_datasets(config.training_dataset, config.testing_dataset, config.columns)
     print(f'Training dataset:   {config.training_dataset}')
     print(f'Testing dataset:    {config.testing_dataset}')
-    print(f'Using columns:      {config.columns}')
+    print(f'Using columns:      {", ".join(config.columns)}')
     print(f'Random number seed: {config.random_seed}')
     print(f'Scoring method:     {config.scoring}')
     print(f'Algorithm:          {config.algorithm.name}')
