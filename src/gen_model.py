@@ -108,7 +108,7 @@ GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
 GITHUB_URL = 'https://github.com/jerradmgenson/cardiac'
 
 # Path to the configuration file
-CONFIG_FILE_PATH = GIT_ROOT / 'config.json'
+CONFIG_FILE_PATH = GIT_ROOT / 'src/gen_model_config.json'
 
 # Path to save generated models to by default.
 DEFAULT_OUTPUT_PATH = GIT_ROOT / 'build/heart_disease_model.dat'
