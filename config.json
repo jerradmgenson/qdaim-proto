@@ -8,10 +8,10 @@
     "algorithm_parameters":
     [
 	{
-	    "loss": ["hinge", "log", "modified_huber", "squared_hinge", "perceptron"],
-	    "penalty": ["l1", "l2", "elasticnet"],
-	    "alpha": [1e-01, 1e-02, 1e-03, 1e-04, 1e-05, 1e-06],
-	    "max_iter": [1500, 200]
+	    "loss": ["log"],
+	    "penalty": ["elasticnet"],
+	    "alpha": [1e-01],
+	    "max_iter": [200]
 	}
     ]
 
