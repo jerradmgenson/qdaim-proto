@@ -162,14 +162,14 @@ def main():
     random.seed(config.random_seed)
     np.random.seed(config.random_seed)
     datasets = load_datasets(config.training_dataset, config.testing_dataset, config.columns)
-    print('Training dataset: {}'.format(config.training_dataset))
-    print('Testing dataset: {}'.format(config.testing_dataset))
-    print('Using columns: {}'.format(config.columns))
-    print('Random number generator seed: {}'.format(config.random_seed))
-    print('Scoring method: {}'.format(config.scoring))
-    print('Algorithm: {}'.format(config.algorithm.name))
-    print('Training dataset rows: {}'.format(len(datasets.training.inputs)))
-    print('Testing dataset rows: {}'.format(len(datasets.testing.inputs)))
+    print(f'Training dataset:   {config.training_dataset}')
+    print(f'Testing dataset:    {config.testing_dataset}')
+    print(f'Using columns:      {config.columns}')
+    print(f'Random number seed: {config.random_seed}')
+    print(f'Scoring method:     {config.scoring}')
+    print(f'Algorithm:          {config.algorithm.name}')
+    print(f'Training samples:   {len(datasets.training.inputs)}')
+    print(f'Testing samples:    {len(datasets.testing.inputs)}')
     score_function = create_scorer(config.scoring)
     model = train_model(config.algorithm.class_,
                         datasets.training.inputs,
@@ -190,8 +190,8 @@ def main():
 
     save_validation(validation_dataset, command_line_arguments.output_path)
     save_model(model, command_line_arguments.output_path)
-    print('\nSaved model to {}'.format(command_line_arguments.output_path))
-    print('Runtime: {} seconds'.format(time.time() - start_time))
+    print(f'\nSaved model to {command_line_arguments.output_path}')
+    print(f'Runtime: {time.time() - start_time:.2} seconds')
 
     return 0
 
@@ -271,7 +271,8 @@ def bind_model_metadata(model, scores):
     print('\nModel scores:')
     for metric, score in scores._asdict().items():
         setattr(model, metric, score)
-        print('{}:    {}'.format(metric, score))
+        label = metric + ':'
+        print(f'{label:13} {score:.4}')
 
     model.commit_hash = get_commit_hash()
     model.validated = False
