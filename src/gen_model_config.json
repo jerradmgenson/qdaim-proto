@@ -1,7 +1,7 @@
 {
     "training_dataset": "data/training_dataset.csv",
     "testing_dataset": "data/testing_dataset.csv",
-    "columns": ["age", "sex", "cp", "trestbps", "chol", "fbs", "restecg", "thalach", "exang", "oldpeak", "slope"],
+    "columns": ["age", "sex", "chest_pain_type", "resting_blood_pressure", "cholestoral", "fasting_blood_sugar", "resting_ecg_abnormality", "maximum_heart_rate", "exercise_angina", "exercise_st_depression", "exercise_st_slope"],
     "random_seed": 3307259,
     "scoring": "informedness",
     "algorithm": "sgd",

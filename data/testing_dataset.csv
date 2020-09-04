@@ -1,4 +1,4 @@
-age,sex,cp,trestbps,chol,fbs,restecg,thalach,exang,oldpeak,slope,target
+age,sex,chest_pain_type,resting_blood_pressure,cholestoral,fasting_blood_sugar,resting_ecg_abnormality,maximum_heart_rate,exercise_angina,exercise_st_depression,exercise_st_slope,target
 35.0,1.0,0.0,120.0,198.0,0.0,1.0,130.0,1.0,1.6,1.0,0.0
 29.0,1.0,1.0,130.0,204.0,0.0,0.0,202.0,0.0,0.0,2.0,1.0
 58.0,1.0,1.0,120.0,284.0,0.0,0.0,160.0,0.0,1.8,1.0,0.0
