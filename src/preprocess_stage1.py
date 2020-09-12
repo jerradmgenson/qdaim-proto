@@ -7,7 +7,7 @@ and by preprocess_stage2.py.
 Inputs to this script are three individual datasets containing heart
 disease data - switzerland.data, hungarian.data, and long_beach.data.
 
-Transformations performed by this script include:
+Preprocessing steps performed by this script include:
 - Convert each dataset from a one-dimensional list to a dataframe.
 - Create a subset of only the columns we are interested in
   (see COLUMNS_OF_INTEREST).

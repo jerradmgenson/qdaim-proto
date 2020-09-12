@@ -1,7 +1,20 @@
 """
 Perform preprocessing activities that occur after feature selection.
 Ergo, this script is designed to be run after (and informed by) the
-Feature Selection notebook.
+Feature Selection notebook. The input of this script is the output
+of preprocess_stage1.py. The output of this script is the input of
+gen_model.py.
+
+Preprocessing steps performed by this script include:
+- Discard all columns except those in SUBSET_COLUMNS.
+- Discard all rows containing NAs.
+- Discard all rows where trestbps is equal to 0.
+- Convert cp to a binary class.
+- Convert restecg to a binary class.
+- Convert num to a binary class and rename to target.
+- Rescale binary and ternary classes to range from -1 to 1.
+- Randomize the row order.
+- Split data into testing and training sets.
 
 """
 
@@ -62,6 +75,9 @@ def main():
     # Convert num (heart disease class) to a binary class.
     data_subset.loc[data_subset['num'] != 0, 'num'] = 1
     data_subset.loc[data_subset['num'] == 0, 'num'] = -1
+
+    # Rename num to target.
+    data_subset = data_subset.rename(mapper=dict(num='target'), axis=1)
 
     # Rescale binary/ternary classes to range from -1 to 1.
     data_subset.loc[data_subset['sex'] == 0, 'sex'] = -1
