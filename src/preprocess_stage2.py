@@ -15,10 +15,10 @@ GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
 GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
 
 # Path to the input dataset.
-INPUT_DATASET_PATH = GIT_ROOT / Path('data/combined_data.csv')
+INPUT_DATASET_PATH = GIT_ROOT / Path('build/combined_data.csv')
 
 # Path to the output dataset.
-OUTPUT_DATASET_PATH = GIT_ROOT / Path('data/preprocessed_data.csv')
+OUTPUT_DATASET_PATH = GIT_ROOT / Path('build/preprocessed_data.csv')
 
 # Columns to subset from the original input dataset.
 SUBSET_COLUMNS = ['age', 'sex', 'cp', 'thalrest', 'trestbps', 'restecg', 'fbs',
