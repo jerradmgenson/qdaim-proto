@@ -3,15 +3,12 @@
     "testing_dataset": "build/testing_data.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "preprocessing_method": "none",
+    "preprocessing_method": "robust scaling",
     "pca_components": 5,
     "pca_whiten": false,
-    "algorithm": "mnb",
+    "algorithm": "mlp",
     "algorithm_parameters":
     [
-	{
-	    "alpha": [0, 0.1, 0.5, 1.0, 2.0, 10]
-	}
-    ]
 
+    ]
 }

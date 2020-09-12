@@ -117,10 +117,13 @@ import sklearn
 from sklearn import svm
 from sklearn.linear_model import RidgeClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import SGDClassifier
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import RobustScaler
 from sklearn.preprocessing import QuantileTransformer
@@ -156,6 +159,9 @@ SUPPORTED_ALGORITHMS = {
     'sgd': MLAlgorithm('stochastic gradient descent', SGDClassifier),
     'rrc': MLAlgorithm('ridge regression classifier', RidgeClassifier),
     'lrc': MLAlgorithm('logistic regression classifier', LogisticRegression),
+    'lds': MLAlgorithm('linear discriminant analysis', LinearDiscriminantAnalysis),
+    'qda': MLAlgorithm('quadratic discriminant analysis', QuadraticDiscriminantAnalysis),
+    'mlp': MLAlgorithm('multilayer perceptron', MLPClassifier),
 }
 
 # Possible preprocessing methods that can be used to prepare data for
@@ -209,13 +215,14 @@ def main():
     random.seed(config.random_seed)
     np.random.seed(config.random_seed)
     datasets = load_datasets(config.training_dataset, config.testing_dataset)
-    print(f'Training dataset:   {config.training_dataset}')
-    print(f'Testing dataset:    {config.testing_dataset}')
-    print(f'Random number seed: {config.random_seed}')
-    print(f'Scoring method:     {config.scoring}')
-    print(f'Algorithm:          {config.algorithm.name}')
-    print(f'Training samples:   {len(datasets.training.inputs)}')
-    print(f'Testing samples:    {len(datasets.testing.inputs)}')
+    print(f'Training dataset:     {config.training_dataset}')
+    print(f'Testing dataset:      {config.testing_dataset}')
+    print(f'Random number seed:   {config.random_seed}')
+    print(f'Scoring method:       {config.scoring}')
+    print(f'Algorithm:            {config.algorithm.name}')
+    print(f'Preprocessing method: {config.preprocessing_method}')
+    print(f'Training samples:     {len(datasets.training.inputs)}')
+    print(f'Testing samples:      {len(datasets.testing.inputs)}')
     score_function = create_scorer(config.scoring)
     model = train_model(config.algorithm.class_,
                         datasets.training.inputs,
