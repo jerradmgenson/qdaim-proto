@@ -116,6 +116,7 @@ import threadpoolctl
 import sklearn
 from sklearn import svm
 from sklearn.linear_model import RidgeClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import SGDClassifier
@@ -154,11 +155,13 @@ SUPPORTED_ALGORITHMS = {
     'rfc': MLAlgorithm('random forest', RandomForestClassifier),
     'sgd': MLAlgorithm('stochastic gradient descent', SGDClassifier),
     'rrc': MLAlgorithm('ridge regression classifier', RidgeClassifier),
+    'lrc': MLAlgorithm('logistic regression classifier', LogisticRegression),
 }
 
 # Possible preprocessing methods that can be used to prepare data for
 # a model.
 PREPROCESSING_METHODS = {
+    'none': None,
     'standard scaling': StandardScaler,
     'robust scaling': RobustScaler,
     'quantile transformer': QuantileTransformer,
@@ -379,16 +382,21 @@ def train_model(model_class,
 
     """
 
+    pipeline_steps = []
     if preprocessing_method == 'pca':
-        preprocessor = PREPROCESSING_METHODS[preprocessing_method](n_components=n_components,
-                                                                   whiten=whiten)
+        preprocessor = PREPROCESSING_METHODS[preprocessing_method](n_components=n_components, whiten=whiten)
+
+        pipeline_steps.append((preprocessing_method, preprocessor))
+
+    elif preprocessing_method == 'none':
+        pass
 
     else:
         preprocessor = PREPROCESSING_METHODS[preprocessing_method]()
+        pipeline_steps.append((preprocessing_method, preprocessor))
 
-    pipeline = Pipeline(steps=[(preprocessing_method, preprocessor),
-                               ('model', model_class())])
-
+    pipeline_steps.append(('model', model_class()))
+    pipeline = Pipeline(steps=pipeline_steps)
     if parameter_grid:
         grid_estimator = GridSearchCV(pipeline,
                                       parameter_grid,
