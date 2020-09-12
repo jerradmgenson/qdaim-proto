@@ -47,9 +47,6 @@ def main():
     # Rescale binary/ternary classes to range from -1 to 1.
     data_subset.loc[data_subset['sex'] == 0, 'sex'] = -1
     data_subset.loc[data_subset['exang'] == 0, 'exang'] = -1
-#    data_subset.loc[data_subset['slope'] == 1, 'slope'] = -1
-#    data_subset.loc[data_subset['slope'] == 2, 'slope'] = 0
-#    data_subset.loc[data_subset['slope'] == 3, 'slope'] = 1
 
     data_subset.to_csv(OUTPUT_DATASET_PATH, index=None)
     print(f'Removed {len(dataset) - len(data_subset)} rows from the original dataset.')
