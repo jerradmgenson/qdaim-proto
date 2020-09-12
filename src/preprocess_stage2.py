@@ -49,8 +49,6 @@ def main():
     data_subset.loc[data_subset['exang'] == 0, 'exang'] = -1
 
     data_subset.to_csv(OUTPUT_DATASET_PATH, index=None)
-    print(f'Removed {len(dataset) - len(data_subset)} rows from the original dataset.')
-    print(f'Total rows in new dataset: {len(data_subset)}.')
 
 
 if __name__ == '__main__':
