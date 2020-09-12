@@ -115,11 +115,13 @@ import joblib
 import threadpoolctl
 import sklearn
 from sklearn import svm
+from sklearn.linear_model import RidgeClassifier
 from sklearn.model_selection import GridSearchCV
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import SGDClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import RobustScaler
 from sklearn.pipeline import Pipeline
 
 
@@ -147,7 +149,16 @@ SUPPORTED_ALGORITHMS = {
     'knn': MLAlgorithm('k-nearest neighbors', KNeighborsClassifier),
     'rfc': MLAlgorithm('random forest', RandomForestClassifier),
     'sgd': MLAlgorithm('stochastic gradient descent', SGDClassifier),
+    'rrc': MLAlgorithm('ridge regression classifier', RidgeClassifier),
 }
+
+# Possible preprocessing methods that can be used to prepare data for
+# a model.
+PREPROCESSING_METHODS = {
+    'standard scaling': StandardScaler,
+    'robust scaling': RobustScaler,
+}
+
 
 # Stores values from the configuration file.
 Config = namedtuple('Config',
@@ -156,7 +167,8 @@ Config = namedtuple('Config',
                      'random_seed',
                      'scoring',
                      'algorithm',
-                     'algorithm_parameters'))
+                     'algorithm_parameters',
+                     'preprocessing_method'))
 
 # Possible scoring methods that may be used for hyperparameter tuning.
 SCORING_METHODS = 'accuracy precision sensitivity specificity informedness'
@@ -196,6 +208,7 @@ def main():
                         datasets.training.inputs,
                         datasets.training.targets,
                         score_function,
+                        config.preprocessing_method,
                         command_line_arguments.cpu,
                         config.algorithm_parameters)
 
@@ -316,6 +329,7 @@ def train_model(model_class,
                 input_data,
                 target_data,
                 score_function,
+                preprocessing_method,
                 cpus=1,
                 parameter_grid=None):
 
@@ -334,6 +348,9 @@ def train_model(model_class,
                       estimator, an array of input data, and an array
                       of target data, and returns a score as a float,
                       where higher numbers are better.
+      preprocessing_method: The method to use to preprocess the data before
+                            feeding it to the model. Must be a key of
+                            'PREPROCESSING_METHODS'.
       cpus: (Default=1) Number of processes to use for training the model.
       parameter_grid: (Default=None) A sequence of dicts with possible
                       hyperparameter values. Used for tuning the
@@ -345,7 +362,8 @@ def train_model(model_class,
 
     """
 
-    pipeline = Pipeline(steps=[('scaler', StandardScaler()),
+    preprocessor = PREPROCESSING_METHODS[preprocessing_method]()
+    pipeline = Pipeline(steps=[(preprocessing_method, preprocessor),
                                ('model', model_class())])
 
     if parameter_grid:
@@ -453,6 +471,9 @@ def read_config_file(path):
 
     except KeyError:
         raise ValueError('Unknown machine learning algorithm `{}`'.format(config_json['algorithm']))
+
+    if config_json['preprocessing_method'] not in PREPROCESSING_METHODS:
+        raise ValueError('Unknown preprocessing method `{}`.'.format(config_json['preprocessing_method']))
 
     if 'algorithm_parameters' not in config_json:
         config_json['algorithm_parameters'] = []

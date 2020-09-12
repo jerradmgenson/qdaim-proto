@@ -3,14 +3,13 @@
     "testing_dataset": "build/testing_data.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "algorithm": "sgd",
+    "preprocessing_method": "standard scaling",
+    "algorithm": "rrc",
     "algorithm_parameters":
     [
 	{
-	    "loss": ["log"],
-	    "penalty": ["elasticnet"],
-	    "alpha": [1e-01],
-	    "max_iter": [200]
+	    "alpha": [0.1, 0.5, 1.0, 2.0],
+	    "fit_intercept": [false]
 	}
     ]
 
