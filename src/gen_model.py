@@ -663,7 +663,7 @@ def calculate_false_positives(target_data, prediction_data):
 
     """
 
-    return np.sum(((target_data == 0).astype(int) + (prediction_data == 1).astype(int)) == 2)
+    return np.sum(((target_data == -1).astype(int) + (prediction_data == 1).astype(int)) == 2)
 
 
 def calculate_true_negatives(target_data, prediction_data):
@@ -673,7 +673,7 @@ def calculate_true_negatives(target_data, prediction_data):
 
     """
 
-    return np.sum(((target_data == 0).astype(int) + (prediction_data == 0).astype(int)) == 2)
+    return np.sum(((target_data == -1).astype(int) + (prediction_data == -1).astype(int)) == 2)
 
 
 def calculate_false_negatives(target_data, prediction_data):
@@ -683,7 +683,7 @@ def calculate_false_negatives(target_data, prediction_data):
 
     """
 
-    return np.sum(((target_data == 1).astype(int) + (prediction_data == 0).astype(int)) == 2)
+    return np.sum(((target_data == 1).astype(int) + (prediction_data == -1).astype(int)) == 2)
 
 
 def save_model(model, output_path):

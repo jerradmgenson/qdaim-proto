@@ -59,6 +59,10 @@ def main():
     # Convert resting ECG to a binary class.
     data_subset.loc[data_subset['restecg'] != 1, 'restecg'] = -1
 
+    # Convert num (heart disease class) to a binary class.
+    data_subset.loc[data_subset['num'] != 0, 'num'] = 1
+    data_subset.loc[data_subset['num'] == 0, 'num'] = -1
+
     # Rescale binary/ternary classes to range from -1 to 1.
     data_subset.loc[data_subset['sex'] == 0, 'sex'] = -1
     data_subset.loc[data_subset['exang'] == 0, 'exang'] = -1
