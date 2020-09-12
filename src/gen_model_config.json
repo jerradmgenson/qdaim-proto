@@ -3,9 +3,9 @@
     "testing_dataset": "build/testing_data.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "preprocessing_method": "robust scaling",
-    "pca_components": 5,
-    "pca_whiten": false,
+    "preprocessing_method": "standard scaling",
+    "pca_components": 12,
+    "pca_whiten": true,
     "algorithm": "svm",
     "algorithm_parameters":
     [
