@@ -19,9 +19,6 @@ below.
 - testing_dataset: the path to the testing dataset starting from the
   root of the reposistory.
 
-- columns: a list of columns from the testing and training datasets to
-  use as inputs to the model.
-
 - random_seed: an integer to seed the random number generators with.
 
 - scoring: the method to use for scoring candidate models during model
@@ -57,29 +54,6 @@ usage: build_model.py [-h] [-o OUTPUT_PATH] [--cpu CPU]
   --cpu CPU             Number of processes to use for training models.
   --log_level {critical,error,warning,info,debug}
                         Log level to configure logging with.
-
-
-Model Features
-==============
-The model has 11 features in total, individually described below.
-1. age: age of the subject in whole years.
-2. sex: 0=female  1=male
-3. chest_pain_type: 1=typical angina   3=non-anginal pain
-                    2=atypical angina  4=asymptomatic
-4. resting_bloog_pressure: resting systolic blood pressure in mmHg.
-5. cholestoral: serum cholestoral in mg/dl.
-6. fasting_blood_sugar: 0=blood sugar <= 120 mg/dl
-                        1=blood sugar > 120 mg/dl
-7. resting_ecg_abnormality: 0=normal
-                            1=T wave inversions or ST elevation/depression
-                            2=left ventricular hypertrophy
-8. maximum_heart_rate: maximum heart rate achieved during exercise
-9. exercise_angina: 0=no  1=yes
-10. exercise_st_depression: ST depression induced by exercise relative to rest
-11. exercise_st_slope: the slope of the peak exercise ST segment.
-                       1=upsloping
-                       2=flat
-                       3=downsloping
 
 
 Output Path
