@@ -3,7 +3,9 @@
     "testing_dataset": "build/testing_data.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "preprocessing_method": "standard scaling",
+    "preprocessing_method": "robust scaling",
+    "pca_components": 5,
+    "pca_whiten": false,
     "algorithm": "rrc",
     "algorithm_parameters":
     [

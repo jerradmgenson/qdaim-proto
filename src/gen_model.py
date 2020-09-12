@@ -122,6 +122,10 @@ from sklearn.linear_model import SGDClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import RobustScaler
+from sklearn.preprocessing import QuantileTransformer
+from sklearn.preprocessing import PowerTransformer
+from sklearn.preprocessing import Normalizer
+from sklearn.decomposition import PCA
 from sklearn.pipeline import Pipeline
 
 
@@ -157,6 +161,10 @@ SUPPORTED_ALGORITHMS = {
 PREPROCESSING_METHODS = {
     'standard scaling': StandardScaler,
     'robust scaling': RobustScaler,
+    'quantile transformer': QuantileTransformer,
+    'power transformer': PowerTransformer,
+    'normalize': Normalizer,
+    'pca': PCA,
 }
 
 
@@ -168,7 +176,9 @@ Config = namedtuple('Config',
                      'scoring',
                      'algorithm',
                      'algorithm_parameters',
-                     'preprocessing_method'))
+                     'preprocessing_method',
+                     'pca_whiten',
+                     'pca_components'))
 
 # Possible scoring methods that may be used for hyperparameter tuning.
 SCORING_METHODS = 'accuracy precision sensitivity specificity informedness'
@@ -330,6 +340,8 @@ def train_model(model_class,
                 target_data,
                 score_function,
                 preprocessing_method,
+                n_components=None,
+                whiten=False,
                 cpus=1,
                 parameter_grid=None):
 
@@ -351,6 +363,11 @@ def train_model(model_class,
       preprocessing_method: The method to use to preprocess the data before
                             feeding it to the model. Must be a key of
                             'PREPROCESSING_METHODS'.
+      n_components: (Default=None) The number of components to keep when using
+                    principal component analysis. Ignored unless
+                    'preprocessing_method' is 'pca'.
+      whiten: (Default=False) Whether to whiten the data when using principal
+              component analysis. Ignored unless 'processing_method' is 'pca'.
       cpus: (Default=1) Number of processes to use for training the model.
       parameter_grid: (Default=None) A sequence of dicts with possible
                       hyperparameter values. Used for tuning the
@@ -362,7 +379,13 @@ def train_model(model_class,
 
     """
 
-    preprocessor = PREPROCESSING_METHODS[preprocessing_method]()
+    if preprocessing_method == 'pca':
+        preprocessor = PREPROCESSING_METHODS[preprocessing_method](n_components=n_components,
+                                                                   whiten=whiten)
+
+    else:
+        preprocessor = PREPROCESSING_METHODS[preprocessing_method]()
+
     pipeline = Pipeline(steps=[(preprocessing_method, preprocessor),
                                ('model', model_class())])
 
