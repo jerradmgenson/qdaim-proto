@@ -159,7 +159,7 @@ SUPPORTED_ALGORITHMS = {
     'sgd': MLAlgorithm('stochastic gradient descent', SGDClassifier),
     'rrc': MLAlgorithm('ridge regression classifier', RidgeClassifier),
     'lrc': MLAlgorithm('logistic regression classifier', LogisticRegression),
-    'lds': MLAlgorithm('linear discriminant analysis', LinearDiscriminantAnalysis),
+    'lda': MLAlgorithm('linear discriminant analysis', LinearDiscriminantAnalysis),
     'qda': MLAlgorithm('quadratic discriminant analysis', QuadraticDiscriminantAnalysis),
     'mlp': MLAlgorithm('multilayer perceptron', MLPClassifier),
 }
