@@ -153,7 +153,6 @@ SUPPORTED_ALGORITHMS = {
 Config = namedtuple('Config',
                     ('training_dataset',
                      'testing_dataset',
-                     'columns',
                      'random_seed',
                      'scoring',
                      'algorithm',
@@ -169,7 +168,7 @@ ModelScores = namedtuple('ModelScores', SCORING_METHODS)
 Dataset = namedtuple('Dataset', 'inputs targets')
 
 # Stores training and testing datasets together in a single object.
-Datasets = namedtuple('Datasets', 'training testing')
+Datasets = namedtuple('Datasets', 'training testing columns')
 
 
 def main():
@@ -184,10 +183,9 @@ def main():
     config = read_config_file(CONFIG_FILE_PATH)
     random.seed(config.random_seed)
     np.random.seed(config.random_seed)
-    datasets = load_datasets(config.training_dataset, config.testing_dataset, config.columns)
+    datasets = load_datasets(config.training_dataset, config.testing_dataset)
     print(f'Training dataset:   {config.training_dataset}')
     print(f'Testing dataset:    {config.testing_dataset}')
-    print(f'Using columns:      {", ".join(config.columns)}')
     print(f'Random number seed: {config.random_seed}')
     print(f'Scoring method:     {config.scoring}')
     print(f'Algorithm:          {config.algorithm.name}')
@@ -209,7 +207,7 @@ def main():
     validation_dataset = create_validation_dataset(datasets.testing.inputs,
                                                    datasets.testing.targets,
                                                    predictions,
-                                                   config.columns)
+                                                   datasets.columns[:-1])
 
     save_validation(validation_dataset, command_line_arguments.output_path)
     save_model(model, command_line_arguments.output_path)
@@ -366,7 +364,7 @@ def train_model(model_class,
     return model
 
 
-def load_datasets(training_dataset, testing_dataset, columns):
+def load_datasets(training_dataset, testing_dataset):
     """
     Load training and testing datasets from the filesystem and return
     them as a Datasets object.
@@ -374,7 +372,6 @@ def load_datasets(training_dataset, testing_dataset, columns):
     Args
       training_dataset: Path to the training dataset.
       testing_dataset: Path to the testing dataset.
-      columns: List of columns from the datasets to use as model inputs.
 
     Returns
       An instance of Datasets.
@@ -383,13 +380,12 @@ def load_datasets(training_dataset, testing_dataset, columns):
 
     training_dataset = pd.read_csv(str(training_dataset))
     testing_dataset = pd.read_csv(str(testing_dataset))
-    training_subset = training_dataset[columns + ['target']]
-    testing_subset = testing_dataset[columns + ['target']]
 
-    return Datasets(training=Dataset(inputs=split_inputs(training_subset),
-                                     targets=split_target(training_subset)),
-                    testing=Dataset(inputs=split_inputs(testing_subset),
-                                    targets=split_target(testing_subset)))
+    return Datasets(training=Dataset(inputs=split_inputs(training_dataset),
+                                     targets=split_target(training_dataset)),
+                    testing=Dataset(inputs=split_inputs(testing_dataset),
+                                    targets=split_target(testing_dataset)),
+                    columns=training_dataset.columns)
 
 
 def split_inputs(dataframe):
