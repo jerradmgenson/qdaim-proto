@@ -6,9 +6,17 @@
     "preprocessing_method": "robust scaling",
     "pca_components": 5,
     "pca_whiten": false,
-    "algorithm": "mlp",
+    "algorithm": "svm",
     "algorithm_parameters":
     [
-
+	{
+	    "C": [1],
+	    "kernel": ["rbf"],
+	    "gamma": ["scale"],
+	    "shrinking": [true],
+	    "class_weight": ["balanced"],
+	    "break_ties": [false],
+	    "probability": [true]
+	}
     ]
 }
