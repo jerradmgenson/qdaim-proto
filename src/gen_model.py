@@ -626,7 +626,7 @@ def score_model(model, input_data, target_data):
 
     accuracy = report['accuracy']
     classes = np.unique(target_data)
-    informedness = sum(report[str(x)]['recall'] for x in classes) - len(classes) + 1
+    informedness = (sum(report[str(x)]['recall'] for x in classes) - len(classes) / 2) * (2 / len(classes))
     if len(classes) == 2:
         positive_class = str(np.max(classes))
         negative_class = str(np.min(classes))
