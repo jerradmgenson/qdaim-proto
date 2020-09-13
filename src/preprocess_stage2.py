@@ -15,7 +15,7 @@ Preprocessing steps performed by this script include:
 - Rename num to target.
 - Rescale binary and ternary classes to range from -1 to 1.
 - Randomize the row order.
-- Split data into testing and training sets.
+- Split data into testing, training, and validation sets.
 
 """
 
@@ -40,6 +40,9 @@ TESTING_DATASET_PATH = GIT_ROOT / Path('build/testing_data.csv')
 # Path to the output training dataset.
 TRAINING_DATASET_PATH = GIT_ROOT / Path('build/training_data.csv')
 
+# Path to the output validation dataset.
+VALIDATION_DATASET_PATH = GIT_ROOT / Path('build/validation_data.csv')
+
 # Columns to subset from the original input dataset.
 SUBSET_COLUMNS = ['age', 'sex', 'cp', 'thalrest', 'trestbps', 'restecg', 'fbs',
                   'thalach', 'exang', 'oldpeak', 'num']
@@ -47,8 +50,11 @@ SUBSET_COLUMNS = ['age', 'sex', 'cp', 'thalrest', 'trestbps', 'restecg', 'fbs',
 # Fraction of data to use for testing (as a real number between 0 and 1).
 TESTING_FRACTION = 0.2
 
+# Fraction of data to use for validation (as a real number between 0 and 1).
+VALIDATION_FRACTION = 0.2
+
 # Integer to use for seeding the random number generator.
-RANDOM_SEED = 251473927
+RANDOM_SEED = 667252912
 
 # Enumerates possible values for 'CLASSIFICATION_TYPE'.
 class ClassificationType(enum.Enum):
@@ -114,13 +120,16 @@ def main():
     # Shuffle order of rows in dataset.
     data_subset = data_subset.sample(frac=1)
 
-    # Split dataset into testing and training sets.
+    # Split dataset into testing, training, and validation sets.
     testing_rows = ceil(len(data_subset) * TESTING_FRACTION)
+    validation_rows = ceil(len(data_subset) * VALIDATION_FRACTION) + testing_rows
     testing_data = data_subset[:testing_rows]
-    training_data = data_subset[testing_rows:]
+    validation_data = data_subset[testing_rows:validation_rows]
+    training_data = data_subset[validation_rows:]
 
-    # Save testing/training datasets to CSV files.
+    # Save testing/training/validation datasets to CSV files.
     testing_data.to_csv(TESTING_DATASET_PATH, index=None)
+    validation_data.to_csv(VALIDATION_DATASET_PATH, index=None)
     training_data.to_csv(TRAINING_DATASET_PATH, index=None)
 
 
