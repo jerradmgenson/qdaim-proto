@@ -592,7 +592,7 @@ def create_scorer(scoring):
 
     """
 
-    def calculate_score(model, inputs, targets):
+    def scorer(model, inputs, targets):
         model_scores, _ = score_model(model, inputs, targets)
         score = getattr(model_scores, scoring)
         if score is None:
@@ -600,7 +600,7 @@ def create_scorer(scoring):
 
         return score
 
-    return calculate_score
+    return scorer
 
 
 def score_model(model, input_data, target_data):
