@@ -624,8 +624,9 @@ def score_model(model, input_data, target_data):
                                                    prediction_data,
                                                    output_dict=True)
 
-    accuracy = sklearn.metrics.accuracy_score(target_data, prediction_data)
+    accuracy = report['accuracy']
     classes = np.unique(target_data)
+    informedness = sum(report[str(x)]['recall'] for x in classes) - len(classes) + 1
     if len(classes) == 2:
         positive_class = str(np.max(classes))
         negative_class = str(np.min(classes))
@@ -633,12 +634,10 @@ def score_model(model, input_data, target_data):
         sensitivity = report[positive_class]['recall']
         recall = sensitivity
         specificity = report[negative_class]['recall']
-        informedness = sensitivity + specificity - 1
 
     else:
         precision = sp.stats.hmean([report[str(x)]['precision'] for x in classes])
         recall = sp.stats.hmean([report[str(x)]['recall'] for x in classes])
-        informedness = None
         sensitivity = None
         specificity = None
 

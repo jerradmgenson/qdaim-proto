@@ -63,7 +63,7 @@ class ClassificationType(enum.Enum):
 
 # Set what type of classification target to generate.
 # Possible values are the members of ClassificationType.
-CLASSIFICATION_TYPE = ClassificationType.TERNARY
+CLASSIFICATION_TYPE = ClassificationType.BINARY
 
 
 def main():
