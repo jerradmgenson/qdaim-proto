@@ -203,8 +203,10 @@ def main():
                         datasets.training.targets,
                         score_function,
                         config.preprocessing_method,
-                        command_line_arguments.cpu,
-                        config.algorithm_parameters)
+                        n_components=config.pca_components,
+                        whiten=config.pca_whiten,
+                        cpus=command_line_arguments.cpu,
+                        parameter_grid=config.algorithm_parameters)
 
     model_scores, predictions = score_model(model,
                                             datasets.testing.inputs,
@@ -592,7 +594,11 @@ def create_scorer(scoring):
 
     def calculate_score(model, inputs, targets):
         model_scores, _ = score_model(model, inputs, targets)
-        return getattr(model_scores, scoring)
+        score = getattr(model_scores, scoring)
+        if score is None:
+            raise ValueError(f'`{scoring}` can not be used with this type of classification.')
+
+        return score
 
     return calculate_score
 
@@ -630,11 +636,9 @@ def score_model(model, input_data, target_data):
         informedness = sensitivity + specificity - 1
 
     else:
-        precision = sklearn.metrics.average_precision_score(target_data,
-                                                            prediction_data)
-
-        recall = sp.stats.hmean([x['recall'] for x in report])
-        informedness = sum([x['recall'] for x in report]) - len(classes)
+        precision = sp.stats.hmean([report[str(x)]['precision'] for x in classes])
+        recall = sp.stats.hmean([report[str(x)]['recall'] for x in classes])
+        informedness = None
         sensitivity = None
         specificity = None
 
