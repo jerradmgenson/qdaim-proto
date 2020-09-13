@@ -164,7 +164,7 @@ Config = namedtuple('Config',
                      'pca_components'))
 
 # Possible scoring methods that may be used for hyperparameter tuning.
-SCORING_METHODS = 'accuracy precision sensitivity specificity informedness'
+SCORING_METHODS = 'accuracy precision recall sensitivity specificity informedness'
 
 # Collects model scores together in a single object.
 ModelScores = namedtuple('ModelScores', SCORING_METHODS)
@@ -298,6 +298,9 @@ def bind_model_metadata(model, scores):
 
     print('\nModel scores:')
     for metric, score in scores._asdict().items():
+        if score is None:
+            continue
+
         setattr(model, metric, score)
         label = metric + ':'
         print(f'{label:13} {score:.4}')
@@ -611,112 +614,38 @@ def score_model(model, input_data, target_data):
     """
 
     prediction_data = model.predict(input_data)
-    model_scores = ModelScores(accuracy=calculate_accuracy(target_data, prediction_data),
-                               precision=calculate_precision(target_data, prediction_data),
-                               sensitivity=calculate_sensitivity(target_data, prediction_data),
-                               specificity=calculate_specificity(target_data, prediction_data),
-                               informedness=calculate_informedness(target_data, prediction_data))
+    report = sklearn.metrics.classification_report(target_data,
+                                                   prediction_data,
+                                                   output_dict=True)
+
+    accuracy = sklearn.metrics.accuracy_score(target_data, prediction_data)
+    classes = np.unique(target_data)
+    if len(classes) == 2:
+        positive_class = str(np.max(classes))
+        negative_class = str(np.min(classes))
+        precision = report[positive_class]['precision']
+        sensitivity = report[positive_class]['recall']
+        recall = sensitivity
+        specificity = report[negative_class]['recall']
+        informedness = sensitivity + specificity - 1
+
+    else:
+        precision = sklearn.metrics.average_precision_score(target_data,
+                                                            prediction_data)
+
+        recall = sp.stats.hmean([x['recall'] for x in report])
+        informedness = sum([x['recall'] for x in report]) - len(classes)
+        sensitivity = None
+        specificity = None
+
+    model_scores = ModelScores(accuracy=accuracy,
+                               precision=precision,
+                               recall=recall,
+                               sensitivity=sensitivity,
+                               specificity=specificity,
+                               informedness=informedness)
 
     return model_scores, prediction_data
-
-
-def calculate_accuracy(target_data, prediction_data):
-    """
-    Calculate accuracy - the number of correct predictions divided by
-    the total number of predictions
-
-    """
-
-    correct_predictions = np.sum(target_data == prediction_data)
-    return correct_predictions / len(prediction_data)
-
-
-def calculate_precision(target_data, prediction_data):
-    """
-    Calculate precision - the number of true positives divided by the
-    total number of positive predictions.
-
-    """
-
-    true_positives = calculate_true_positives(target_data, prediction_data)
-    false_positives = calculate_false_positives(target_data, prediction_data)
-    return true_positives / (true_positives + false_positives)
-
-
-def calculate_sensitivity(target_data, prediction_data):
-    """
-    Calculate sensitivity - the proportion of positives that are
-    correctly identified.
-
-    """
-
-    true_positives = calculate_true_positives(target_data, prediction_data)
-    false_negatives = calculate_false_negatives(target_data, prediction_data)
-    return true_positives / (true_positives + false_negatives)
-
-
-def calculate_specificity(target_data, prediction_data):
-    """
-    Calculate sensitivity - the proportion of negatives that are
-    correctly identified.
-
-    """
-
-    true_negatives = calculate_true_negatives(target_data, prediction_data)
-    false_positives = calculate_false_positives(target_data, prediction_data)
-    return true_negatives / (true_negatives + false_positives)
-
-
-def calculate_informedness(target_data, prediction_data):
-    """
-    Calculate informedness (aka Youden's J statistic).
-    This is the sensitivity + specificity - 1.
-
-    """
-
-    return (calculate_sensitivity(target_data, prediction_data)
-            + calculate_specificity(target_data, prediction_data)
-            - 1)
-
-
-def calculate_true_positives(target_data, prediction_data):
-    """
-    Calculate the number of positives (1's) in prediction_data that agree with
-    the corresponding element of target_data.
-
-    """
-
-    return np.sum(((target_data == 1).astype(int) + (prediction_data == 1).astype(int)) == 2)
-
-
-def calculate_false_positives(target_data, prediction_data):
-    """
-    Calculate the number of positives (1's) in prediction_data that disagree with
-    the corresponding element of target_data.
-
-    """
-
-    return np.sum(((target_data == -1).astype(int) + (prediction_data == 1).astype(int)) == 2)
-
-
-def calculate_true_negatives(target_data, prediction_data):
-    """
-    Calculate the number of negatives (0's) in prediction_data that agree with
-    the corresponding element of target_data.
-
-    """
-
-    return np.sum(((target_data == -1).astype(int) + (prediction_data == -1).astype(int)) == 2)
-
-
-def calculate_false_negatives(target_data, prediction_data):
-    """
-    Calculate the number of negatives (0's) in prediction_data that disagree with
-    the corresponding element of target_data.
-
-    """
-
-    return np.sum(((target_data == 1).astype(int) + (prediction_data == -1).astype(int)) == 2)
 
 
 def save_model(model, output_path):
