@@ -624,9 +624,7 @@ def score_model(model, input_data, target_data):
                                                    prediction_data,
                                                    output_dict=True)
 
-    accuracy = report['accuracy']
     classes = np.unique(target_data)
-    informedness = (sum(report[str(x)]['recall'] for x in classes) - len(classes) / 2) * (2 / len(classes))
     if len(classes) == 2:
         positive_class = str(np.max(classes))
         negative_class = str(np.min(classes))
@@ -636,19 +634,71 @@ def score_model(model, input_data, target_data):
         specificity = report[negative_class]['recall']
 
     else:
-        precision = sp.stats.hmean([report[str(x)]['precision'] for x in classes])
-        recall = sp.stats.hmean([report[str(x)]['recall'] for x in classes])
+        precision = calculate_hmean_precision(report, classes)
+        recall = calculate_hmean_recall(report, classes)
         sensitivity = None
         specificity = None
 
-    model_scores = ModelScores(accuracy=accuracy,
+    model_scores = ModelScores(accuracy=report['accuracy'],
                                precision=precision,
                                recall=recall,
                                sensitivity=sensitivity,
                                specificity=specificity,
-                               informedness=informedness)
+                               informedness=calculate_informedness(report, classes))
 
     return model_scores, prediction_data
+
+
+def calculate_hmean_recall(classification_report, classes):
+    """
+    Calculate the harmonic mean of the recall values across all classes.
+
+    Args
+      classification_report: A dict returned by sklearn.metrics.classification_report().
+      classes: A sequence of unique class names.
+
+    Returns
+      The harmonic mean recall as a real number.
+
+    """
+
+    return sp.stats.hmean([classification_report[str(x)]['recall'] for x in classes])
+
+
+def calculate_hmean_precision(classification_report, classes):
+    """
+    Calculate the harmonic mean of the precision values across all classes.
+
+    Args
+      classification_report: A dict returned by sklearn.metrics.classification_report().
+      classes: A sequence of unique class names.
+
+    Returns
+      The harmonic mean precision as a real number.
+
+    """
+
+    return sp.stats.hmean([classification_report[str(x)]['precision'] for x in classes])
+
+
+def calculate_informedness(classification_report, classes):
+    """
+    Calculate informedness, otherwise known as Youden's J statistic
+    generalized by the following formula:
+
+    (sum(recalls) - number of classes / 2) * (2 / number of classes)
+
+    Args
+      classification_report: A dict returned by sklearn.metrics.classification_report().
+      classes: A sequence of unique class names.
+
+    Returns
+      The calculated informedness value as a real number between -1 and 1.
+
+    """
+
+    recall_sum = sum(classification_report[str(c)]['recall'] for c in classes)
+    return (recall_sum - len(classes) / 2) * (2 / len(classes))
 
 
 def save_model(model, output_path):
