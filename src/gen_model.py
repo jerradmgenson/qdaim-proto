@@ -164,7 +164,7 @@ Config = namedtuple('Config',
                      'pca_components'))
 
 # Possible scoring methods that may be used for hyperparameter tuning.
-SCORING_METHODS = 'accuracy precision hmean_precision hmean_recall sensitivity specificity informedness auc'
+SCORING_METHODS = 'accuracy precision hmean_precision hmean_recall sensitivity specificity informedness'
 
 # Collects model scores together in a single object.
 ModelScores = namedtuple('ModelScores', SCORING_METHODS)
@@ -305,7 +305,7 @@ def bind_model_metadata(model, scores):
 
         setattr(model, metric, score)
         label = metric + ':'
-        print(f'{label:13} {score:.4}')
+        print(f'{label:16} {score:.4}')
 
     model.commit_hash = get_commit_hash()
     model.validated = False
@@ -643,8 +643,7 @@ def score_model(model, input_data, target_data):
                                hmean_recall=calculate_hmean_recall(report, classes),
                                sensitivity=sensitivity,
                                specificity=specificity,
-                               informedness=calculate_informedness(report, classes),
-                               auc=None)
+                               informedness=calculate_informedness(report, classes))
 
     return model_scores, prediction_data
 
