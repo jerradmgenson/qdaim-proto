@@ -16,7 +16,7 @@ below.
 - training_dataset: the path to the training dataset starting from the
   root of the repository.
 
-- testing_dataset: the path to the testing dataset starting from the
+- validation_dataset: the path to the validation dataset starting from the
   root of the reposistory.
 
 - random_seed: an integer to seed the random number generators with.
@@ -61,7 +61,7 @@ Output Path
 By default, the output path for generated models is (starting from the
 reposistory root): build/heart_disease_model.dat
 A CSV file containing the generated model's predictions appended to the
-testing dataset is saved alongside the model. This file is given the same
+validation dataset is saved alongside the model. This file is given the same
 name as the model, with '.dat' replaced by '_validation.csv' (by default,
 'heart_disease_model_validation.csv').
 
@@ -154,7 +154,7 @@ PREPROCESSING_METHODS = {
 # Stores values from the configuration file.
 Config = namedtuple('Config',
                     ('training_dataset',
-                     'testing_dataset',
+                     'validation_dataset',
                      'random_seed',
                      'scoring',
                      'algorithm',
@@ -172,8 +172,8 @@ ModelScores = namedtuple('ModelScores', SCORING_METHODS)
 # Contains input data and target data for a single dataset.
 Dataset = namedtuple('Dataset', 'inputs targets')
 
-# Stores training and testing datasets together in a single object.
-Datasets = namedtuple('Datasets', 'training testing columns')
+# Stores training and validation datasets together in a single object.
+Datasets = namedtuple('Datasets', 'training validation columns')
 
 
 def main():
@@ -188,15 +188,15 @@ def main():
     config = read_config_file(CONFIG_FILE_PATH)
     random.seed(config.random_seed)
     np.random.seed(config.random_seed)
-    datasets = load_datasets(config.training_dataset, config.testing_dataset)
+    datasets = load_datasets(config.training_dataset, config.validation_dataset)
     print(f'Training dataset:     {config.training_dataset}')
-    print(f'Testing dataset:      {config.testing_dataset}')
+    print(f'Validation dataset:   {config.validation_dataset}')
     print(f'Random number seed:   {config.random_seed}')
     print(f'Scoring method:       {config.scoring}')
     print(f'Algorithm:            {config.algorithm.name}')
     print(f'Preprocessing method: {config.preprocessing_method}')
     print(f'Training samples:     {len(datasets.training.inputs)}')
-    print(f'Testing samples:      {len(datasets.testing.inputs)}')
+    print(f'Validation samples:   {len(datasets.validation.inputs)}')
     score_function = create_scorer(config.scoring)
     model = train_model(config.algorithm.class_,
                         datasets.training.inputs,
@@ -209,12 +209,12 @@ def main():
                         parameter_grid=config.algorithm_parameters)
 
     model_scores, predictions = score_model(model,
-                                            datasets.testing.inputs,
-                                            datasets.testing.targets)
+                                            datasets.validation.inputs,
+                                            datasets.validation.targets)
 
     bind_model_metadata(model, model_scores)
-    validation_dataset = create_validation_dataset(datasets.testing.inputs,
-                                                   datasets.testing.targets,
+    validation_dataset = create_validation_dataset(datasets.validation.inputs,
+                                                   datasets.validation.targets,
                                                    predictions,
                                                    datasets.columns[:-1])
 
@@ -399,14 +399,14 @@ def train_model(model_class,
     return model
 
 
-def load_datasets(training_dataset, testing_dataset):
+def load_datasets(training_dataset, validation_dataset):
     """
-    Load training and testing datasets from the filesystem and return
+    Load training and validation datasets from the filesystem and return
     them as a Datasets object.
 
     Args
       training_dataset: Path to the training dataset.
-      testing_dataset: Path to the testing dataset.
+      validation_dataset: Path to the validation dataset.
 
     Returns
       An instance of Datasets.
@@ -414,12 +414,12 @@ def load_datasets(training_dataset, testing_dataset):
     """
 
     training_dataset = pd.read_csv(str(training_dataset))
-    testing_dataset = pd.read_csv(str(testing_dataset))
+    validation_dataset = pd.read_csv(str(validation_dataset))
 
     return Datasets(training=Dataset(inputs=split_inputs(training_dataset),
                                      targets=split_target(training_dataset)),
-                    testing=Dataset(inputs=split_inputs(testing_dataset),
-                                    targets=split_target(testing_dataset)),
+                    validation=Dataset(inputs=split_inputs(validation_dataset),
+                                    targets=split_target(validation_dataset)),
                     columns=training_dataset.columns)
 
 
@@ -480,8 +480,8 @@ def read_config_file(path):
     config_json['training_dataset'] = os.path.join(str(GIT_ROOT),
                                                    config_json['training_dataset'])
 
-    config_json['testing_dataset'] = os.path.join(str(GIT_ROOT),
-                                                  config_json['testing_dataset'])
+    config_json['validation_dataset'] = os.path.join(str(GIT_ROOT),
+                                                     config_json['validation_dataset'])
 
     try:
         config_json['algorithm'] = SUPPORTED_ALGORITHMS[config_json['algorithm']]
