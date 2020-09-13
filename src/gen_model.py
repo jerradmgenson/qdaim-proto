@@ -164,7 +164,7 @@ Config = namedtuple('Config',
                      'pca_components'))
 
 # Possible scoring methods that may be used for hyperparameter tuning.
-SCORING_METHODS = 'accuracy precision recall sensitivity specificity informedness'
+SCORING_METHODS = 'accuracy precision hmean_precision hmean_recall sensitivity specificity informedness auc'
 
 # Collects model scores together in a single object.
 ModelScores = namedtuple('ModelScores', SCORING_METHODS)
@@ -630,21 +630,21 @@ def score_model(model, input_data, target_data):
         negative_class = str(np.min(classes))
         precision = report[positive_class]['precision']
         sensitivity = report[positive_class]['recall']
-        recall = sensitivity
         specificity = report[negative_class]['recall']
 
     else:
-        precision = calculate_hmean_precision(report, classes)
-        recall = calculate_hmean_recall(report, classes)
+        precision = None
         sensitivity = None
         specificity = None
 
     model_scores = ModelScores(accuracy=report['accuracy'],
                                precision=precision,
-                               recall=recall,
+                               hmean_precision=calculate_hmean_precision(report, classes),
+                               hmean_recall=calculate_hmean_recall(report, classes),
                                sensitivity=sensitivity,
                                specificity=specificity,
-                               informedness=calculate_informedness(report, classes))
+                               informedness=calculate_informedness(report, classes),
+                               auc=None)
 
     return model_scores, prediction_data
 
