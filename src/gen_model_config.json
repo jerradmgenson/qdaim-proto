@@ -3,20 +3,16 @@
     "validation_dataset": "build/validation_data.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "preprocessing_method": "standard scaling",
-    "pca_components": 12,
+    "preprocessing_method": "pca",
+    "pca_components": 8,
     "pca_whiten": true,
     "algorithm": "svm",
     "algorithm_parameters":
     [
 	{
-	    "C": [1],
 	    "kernel": ["rbf"],
-	    "gamma": ["scale"],
-	    "shrinking": [true],
 	    "class_weight": ["balanced"],
-	    "break_ties": [false],
-	    "probability": [true]
+	    "shrinking": [false]
 	}
     ]
 }
