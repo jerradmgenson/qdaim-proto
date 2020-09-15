@@ -3,7 +3,7 @@
     "validation_dataset": "build/validation_data.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "preprocessing_method": "pca",
+    "preprocessing_methods": ["pca"],
     "pca_components": 8,
     "pca_whiten": true,
     "algorithm": "qda",
