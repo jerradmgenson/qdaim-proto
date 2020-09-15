@@ -136,6 +136,7 @@ SUPPORTED_ALGORITHMS = {
     'lda': MLAlgorithm('linear discriminant analysis', LinearDiscriminantAnalysis),
     'qda': MLAlgorithm('quadratic discriminant analysis', QuadraticDiscriminantAnalysis),
     'mlp': MLAlgorithm('multilayer perceptron', MLPClassifier),
+    'dtc': MLAlgorithm('decision tree', sklearn.tree.DecisionTreeClassifier),
 }
 
 # Possible preprocessing methods that can be used to prepare data for
