@@ -3,21 +3,11 @@
     "validation_dataset": "build/validation_data.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "preprocessing_method": "pca",
+    "preprocessing_methods": ["pca"],
     "pca_components": 8,
     "pca_whiten": true,
-    "algorithm": "rfc",
+    "algorithm": "qda",
     "algorithm_parameters":
     [
-	{
-	    "n_estimators": [10, 50, 100, 200],
-	    "criterion": ["gini", "entropy"],
-	    "min_samples_split": [2, 4, 6, 8, 10],
-	    "min_samples_leaf": [1, 2, 4, 8],
-	    "max_features": ["sqrt", "log2"],
-	    "oob_score": [false, true],
-	    "ccp_alpha": [0, 0.01, 0.1, 0.5, 1],
-	    "class_weight": ["balanced"]
-	}
     ]
 }

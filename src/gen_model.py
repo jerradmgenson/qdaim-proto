@@ -141,13 +141,13 @@ SUPPORTED_ALGORITHMS = {
 # Possible preprocessing methods that can be used to prepare data for
 # a model.
 PREPROCESSING_METHODS = {
-    'none': None,
     'standard scaling': StandardScaler,
     'robust scaling': RobustScaler,
     'quantile transformer': QuantileTransformer,
     'power transformer': PowerTransformer,
     'normalize': Normalizer,
     'pca': PCA,
+    'lda': LinearDiscriminantAnalysis,
 }
 
 
@@ -159,7 +159,7 @@ Config = namedtuple('Config',
                      'scoring',
                      'algorithm',
                      'algorithm_parameters',
-                     'preprocessing_method',
+                     'preprocessing_methods',
                      'pca_whiten',
                      'pca_components'))
 
@@ -189,20 +189,20 @@ def main():
     random.seed(config.random_seed)
     np.random.seed(config.random_seed)
     datasets = load_datasets(config.training_dataset, config.validation_dataset)
-    print(f'Training dataset:     {config.training_dataset}')
-    print(f'Validation dataset:   {config.validation_dataset}')
-    print(f'Random number seed:   {config.random_seed}')
-    print(f'Scoring method:       {config.scoring}')
-    print(f'Algorithm:            {config.algorithm.name}')
-    print(f'Preprocessing method: {config.preprocessing_method}')
-    print(f'Training samples:     {len(datasets.training.inputs)}')
-    print(f'Validation samples:   {len(datasets.validation.inputs)}')
+    print(f'Training dataset:      {config.training_dataset}')
+    print(f'Validation dataset:    {config.validation_dataset}')
+    print(f'Random number seed:    {config.random_seed}')
+    print(f'Scoring method:        {config.scoring}')
+    print(f'Algorithm:             {config.algorithm.name}')
+    print(f'Preprocessing methods: {config.preprocessing_methods}')
+    print(f'Training samples:      {len(datasets.training.inputs)}')
+    print(f'Validation samples:    {len(datasets.validation.inputs)}')
     score_function = create_scorer(config.scoring)
     model = train_model(config.algorithm.class_,
                         datasets.training.inputs,
                         datasets.training.targets,
                         score_function,
-                        config.preprocessing_method,
+                        config.preprocessing_methods,
                         n_components=config.pca_components,
                         whiten=config.pca_whiten,
                         cpus=command_line_arguments.cpu,
@@ -328,7 +328,7 @@ def train_model(model_class,
                 input_data,
                 target_data,
                 score_function,
-                preprocessing_method,
+                preprocessing_methods,
                 n_components=None,
                 whiten=False,
                 cpus=1,
@@ -349,14 +349,14 @@ def train_model(model_class,
                       estimator, an array of input data, and an array
                       of target data, and returns a score as a float,
                       where higher numbers are better.
-      preprocessing_method: The method to use to preprocess the data before
-                            feeding it to the model. Must be a key of
+      preprocessing_methods: A sequence of methods to use to preprocess the data
+                             before feeding it to the model. Must be a subset of
                             'PREPROCESSING_METHODS'.
       n_components: (Default=None) The number of components to keep when using
-                    principal component analysis. Ignored unless
-                    'preprocessing_method' is 'pca'.
+                    principal component analysis. Ignored unless one of
+                    'preprocessing_methods' is 'pca' or 'lda'.
       whiten: (Default=False) Whether to whiten the data when using principal
-              component analysis. Ignored unless 'processing_method' is 'pca'.
+              component analysis. Ignored unless 'pca' in 'processing_methods'.
       cpus: (Default=1) Number of processes to use for training the model.
       parameter_grid: (Default=None) A sequence of dicts with possible
                       hyperparameter values. Used for tuning the
@@ -369,17 +369,18 @@ def train_model(model_class,
     """
 
     pipeline_steps = []
-    if preprocessing_method == 'pca':
-        preprocessor = PREPROCESSING_METHODS[preprocessing_method](n_components=n_components, whiten=whiten)
+    for preprocessing_method in preprocessing_methods:
+        if preprocessing_method == 'pca':
+            preprocessor = PREPROCESSING_METHODS[preprocessing_method](n_components=n_components, whiten=whiten)
+            pipeline_steps.append((preprocessing_method, preprocessor))
 
-        pipeline_steps.append((preprocessing_method, preprocessor))
+        elif preprocessing_method == 'lda':
+            preprocessor = PREPROCESSING_METHODS[preprocessing_method](n_components=n_components)
+            pipeline_steps.append((preprocessing_method, preprocessor))
 
-    elif preprocessing_method == 'none':
-        pass
-
-    else:
-        preprocessor = PREPROCESSING_METHODS[preprocessing_method]()
-        pipeline_steps.append((preprocessing_method, preprocessor))
+        else:
+            preprocessor = PREPROCESSING_METHODS[preprocessing_method]()
+            pipeline_steps.append((preprocessing_method, preprocessor))
 
     pipeline_steps.append(('model', model_class()))
     pipeline = Pipeline(steps=pipeline_steps)
@@ -419,7 +420,7 @@ def load_datasets(training_dataset, validation_dataset):
     return Datasets(training=Dataset(inputs=split_inputs(training_dataset),
                                      targets=split_target(training_dataset)),
                     validation=Dataset(inputs=split_inputs(validation_dataset),
-                                    targets=split_target(validation_dataset)),
+                                       targets=split_target(validation_dataset)),
                     columns=training_dataset.columns)
 
 
@@ -489,7 +490,7 @@ def read_config_file(path):
     except KeyError:
         raise ValueError('Unknown machine learning algorithm `{}`'.format(config_json['algorithm']))
 
-    if config_json['preprocessing_method'] not in PREPROCESSING_METHODS:
+    if not set(config_json['preprocessing_methods']).issubset(set(PREPROCESSING_METHODS)):
         raise ValueError('Unknown preprocessing method `{}`.'.format(config_json['preprocessing_method']))
 
     if 'algorithm_parameters' not in config_json:
