@@ -3,20 +3,21 @@
     "validation_dataset": "build/validation_data.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "preprocessing_method": "standard scaling",
-    "pca_components": 12,
+    "preprocessing_method": "pca",
+    "pca_components": 8,
     "pca_whiten": true,
-    "algorithm": "svm",
+    "algorithm": "rfc",
     "algorithm_parameters":
     [
 	{
-	    "C": [1],
-	    "kernel": ["rbf"],
-	    "gamma": ["scale"],
-	    "shrinking": [true],
-	    "class_weight": ["balanced"],
-	    "break_ties": [false],
-	    "probability": [true]
+	    "n_estimators": [10, 50, 100, 200],
+	    "criterion": ["gini", "entropy"],
+	    "min_samples_split": [2, 4, 6, 8, 10],
+	    "min_samples_leaf": [1, 2, 4, 8],
+	    "max_features": ["sqrt", "log2"],
+	    "oob_score": [false, true],
+	    "ccp_alpha": [0, 0.01, 0.1, 0.5, 1],
+	    "class_weight": ["balanced"]
 	}
     ]
 }
