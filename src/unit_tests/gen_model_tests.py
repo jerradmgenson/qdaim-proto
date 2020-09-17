@@ -96,7 +96,7 @@ class TrainModelTest(unittest.TestCase):
                                       inputs,
                                       targets,
                                       score,
-                                      'standard scaling',
+                                      ['standard scaling'],
                                       parameter_grid=grid,
                                       cpus=1)
 
@@ -118,7 +118,7 @@ class TrainModelTest(unittest.TestCase):
                                       inputs,
                                       targets,
                                       score,
-                                      'none',
+                                      [],
                                       cpus=2)
 
         self.assertEqual(len(model.steps), 1)
@@ -138,12 +138,13 @@ class TrainModelTest(unittest.TestCase):
                                       inputs,
                                       targets,
                                       score,
-                                      'pca',
+                                      ['pca', 'robust scaling'],
                                       cpus=4)
 
-        self.assertEqual(len(model.steps), 2)
+        self.assertEqual(len(model.steps), 3)
         self.assertEqual(model.steps[0][0], 'pca')
-        self.assertEqual(model.steps[1][0], 'model')
+        self.assertEqual(model.steps[1][0], 'robust scaling')
+        self.assertEqual(model.steps[2][0], 'model')
         self.assertTrue(model.predict(inputs).any())
 
 
