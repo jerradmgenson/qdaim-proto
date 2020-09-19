@@ -130,6 +130,7 @@ SUPPORTED_ALGORITHMS = {
     'svm': MLAlgorithm('support vector machine', svm.SVC),
     'knn': MLAlgorithm('k-nearest neighbors', KNeighborsClassifier),
     'rfc': MLAlgorithm('random forest', RandomForestClassifier),
+    'etc': MLAlgorithm('extra trees', sklearn.ensemble.ExtraTreesClassifier),
     'sgd': MLAlgorithm('stochastic gradient descent', SGDClassifier),
     'rrc': MLAlgorithm('ridge regression classifier', RidgeClassifier),
     'lrc': MLAlgorithm('logistic regression classifier', LogisticRegression),
