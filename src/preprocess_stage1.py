@@ -10,7 +10,7 @@ disease data - switzerland.data, hungarian.data, and long_beach.data.
 Preprocessing steps performed by this script include:
 - Convert each dataset from a one-dimensional list to a dataframe.
 - Create a subset of only the columns we are interested in
-  (see COLUMNS_OF_INTEREST).
+  (see SUBSET_COLUMNS).
 - Combine the three individual datasets into a single dataset with all
   rows from the individual sets.
 
@@ -29,20 +29,20 @@ GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
 BUILD = GIT_ROOT / Path('build')
 DATA = GIT_ROOT / Path('data')
 
-# Path to the input datasets.
-SWITZERLAND_DATASET = DATA / Path('switzerland.data')
-HUNGARIAN_DATASET = DATA / Path('hungarian.data')
-LONG_BEACH_DATASET = DATA / Path('long_beach.data')
+# Paths to the input datasets.
+INPUT_DATASETS = (DATA / Path('switzerland.data'),
+                  DATA / Path('hungarian.data'),
+                  DATA / Path('long_beach.data'))
 
 # Path to the output dataset.
-COMBINED_DATASET_OUTPUT_PATH = BUILD / Path('combined_data.csv')
+OUTPUT_PATH = BUILD / Path('combined_data.csv')
 
 # Path to the file containing column names for the above three datasets.
 COLUMNS_FILE = DATA / Path('column_names')
 
 # Names of columns we are interested in studying.
 # Discard all other columns from the dataset.
-COLUMNS_OF_INTEREST = ['age', 'sex', 'cp', 'thalrest', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'smoke', 'cigs', 'years', 'famhist', 'num']
+SUBSET_COLUMNS = ['age', 'sex', 'cp', 'thalrest', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'smoke', 'cigs', 'years', 'famhist', 'num']
 
 
 def main():
@@ -51,17 +51,17 @@ def main():
 
     """
 
-    switzerland_dataset = load_dataset(SWITZERLAND_DATASET)
-    curated_switzerland_dataset = switzerland_dataset[COLUMNS_OF_INTEREST]
+    combined_dataset = None
+    for dataset_path in INPUT_DATASETS:
+        dataset = load_dataset(dataset_path)
+        dataset_subset = dataset[SUBSET_COLUMNS]
+        if combined_dataset is not None:
+            combined_dataset = combined_dataset.append(dataset_subset)
 
-    hungarian_dataset = load_dataset(HUNGARIAN_DATASET)
-    curated_hungarian_dataset = hungarian_dataset[COLUMNS_OF_INTEREST]
+        else:
+            combined_dataset = dataset_subset
 
-    long_beach_dataset = load_dataset(LONG_BEACH_DATASET)
-    curated_long_beach_dataset = long_beach_dataset[COLUMNS_OF_INTEREST]
-
-    combined_dataset = curated_switzerland_dataset.append(curated_hungarian_dataset).append(curated_long_beach_dataset)
-    combined_dataset.to_csv(str(COMBINED_DATASET_OUTPUT_PATH), index=False)
+    combined_dataset.to_csv(str(OUTPUT_PATH), index=False)
 
     return 0
 
