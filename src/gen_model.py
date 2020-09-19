@@ -189,7 +189,9 @@ def main():
     config = read_config_file(CONFIG_FILE_PATH)
     random.seed(config.random_seed)
     np.random.seed(config.random_seed)
-    datasets = load_datasets(config.training_dataset, config.validation_dataset)
+    datasets = load_datasets(config.training_dataset,
+                             config.validation_dataset)
+
     print(f'Training dataset:      {config.training_dataset}')
     print(f'Validation dataset:    {config.validation_dataset}')
     print(f'Random number seed:    {config.random_seed}')
@@ -372,11 +374,15 @@ def train_model(model_class,
     pipeline_steps = []
     for preprocessing_method in preprocessing_methods:
         if preprocessing_method == 'pca':
-            preprocessor = PREPROCESSING_METHODS[preprocessing_method](n_components=n_components, whiten=whiten)
+            preprocessor_class = PREPROCESSING_METHODS[preprocessing_method]
+            preprocessor = preprocessor_class(n_components=n_components,
+                                              whiten=whiten)
+
             pipeline_steps.append((preprocessing_method, preprocessor))
 
         elif preprocessing_method == 'lda':
-            preprocessor = PREPROCESSING_METHODS[preprocessing_method](n_components=n_components)
+            preprocessor_class = PREPROCESSING_METHODS[preprocessing_method]
+            preprocessor = preprocessor_class(n_components=n_components)
             pipeline_steps.append((preprocessing_method, preprocessor))
 
         else:
