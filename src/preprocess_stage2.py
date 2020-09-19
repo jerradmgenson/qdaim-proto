@@ -97,6 +97,7 @@ def main():
     # Rescale binary/ternary classes to range from -1 to 1.
     data_subset.loc[data_subset['sex'] == 0, 'sex'] = -1
     data_subset.loc[data_subset['exang'] == 0, 'exang'] = -1
+    data_subset.loc[data_subset['fbs'] == 0, 'fbs'] = -1
 
     if CLASSIFICATION_TYPE == ClassificationType.BINARY:
         # Convert target (heart disease class) to a binary class.
@@ -124,9 +125,9 @@ def main():
     training_data = data_subset[validation_rows:]
 
     # Save testing/training/validation datasets to CSV files.
-    testing_data.to_csv(TESTING_DATASET_PATH, index=None)
-    validation_data.to_csv(VALIDATION_DATASET_PATH, index=None)
-    training_data.to_csv(TRAINING_DATASET_PATH, index=None)
+    testing_data.to_csv(TESTING_DATASET_PATH, index=False)
+    validation_data.to_csv(VALIDATION_DATASET_PATH, index=False)
+    training_data.to_csv(TRAINING_DATASET_PATH, index=False)
 
 
 if __name__ == '__main__':
