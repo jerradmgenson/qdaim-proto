@@ -13,6 +13,7 @@ Preprocessing steps performed by this script include:
   (see SUBSET_COLUMNS).
 - Combine the three individual datasets into a single dataset with all
   rows from the individual sets.
+- Rename num to target.
 
 """
 
@@ -61,6 +62,8 @@ def main():
         else:
             combined_dataset = dataset_subset
 
+    # Rename num to target.
+    combined_dataset.rename(mapper=dict(num='target'), axis=1, inplace=True)
     combined_dataset.to_csv(str(OUTPUT_PATH), index=False)
 
     return 0

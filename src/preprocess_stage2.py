@@ -11,8 +11,7 @@ Preprocessing steps performed by this script include:
 - Discard all rows where trestbps is equal to 0.
 - Convert cp to a binary class.
 - Convert restecg to a binary class.
-- Optionally convert num to a binary or ternary class.
-- Rename num to target.
+- Optionally convert target to a binary or ternary class.
 - Rescale binary and ternary classes to range from -1 to 1.
 - Randomize the row order.
 - Split data into testing, training, and validation sets.
@@ -45,7 +44,7 @@ VALIDATION_DATASET_PATH = GIT_ROOT / Path('build/validation_data.csv')
 
 # Columns to subset from the original input dataset.
 SUBSET_COLUMNS = ['age', 'sex', 'cp', 'thalrest', 'trestbps', 'restecg', 'fbs',
-                  'thalach', 'exang', 'oldpeak', 'num']
+                  'thalach', 'exang', 'oldpeak', 'target']
 
 # Fraction of data to use for testing (as a real number between 0 and 1).
 TESTING_FRACTION = 0.2
@@ -100,22 +99,19 @@ def main():
     data_subset.loc[data_subset['exang'] == 0, 'exang'] = -1
 
     if CLASSIFICATION_TYPE == ClassificationType.BINARY:
-        # Convert num (heart disease class) to a binary class.
-        data_subset.loc[data_subset['num'] != 0, 'num'] = 1
-        data_subset.loc[data_subset['num'] == 0, 'num'] = -1
+        # Convert target (heart disease class) to a binary class.
+        data_subset.loc[data_subset['target'] != 0, 'target'] = 1
+        data_subset.loc[data_subset['target'] == 0, 'target'] = -1
 
     elif CLASSIFICATION_TYPE == ClassificationType.TERNARY:
-        # Convert num to a ternary class.
-        data_subset.loc[data_subset['num'] == 0, 'num'] = -1
-        data_subset.loc[data_subset['num'] == 1, 'num'] = 0
-        data_subset.loc[data_subset['num'] > 1, 'num'] = 1
+        # Convert target to a ternary class.
+        data_subset.loc[data_subset['target'] == 0, 'target'] = -1
+        data_subset.loc[data_subset['target'] == 1, 'target'] = 0
+        data_subset.loc[data_subset['target'] > 1, 'target'] = 1
 
     elif CLASSIFICATION_TYPE != ClassificationType.MULTICLASS:
         # Invalid classification type.
         raise ValueError(f'Unknown classification type `{CLASSIFICATION_TYPE}`.')
-
-    # Rename num to target.
-    data_subset = data_subset.rename(mapper=dict(num='target'), axis=1)
 
     # Shuffle order of rows in dataset.
     data_subset = data_subset.sample(frac=1)
