@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
+import preprocess_stage1
 import preprocess_stage2
 from integration_tests import preprocess_stage1_tests
 
@@ -46,7 +47,7 @@ class PreprocessStage2Test(unittest.TestCase):
 
         preprocess_stage2.RANDOM_SEED = self.RANDOM_SEED
         preprocess_stage2.INPUT_DATASET_PATH = \
-            preprocess_stage1_tests.PreprocessStage1Test.EXPECTED_OUTPUT_DEFAULT_PARAMETERS
+            preprocess_stage1_tests.EXPECTED_OUTPUT_DEFAULT_PARAMETERS
 
         preprocess_stage2.TESTING_DATASET_PATH = self.testing_dataset_path
         preprocess_stage2.TRAINING_DATASET_PATH = self.training_dataset_path
@@ -101,6 +102,31 @@ class PreprocessStage2Test(unittest.TestCase):
         actual_training_dataset = pd.read_csv(self.training_dataset_path)
         expected_training_dataset = pd.read_csv(self.TRAINING_DATASET2_PATH)
         self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
+
+    def test_with_preprocess_stage1(self):
+        """
+        Test running preprocess_stage2.py on the output of preprocess_stage1.py.
+
+        """
+
+        preprocess_stage1_tests.setUp(self)
+        preprocess_stage2.INPUT_DATASET_PATH = self.output_path
+        preprocess_stage1.main()
+        preprocess_stage2.main()
+
+        actual_testing_dataset = pd.read_csv(self.testing_dataset_path)
+        expected_testing_dataset = pd.read_csv(self.TESTING_DATASET1_PATH)
+        self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
+
+        actual_training_dataset = pd.read_csv(self.training_dataset_path)
+        expected_training_dataset = pd.read_csv(self.TRAINING_DATASET1_PATH)
+        self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
+
+        actual_validation_dataset = pd.read_csv(self.validation_dataset_path)
+        expected_validation_dataset = pd.read_csv(self.VALIDATION_DATASET1_PATH)
+        self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
+
+        preprocess_stage1_tests.tearDown(self)
 
 
 if __name__ == '__main__':
