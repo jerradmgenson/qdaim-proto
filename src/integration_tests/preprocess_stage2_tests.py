@@ -23,6 +23,9 @@ class PreprocessStage2Test(unittest.TestCase):
     TESTING_DATASET1_PATH = TEST_DATA / Path('testing_dataset1.csv')
     TRAINING_DATASET1_PATH = TEST_DATA / Path('training_dataset1.csv')
     VALIDATION_DATASET1_PATH = TEST_DATA / Path('validation_dataset1.csv')
+    TESTING_DATASET2_PATH = TEST_DATA / Path('testing_dataset2.csv')
+    TRAINING_DATASET2_PATH = TEST_DATA / Path('training_dataset2.csv')
+
 
     def setUp(self):
         tempfile_descriptor1 = tempfile.mkstemp()
@@ -79,6 +82,25 @@ class PreprocessStage2Test(unittest.TestCase):
         actual_validation_dataset = pd.read_csv(self.validation_dataset_path)
         expected_validation_dataset = pd.read_csv(self.VALIDATION_DATASET1_PATH)
         self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
+
+    def test_training_testing(self):
+        """
+        Test creation of training and testing datasets (no validation).
+
+        """
+
+        prev_validation_fraction = preprocess_stage2.VALIDATION_FRACTION
+        preprocess_stage2.VALIDATION_FRACTION = 0
+        preprocess_stage2.main()
+        preprocess_stage2.VALIDATION_FRACTION = prev_validation_fraction
+
+        actual_testing_dataset = pd.read_csv(self.testing_dataset_path)
+        expected_testing_dataset = pd.read_csv(self.TESTING_DATASET2_PATH)
+        self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
+
+        actual_training_dataset = pd.read_csv(self.training_dataset_path)
+        expected_training_dataset = pd.read_csv(self.TRAINING_DATASET2_PATH)
+        self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
 
 
 if __name__ == '__main__':
