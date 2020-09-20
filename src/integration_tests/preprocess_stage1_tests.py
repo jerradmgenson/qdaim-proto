@@ -65,6 +65,5 @@ def tearDown(self):
     self.output_path.unlink()
 
 
-
 if __name__ == '__main__':
     unittest.main()
