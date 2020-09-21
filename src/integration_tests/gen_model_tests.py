@@ -23,6 +23,7 @@ class PreprocessStage2Test(unittest.TestCase):
     QDA_STANDARD_CONFIG = TEST_DATA / Path('gen_model_config_qda_standard.json')
     QDA_PCA_CONFIG = TEST_DATA / Path('gen_model_config_qda_pca.json')
     SVM_ROBUST_CONFIG = TEST_DATA / Path('gen_model_config_svm_robust.json')
+    RFC_CONFIG = TEST_DATA / Path('gen_model_config_rfc.json')
 
     def setUp(self):
         tempfile_descriptor = tempfile.mkstemp()
@@ -116,6 +117,30 @@ class PreprocessStage2Test(unittest.TestCase):
 
         self.assertEqual(model.steps[1][0], 'model')
         self.assertIsInstance(model.steps[1][1], sklearn.svm.SVC)
+        iris_dataset = load_iris()
+        predictions = model.predict(iris_dataset['data'])
+        accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],
+                                                  predictions)
+
+        self.assertAlmostEqual(accuracy, model.accuracy)
+        self.assertGreater(accuracy, 0.95)
+
+    def test_rfc_with_no_preprocessing(self):
+        """
+        Test generation of a random forest model with robust no
+        preprocessing of the input data.
+
+        """
+
+        gen_model.CONFIG_FILE_PATH = self.RFC_CONFIG
+        gen_model.main([])
+        with open(self.output_path, 'rb') as output_fp:
+            model = pickle.load(output_fp)
+
+        self.assertIsInstance(model, sklearn.pipeline.Pipeline)
+        self.assertEqual(len(model.steps), 1)
+        self.assertEqual(model.steps[0][0], 'model')
+        self.assertIsInstance(model.steps[0][1], sklearn.ensemble.RandomForestClassifier)
         iris_dataset = load_iris()
         predictions = model.predict(iris_dataset['data'])
         accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],

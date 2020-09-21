@@ -1,0 +1,17 @@
+{
+    "training_dataset": "src/test_data/iris_dataset.csv",
+    "validation_dataset": "src/test_data/iris_dataset.csv",
+    "random_seed": 3307259,
+    "scoring": "accuracy",
+    "preprocessing_methods": [],
+    "pca_components": 3,
+    "pca_whiten": true,
+    "algorithm": "rfc",
+    "algorithm_parameters":
+    [
+	{
+	    "n_estimators": [10],
+	    "max_features": ["sqrt"]
+	}
+    ]
+}
