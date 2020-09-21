@@ -22,6 +22,7 @@ class PreprocessStage2Test(unittest.TestCase):
     TEST_DATA = GIT_ROOT / Path('src/test_data')
     QDA_STANDARD_CONFIG = TEST_DATA / Path('gen_model_config_qda_standard.json')
     QDA_PCA_CONFIG = TEST_DATA / Path('gen_model_config_qda_pca.json')
+    SVM_ROBUST_CONFIG = TEST_DATA / Path('gen_model_config_svm_robust.json')
 
     def setUp(self):
         tempfile_descriptor = tempfile.mkstemp()
@@ -87,6 +88,34 @@ class PreprocessStage2Test(unittest.TestCase):
         self.assertIsInstance(model.steps[1][1],
                               sklearn.discriminant_analysis.QuadraticDiscriminantAnalysis)
 
+        iris_dataset = load_iris()
+        predictions = model.predict(iris_dataset['data'])
+        accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],
+                                                  predictions)
+
+        self.assertAlmostEqual(accuracy, model.accuracy)
+        self.assertGreater(accuracy, 0.95)
+
+    def test_svm_with_robust_scaling(self):
+        """
+        Test generation of a support vector machine model with robust
+        scaling of the input data.
+
+        """
+
+        gen_model.CONFIG_FILE_PATH = self.SVM_ROBUST_CONFIG
+        gen_model.main([])
+        with open(self.output_path, 'rb') as output_fp:
+            model = pickle.load(output_fp)
+
+        self.assertIsInstance(model, sklearn.pipeline.Pipeline)
+        self.assertEqual(len(model.steps), 2)
+        self.assertEqual(model.steps[0][0], 'robust scaling')
+        self.assertIsInstance(model.steps[0][1],
+                              sklearn.preprocessing.RobustScaler)
+
+        self.assertEqual(model.steps[1][0], 'model')
+        self.assertIsInstance(model.steps[1][1], sklearn.svm.SVC)
         iris_dataset = load_iris()
         predictions = model.predict(iris_dataset['data'])
         accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],
