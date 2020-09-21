@@ -178,14 +178,14 @@ Dataset = namedtuple('Dataset', 'inputs targets')
 Datasets = namedtuple('Datasets', 'training validation columns')
 
 
-def main():
+def main(argv):
     """
     Program's main function. Primary execution starts here.
 
     """
 
     start_time = time.time()
-    command_line_arguments = parse_command_line()
+    command_line_arguments = parse_command_line(argv)
     configure_logging(command_line_arguments.log_level)
     config = read_config_file(CONFIG_FILE_PATH)
     random.seed(config.random_seed)
@@ -537,9 +537,12 @@ def get_commit_hash():
         return ''
 
 
-def parse_command_line():
+def parse_command_line(argv):
     """
     Parse the command line using argparse.
+
+    Args
+      argv: A list of command line arguments to parse.
 
     Returns
       A Namespace object returned by parse_args().
@@ -563,7 +566,7 @@ def parse_command_line():
                         default='info',
                         help='Log level to configure logging with.')
 
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def configure_logging(log_level):
@@ -727,4 +730,4 @@ def save_model(model, output_path):
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(main(sys.argv))
