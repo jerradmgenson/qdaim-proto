@@ -21,6 +21,7 @@ class PreprocessStage2Test(unittest.TestCase):
     GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
     TEST_DATA = GIT_ROOT / Path('src/test_data')
     QDA_STANDARD_CONFIG = TEST_DATA / Path('gen_model_config_qda_standard.json')
+    QDA_PCA_CONFIG = TEST_DATA / Path('gen_model_config_qda_pca.json')
 
     def setUp(self):
         tempfile_descriptor = tempfile.mkstemp()
@@ -36,8 +37,8 @@ class PreprocessStage2Test(unittest.TestCase):
 
     def test_qda_with_standard_scaling(self):
         """
-        Test creation of training, testing, and validation datasets for
-        binary classification
+        Test generation of a quadratic discriminant analysis model with
+        standard scaling of the input data.
 
         """
 
@@ -51,6 +52,36 @@ class PreprocessStage2Test(unittest.TestCase):
         self.assertEqual(model.steps[0][0], 'standard scaling')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.preprocessing.StandardScaler)
+
+        self.assertEqual(model.steps[1][0], 'model')
+        self.assertIsInstance(model.steps[1][1],
+                              sklearn.discriminant_analysis.QuadraticDiscriminantAnalysis)
+
+        iris_dataset = load_iris()
+        predictions = model.predict(iris_dataset['data'])
+        accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],
+                                                  predictions)
+
+        self.assertAlmostEqual(accuracy, model.accuracy)
+        self.assertGreater(accuracy, 0.95)
+
+    def test_qda_with_pca(self):
+        """
+        Test generation of a quadratic discriminant analysis model with
+        principal component analysis of the input data.
+
+        """
+
+        gen_model.CONFIG_FILE_PATH = self.QDA_PCA_CONFIG
+        gen_model.main([])
+        with open(self.output_path, 'rb') as output_fp:
+            model = pickle.load(output_fp)
+
+        self.assertIsInstance(model, sklearn.pipeline.Pipeline)
+        self.assertEqual(len(model.steps), 2)
+        self.assertEqual(model.steps[0][0], 'pca')
+        self.assertIsInstance(model.steps[0][1],
+                              sklearn.decomposition.PCA)
 
         self.assertEqual(model.steps[1][0], 'model')
         self.assertIsInstance(model.steps[1][1],
