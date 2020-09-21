@@ -127,8 +127,8 @@ class PreprocessStage2Test(unittest.TestCase):
 
     def test_rfc_with_no_preprocessing(self):
         """
-        Test generation of a random forest model with robust no
-        preprocessing of the input data.
+        Test generation of a random forest model with no preprocessing
+        of the input data.
 
         """
 

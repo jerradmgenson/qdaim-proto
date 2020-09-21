@@ -94,10 +94,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
 from sklearn.model_selection import GridSearchCV
-from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import SGDClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import RobustScaler
 from sklearn.preprocessing import QuantileTransformer
@@ -128,7 +126,6 @@ MLAlgorithm = namedtuple('MLAlgorithm', 'name class_')
 # Values are MLAlgorithm objects.
 SUPPORTED_ALGORITHMS = {
     'svm': MLAlgorithm('support vector machine', svm.SVC),
-    'knn': MLAlgorithm('k-nearest neighbors', KNeighborsClassifier),
     'rfc': MLAlgorithm('random forest', RandomForestClassifier),
     'etc': MLAlgorithm('extra trees', sklearn.ensemble.ExtraTreesClassifier),
     'sgd': MLAlgorithm('stochastic gradient descent', SGDClassifier),
@@ -136,7 +133,6 @@ SUPPORTED_ALGORITHMS = {
     'lrc': MLAlgorithm('logistic regression classifier', LogisticRegression),
     'lda': MLAlgorithm('linear discriminant analysis', LinearDiscriminantAnalysis),
     'qda': MLAlgorithm('quadratic discriminant analysis', QuadraticDiscriminantAnalysis),
-    'mlp': MLAlgorithm('multilayer perceptron', MLPClassifier),
     'dtc': MLAlgorithm('decision tree', sklearn.tree.DecisionTreeClassifier),
 }
 
@@ -149,7 +145,6 @@ PREPROCESSING_METHODS = {
     'power transformer': PowerTransformer,
     'normalize': Normalizer,
     'pca': PCA,
-    'lda': LinearDiscriminantAnalysis,
 }
 
 
@@ -379,11 +374,6 @@ def train_model(model_class,
             preprocessor = preprocessor_class(n_components=n_components,
                                               whiten=whiten)
 
-            pipeline_steps.append((preprocessing_method, preprocessor))
-
-        elif preprocessing_method == 'lda':
-            preprocessor_class = PREPROCESSING_METHODS[preprocessing_method]
-            preprocessor = preprocessor_class(n_components=n_components)
             pipeline_steps.append((preprocessing_method, preprocessor))
 
         else:
@@ -730,4 +720,4 @@ def save_model(model, output_path):
 
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv))
+    sys.exit(main(sys.argv[1:]))
