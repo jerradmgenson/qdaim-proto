@@ -3,9 +3,9 @@
     "validation_dataset": "src/test_data/iris_dataset.csv",
     "random_seed": 3307259,
     "scoring": "accuracy",
-    "preprocessing_methods": ["standard scaling"],
-    "pca_components": 8,
-    "pca_whiten": false,
-    "algorithm": "qda",
+    "preprocessing_methods": ["power transformer"],
+    "pca_components": 3,
+    "pca_whiten": true,
+    "algorithm": "lrc",
     "algorithm_parameters": []
 }

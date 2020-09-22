@@ -20,10 +20,12 @@ class PreprocessStage2Test(unittest.TestCase):
     GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
     GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
     TEST_DATA = GIT_ROOT / Path('src/test_data')
-    QDA_STANDARD_CONFIG = TEST_DATA / Path('gen_model_config_qda_standard.json')
+    LDA_STANDARD_CONFIG = TEST_DATA / Path('gen_model_config_lda_standard.json')
     QDA_PCA_CONFIG = TEST_DATA / Path('gen_model_config_qda_pca.json')
     SVM_ROBUST_CONFIG = TEST_DATA / Path('gen_model_config_svm_robust.json')
     RFC_CONFIG = TEST_DATA / Path('gen_model_config_rfc.json')
+    RRC_CONFIG = TEST_DATA / Path('gen_model_config_rrc.json')
+    LRC_CONFIG = TEST_DATA / Path('gen_model_config_lrc.json')
 
     def setUp(self):
         tempfile_descriptor = tempfile.mkstemp()
@@ -37,14 +39,14 @@ class PreprocessStage2Test(unittest.TestCase):
         gen_model.DEFAULT_OUTPUT_PATH = self.prev_default_output_path
         self.output_path.unlink()
 
-    def test_qda_with_standard_scaling(self):
+    def test_lda_with_standard_scaling(self):
         """
-        Test generation of a quadratic discriminant analysis model with
+        Test generation of a linear discriminant analysis model with
         standard scaling of the input data.
 
         """
 
-        gen_model.CONFIG_FILE_PATH = self.QDA_STANDARD_CONFIG
+        gen_model.CONFIG_FILE_PATH = self.LDA_STANDARD_CONFIG
         gen_model.main([])
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
@@ -57,7 +59,7 @@ class PreprocessStage2Test(unittest.TestCase):
 
         self.assertEqual(model.steps[1][0], 'model')
         self.assertIsInstance(model.steps[1][1],
-                              sklearn.discriminant_analysis.QuadraticDiscriminantAnalysis)
+                              sklearn.discriminant_analysis.LinearDiscriminantAnalysis)
 
         iris_dataset = load_iris()
         predictions = model.predict(iris_dataset['data'])
@@ -148,3 +150,63 @@ class PreprocessStage2Test(unittest.TestCase):
 
         self.assertAlmostEqual(accuracy, model.accuracy)
         self.assertGreater(accuracy, 0.95)
+
+    def test_rrc_with_quantile_transformer(self):
+        """
+        Test generation of a ridge regression model with quantile
+        transformation of the input data.
+
+        """
+
+        gen_model.CONFIG_FILE_PATH = self.RRC_CONFIG
+        gen_model.main([])
+        with open(self.output_path, 'rb') as output_fp:
+            model = pickle.load(output_fp)
+
+        self.assertIsInstance(model, sklearn.pipeline.Pipeline)
+        self.assertEqual(len(model.steps), 2)
+        self.assertEqual(model.steps[0][0], 'quantile transformer')
+        self.assertIsInstance(model.steps[0][1],
+                              sklearn.preprocessing.QuantileTransformer)
+
+        self.assertEqual(model.steps[1][0], 'model')
+        self.assertIsInstance(model.steps[1][1],
+                              sklearn.linear_model.RidgeClassifier)
+
+        iris_dataset = load_iris()
+        predictions = model.predict(iris_dataset['data'])
+        accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],
+                                                  predictions)
+
+        self.assertAlmostEqual(accuracy, model.accuracy)
+        self.assertGreater(accuracy, 0.88)
+
+    def test_lrc_with_power_transformer(self):
+        """
+        Test generation of a logistic regression model with power
+        transformation of the input data.
+
+        """
+
+        gen_model.CONFIG_FILE_PATH = self.LRC_CONFIG
+        gen_model.main([])
+        with open(self.output_path, 'rb') as output_fp:
+            model = pickle.load(output_fp)
+
+        self.assertIsInstance(model, sklearn.pipeline.Pipeline)
+        self.assertEqual(len(model.steps), 2)
+        self.assertEqual(model.steps[0][0], 'power transformer')
+        self.assertIsInstance(model.steps[0][1],
+                              sklearn.preprocessing.PowerTransformer)
+
+        self.assertEqual(model.steps[1][0], 'model')
+        self.assertIsInstance(model.steps[1][1],
+                              sklearn.linear_model.LogisticRegression)
+
+        iris_dataset = load_iris()
+        predictions = model.predict(iris_dataset['data'])
+        accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],
+                                                  predictions)
+
+        self.assertAlmostEqual(accuracy, model.accuracy)
+        self.assertGreater(accuracy, 0.88)
