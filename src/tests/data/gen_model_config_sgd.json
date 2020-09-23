@@ -6,6 +6,5 @@
     "preprocessing_methods": ["standard scaling"],
     "pca_components": 3,
     "pca_whiten": true,
-    "algorithm": "sgd",
-    "algorithm_parameters": []
+    "algorithm": "sgd"
 }

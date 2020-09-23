@@ -486,10 +486,12 @@ def read_config_file(path):
         config_json['algorithm'] = SUPPORTED_ALGORITHMS[config_json['algorithm']]
 
     except KeyError:
-        raise ValueError('Unknown machine learning algorithm `{}`'.format(config_json['algorithm']))
+        raise ValueError('Unknown machine learning algorithm `{}`.'.format(config_json['algorithm']))
 
-    if not set(config_json['preprocessing_methods']).issubset(set(PREPROCESSING_METHODS)):
-        raise ValueError('Unknown preprocessing method `{}`.'.format(config_json['preprocessing_method']))
+    methods_set = set(config_json['preprocessing_methods'])
+    if not methods_set.issubset(set(PREPROCESSING_METHODS)):
+        unknown_methods = methods_set - set(PREPROCESSING_METHODS)
+        raise ValueError(f'Unknown preprocessing methods {unknown_methods}.')
 
     if 'algorithm_parameters' not in config_json:
         config_json['algorithm_parameters'] = []

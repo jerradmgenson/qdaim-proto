@@ -3,8 +3,10 @@ Unit tests for gen_model.py
 
 """
 
+import os
 import unittest
 import random
+from pathlib import Path
 from unittest.mock import patch, Mock
 
 import sklearn
@@ -724,6 +726,65 @@ class BindModelMetadataTests(unittest.TestCase):
         gen_model.bind_model_metadata(model, scores)
         for attribute in attributes:
             self.assertTrue(hasattr(model, attribute))
+
+
+class ReadConfigFileTest(unittest.TestCase):
+    """
+    Tests for gen_model.read_config_file()
+
+    """
+
+    def test_invalid_algorithm(self):
+        """
+        Test read_config_file() with an invalid algorithm.
+
+        """
+
+        def create_json_load_mock():
+            def json_load_mock(args):
+                return dict(training_dataset='src/tests/data/binary_training_dataset1.csv',
+                            validation_dataset='src/tests/data/binary_validation_dataset1.csv',
+                            algorithm='invalid_algorithm')
+
+            return json_load_mock
+
+        json_load_patch = patch.object(gen_model.json,
+                                       'load',
+                                       new_callable=create_json_load_mock)
+
+        with json_load_patch:
+            with self.assertRaises(ValueError) as context_manager:
+                gen_model.read_config_file(Path(os.devnull))
+
+        self.assertEqual(str(context_manager.exception),
+                         "Unknown machine learning algorithm `invalid_algorithm`.")
+
+
+    def test_invalid_preprocessing_methods(self):
+        """
+        Test read_config_file() with invalid preprocessing methods.
+
+        """
+
+        def create_json_load_mock():
+            def json_load_mock(args):
+                return dict(training_dataset='src/tests/data/binary_training_dataset1.csv',
+                            validation_dataset='src/tests/data/binary_validation_dataset1.csv',
+                            algorithm='svm',
+                            preprocessing_methods=['invalid_method'])
+
+            return json_load_mock
+
+        json_load_patch = patch.object(gen_model.json,
+                                       'load',
+                                       new_callable=create_json_load_mock)
+
+        with json_load_patch:
+            with self.assertRaises(ValueError) as context_manager:
+                gen_model.read_config_file(Path(os.devnull))
+
+        self.assertEqual(str(context_manager.exception),
+                         "Unknown preprocessing methods {'invalid_method'}.")
 
 
 if __name__ == '__main__':
