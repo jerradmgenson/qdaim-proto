@@ -216,6 +216,21 @@ class CreateScorerTests(unittest.TestCase):
         score = scorer(model, inputs, targets)
         self.assertEqual(score, 0.5)
 
+    def test_scorer_with_invalid_metric(self):
+        """
+        Test create_scorer() with a scoring metric that is invalid for
+        the given type of classification.
+
+        """
+
+        inputs = np.array([1, 2, 3, 4])
+        targets = np.array([1, 2, 3, 4])
+        model = Mock()
+        model.predict = Mock(return_value=np.array([1, 2, 3, 4]))
+        scorer = gen_model.create_scorer('sensitivity')
+        with self.assertRaises(ValueError):
+            scorer(model, inputs, targets)
+
 
 class CalculateHmeanRecallTests(unittest.TestCase):
     """
