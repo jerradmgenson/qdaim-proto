@@ -52,7 +52,7 @@ def main():
     expected_failures = verdicts.count(Verdict.EXPECTED_FAILURE)
     unexpected_successes = verdicts.count(Verdict.UNEXPECTED_SUCCESS)
 
-    report = f'Total tests:             {total_tests}\n'
+    report = f'\nTotal tests:             {total_tests}\n'
     report += f'Successes:               {successes}\n'
     report += f'Failures:                {failures}\n'
     report += f'Errors:                  {errors}\n'

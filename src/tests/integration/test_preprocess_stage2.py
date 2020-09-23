@@ -8,7 +8,7 @@ import pandas as pd
 
 import preprocess_stage1
 import preprocess_stage2
-from tests.integration import preprocess_stage1_tests
+from tests.integration import test_preprocess_stage1
 
 
 class PreprocessStage2Test(unittest.TestCase):
@@ -55,7 +55,7 @@ class PreprocessStage2Test(unittest.TestCase):
         preprocess_stage2.CLASSIFICATION_TYPE = preprocess_stage2.ClassificationType.BINARY
         preprocess_stage2.RANDOM_SEED = self.RANDOM_SEED
         preprocess_stage2.INPUT_DATASET_PATH = \
-            preprocess_stage1_tests.EXPECTED_OUTPUT_DEFAULT_PARAMETERS
+            test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS
 
         preprocess_stage2.TESTING_DATASET_PATH = self.testing_dataset_path
         preprocess_stage2.TRAINING_DATASET_PATH = self.training_dataset_path
@@ -163,7 +163,7 @@ class PreprocessStage2Test(unittest.TestCase):
 
         """
 
-        preprocess_stage1_tests.setUp(self)
+        test_preprocess_stage1.setUp(self)
         preprocess_stage2.INPUT_DATASET_PATH = self.output_path
         preprocess_stage1.main()
         preprocess_stage2.main()
@@ -180,4 +180,4 @@ class PreprocessStage2Test(unittest.TestCase):
         expected_validation_dataset = pd.read_csv(self.BINARY_VALIDATION_DATASET1)
         self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
 
-        preprocess_stage1_tests.tearDown(self)
+        test_preprocess_stage1.tearDown(self)
