@@ -262,7 +262,8 @@ def run_unittest(coverage_files):
     if coverage_files:
         coverage_stream = io.StringIO()
         coverage_percentage = coverage.report(file=coverage_stream,
-                                              include=coverage_files)
+                                              include=coverage_files,
+                                              show_missing=True)
 
         coverage_report = coverage_stream.getvalue()
         coverage_stream.close()

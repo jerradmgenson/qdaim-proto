@@ -130,5 +130,5 @@ def main():
     training_data.to_csv(TRAINING_DATASET_PATH, index=False)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     main()

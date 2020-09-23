@@ -105,6 +105,19 @@ class PreprocessStage2Test(unittest.TestCase):
         expected_validation_dataset = pd.read_csv(self.MULTICLASS_VALIDATION_DATASET)
         self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
 
+    def test_invalid_classification_type(self):
+        """
+        Test preprocess_stage2.py with an invalid classification type
+
+        """
+
+        preprocess_stage2.CLASSIFICATION_TYPE = 'invalid_classification_type'
+        with self.assertRaises(ValueError) as context_manager:
+            preprocess_stage2.main()
+
+        self.assertEqual(str(context_manager.exception),
+                         'Unknown classification type `invalid_classification_type`.')
+
     def test_training_testing_datasets(self):
         """
         Test creation of only training and testing datasets (no validation).

@@ -721,5 +721,5 @@ def save_model(model, output_path):
         pickle.dump(model, output_file)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     sys.exit(main(sys.argv[1:]))

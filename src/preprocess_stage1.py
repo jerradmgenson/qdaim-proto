@@ -98,5 +98,5 @@ def load_dataset(path):
     return dataset
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
     sys.exit(main())

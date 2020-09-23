@@ -77,15 +77,15 @@ class GetCommitHashTest(unittest.TestCase):
 
         self.assertEqual(commit_hash, '26223577219e04975a8ea93b95d0ab047a0ea536')
 
-    def test_empty_git_diff(self):
+    def test_nonempty_git_diff(self):
         """
-        Test get_commit_hash() when git diff returns the empty string.
+        Test get_commit_hash() when git diff returns a nonempty string.
 
         """
 
         run_command_patch = patch.object(gen_model,
                                          'run_command',
-                                         return_value='')
+                                         return_value='sdfigh')
 
         with run_command_patch:
             commit_hash = gen_model.get_commit_hash()
