@@ -9,6 +9,7 @@ import os
 import sys
 import enum
 import time
+import argparse
 import unittest
 import subprocess
 import multiprocessing
@@ -51,14 +52,17 @@ class Testrunner(enum.Enum):
     PYLINT = enum.auto()
 
 
-def main():
+def main(argv):
     start_time = time.time()
+    command_line_arguments = parse_command_line(argv)
     src_files = (p for p in SRC_PATH.iterdir() if p.is_file())
     py_files = set(str(p) for p in src_files if p.suffix == '.py')
     changed_files = get_changed_files()
-    pylint_jobs = [(run_pylint, p) for p in py_files & changed_files]
-    unittest_jobs = [(run_unittest, py_files)]
-    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+    pylint_files = py_files if command_line_arguments.complete_pylint else py_files & changed_files
+    coverage_files = py_files if command_line_arguments.complete_coverage else py_files & changed_files
+    pylint_jobs = [(run_pylint, p) for p in pylint_files]
+    unittest_jobs = [(run_unittest, coverage_files)]
+    with multiprocessing.Pool(command_line_arguments.cpu) as pool:
         test_results = pool.map(run_job, unittest_jobs + pylint_jobs)
 
     pylint_results = [x[1] for x in test_results if x[0] == Testrunner.PYLINT]
@@ -116,6 +120,7 @@ def main():
     print(f'Total runtime: {time.time() - start_time:.2f}')
 
     return failed
+
 
 def run_test(test_case):
     """
@@ -254,12 +259,18 @@ def run_unittest(coverage_files):
     verdicts = list(map(run_test, testcases))
     coverage.stop()
     coverage.save()
-    coverage_stream = io.StringIO()
-    coverage_percentage = coverage.report(file=coverage_stream,
-                                          include=coverage_files)
+    if coverage_files:
+        coverage_stream = io.StringIO()
+        coverage_percentage = coverage.report(file=coverage_stream,
+                                              include=coverage_files)
 
-    coverage_report = coverage_stream.getvalue()
-    coverage_stream.close()
+        coverage_report = coverage_stream.getvalue()
+        coverage_stream.close()
+
+    else:
+        coverage_percentage = 100
+        coverage_report = ''
+
     unittest_result = UnittestResult(verdicts=verdicts,
                                      coverage_percentage=coverage_percentage,
                                      coverage_report=coverage_report)
@@ -299,5 +310,29 @@ def get_changed_files():
     return changed_files
 
 
+def parse_command_line(argv):
+    """
+    Parse the command line arguments given by argv.
+
+    """
+
+    description = 'Test source code for QDAIM.'
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument('--complete_coverage',
+                        action='store_true',
+                        help='Run code coverage on all source code files.')
+
+    parser.add_argument('--complete_pylint',
+                        action='store_true',
+                        help='Run pylint on all source code files.')
+
+    parser.add_argument('--cpu',
+                        type=int,
+                        default=multiprocessing.cpu_count(),
+                        help='Number of processes to use for running tests.')
+
+    return parser.parse_args(argv)
+
+
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))
