@@ -3,12 +3,15 @@ Run all unit and integration tests and report the results.
 
 """
 
+import io
 import re
 import os
 import sys
 import enum
+import time
 import unittest
 import subprocess
+import multiprocessing
 from pathlib import Path
 from collections import namedtuple
 
@@ -38,21 +41,29 @@ class Verdict(enum.Enum):
     UNEXPECTED_SUCCESS = enum.auto()
 
 
+class Testrunner(enum.Enum):
+    """
+    Enumerates possible testrunner names.
+
+    """
+
+    UNITTEST = enum.auto()
+    PYLINT = enum.auto()
+
+
 def main():
-    coverage = Coverage()
-    coverage.start()
-    unit_testsuite = unittest.defaultTestLoader.discover(UNIT_PATH,
-                                                         top_level_dir=SRC_PATH)
+    start_time = time.time()
+    src_files = (p for p in SRC_PATH.iterdir() if p.is_file())
+    py_files = [str(p) for p in src_files if p.suffix == '.py']
+    pylint_jobs = [(run_pylint, p) for p in py_files]
+    unittest_jobs = [(run_unittest, py_files)]
+    with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
+        test_results = pool.map(run_job, unittest_jobs + pylint_jobs)
 
-    integration_testsuite = unittest.defaultTestLoader.discover(INTEGRATION_PATH,
-                                                                top_level_dir=SRC_PATH)
-
-    testcases = (extract_tests(unit_testsuite)
-                 + extract_tests(integration_testsuite))
-
-    verdicts = list(map(run_test, testcases))
-    coverage.stop()
-    coverage.save()
+    pylint_results = [x[1] for x in test_results if x[0] == Testrunner.PYLINT]
+    unittest_results = [x for x in test_results if x[0] == Testrunner.UNITTEST][0][1]
+    verdicts = unittest_results.verdicts
+    coverage_percentage = unittest_results.coverage_percentage
     total_tests = len(verdicts)
     successes = verdicts.count(Verdict.SUCCESS)
     failures = verdicts.count(Verdict.FAILURE)
@@ -69,11 +80,8 @@ def main():
     report += f'Expected failures:       {expected_failures}\n'
     report += f'Unexpected successes:    {unexpected_successes}\n'
     print(report)
+    print(unittest_results.coverage_report)
 
-    src_files = (p for p in SRC_PATH.iterdir() if p.is_file())
-    py_files = [str(p) for p in src_files if p.suffix == '.py']
-    coverage_percentage = coverage.report(file=sys.stdout, include=py_files)
-    pylint_results = map(run_pylint, py_files)
     pylint_failure = False
     print('\nPylint scores')
     for pylint_result in pylint_results:
@@ -90,12 +98,21 @@ def main():
         if pylint_result.errors or pylint_result.score < 9:
             print(pylint_result.report)
 
-    return (failures
-            or errors
-            or unexpected_successes
-            or coverage_percentage < 100
-            or pylint_failure)
+    failed = (failures
+              or errors
+              or unexpected_successes
+              or coverage_percentage < 100
+              or pylint_failure)
 
+    if failed:
+        print('\nFinal status: FAIL')
+
+    else:
+        print('\nFinal status: SUCCESS')
+
+    print(f'Total runtime: {time.time() - start_time:.2f}')
+
+    return failed
 
 def run_test(test_case):
     """
@@ -196,10 +213,70 @@ def run_pylint(path):
     score = float(re.search(r'Your code has been rated at (\d+\.\d+)',
                             pylint_report).group(1))
 
-    return PylintResult(path=path,
-                        score=score,
-                        errors=errors,
-                        report=pylint_report)
+    pylint_result = PylintResult(path=path,
+                                 score=score,
+                                 errors=errors,
+                                 report=pylint_report)
+
+    return Testrunner.PYLINT, pylint_result
+
+
+UnittestResult = namedtuple('UnittestResult',
+                            'verdicts coverage_percentage coverage_report')
+
+
+def run_unittest(coverage_files):
+    """
+    Run all unittest testcases.
+
+    Args
+      coverage_files: List of files to include in test coverage report.
+
+    Returns
+      An instance of UnittestResult.
+
+    """
+
+    coverage = Coverage()
+    coverage.start()
+    unit_testsuite = unittest.defaultTestLoader.discover(UNIT_PATH,
+                                                         top_level_dir=SRC_PATH)
+
+    integration_testsuite = unittest.defaultTestLoader.discover(INTEGRATION_PATH,
+                                                                top_level_dir=SRC_PATH)
+
+    testcases = (extract_tests(unit_testsuite)
+                 + extract_tests(integration_testsuite))
+
+    verdicts = list(map(run_test, testcases))
+    coverage.stop()
+    coverage.save()
+    coverage_stream = io.StringIO()
+    coverage_percentage = coverage.report(file=coverage_stream,
+                                          include=coverage_files)
+
+    coverage_report = coverage_stream.getvalue()
+    coverage_stream.close()
+    unittest_result = UnittestResult(verdicts=verdicts,
+                                     coverage_percentage=coverage_percentage,
+                                     coverage_report=coverage_report)
+
+    return Testrunner.UNITTEST, unittest_result
+
+
+def run_job(job):
+    """
+    Run a job and return its results.
+
+    Args
+      job: A tuple of `(function, function_argument)`.
+
+    Returns
+      The value returned by `function`.
+
+    """
+
+    return job[0](job[1])
 
 
 if __name__ == '__main__':
