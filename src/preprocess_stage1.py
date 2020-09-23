@@ -15,6 +15,12 @@ Preprocessing steps performed by this script include:
   rows from the individual sets.
 - Rename num to target.
 
+Copyright 2020 Jerrad M. Genson
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
 """
 
 import subprocess
