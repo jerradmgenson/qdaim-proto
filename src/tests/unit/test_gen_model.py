@@ -408,9 +408,9 @@ class CalculateInformednessTests(unittest.TestCase):
         informedness = gen_model.calculate_informedness(report, classes)
         self.assertAlmostEqual(informedness, -0.1239333)
 
-    def test_100_percent_correct_multiclass_classification(self):
+    def test_100_percent_correct_quaternary_classification(self):
         """
-        Test calculate_informedness() with 100% correct multiclass classification.
+        Test calculate_informedness() with 100% correct quaternary classification.
 
         """
 
@@ -423,9 +423,9 @@ class CalculateInformednessTests(unittest.TestCase):
         informedness = gen_model.calculate_informedness(report, classes)
         self.assertEqual(informedness, 1.0)
 
-    def test_50_percent_correct_multiclass_classification(self):
+    def test_50_percent_correct_quaternary_classification(self):
         """
-        Test calculate_informedness() with 50% correct multiclass classification.
+        Test calculate_informedness() with 50% correct quaternary classification.
 
         """
 
@@ -438,9 +438,9 @@ class CalculateInformednessTests(unittest.TestCase):
         informedness = gen_model.calculate_informedness(report, classes)
         self.assertEqual(informedness, 0)
 
-    def test_random_multiclass_classifications(self):
+    def test_random_quaternary_classifications(self):
         """
-        Test calculate_informedness() with random multiclass classifications.
+        Test calculate_informedness() with random quaternary classifications.
 
         """
 
@@ -452,6 +452,54 @@ class CalculateInformednessTests(unittest.TestCase):
         classes = report.keys()
         informedness = gen_model.calculate_informedness(report, classes)
         self.assertAlmostEqual(informedness, 0.3069)
+
+    def test_100_percent_correct_quinary_classification(self):
+        """
+        Test calculate_informedness() with 100% correct quinary classification.
+
+        """
+
+        report = dict(a=dict(recall=1.0),
+                      b=dict(recall=1.0),
+                      c=dict(recall=1.0),
+                      d=dict(recall=1.0),
+                      e=dict(recall=1.0))
+
+        classes = report.keys()
+        informedness = gen_model.calculate_informedness(report, classes)
+        self.assertEqual(informedness, 1.0)
+
+    def test_50_percent_correct_quinary_classification(self):
+        """
+        Test calculate_informedness() with 50% correct quinary classification.
+
+        """
+
+        report = dict(a=dict(recall=0.5),
+                      b=dict(recall=0.5),
+                      c=dict(recall=0.5),
+                      d=dict(recall=0.5),
+                      e=dict(recall=0.5))
+
+        classes = report.keys()
+        informedness = gen_model.calculate_informedness(report, classes)
+        self.assertEqual(informedness, 0)
+
+    def test_random_quinary_classifications(self):
+        """
+        Test calculate_informedness() with random quinary classifications.
+
+        """
+
+        report = dict(a=dict(recall=0.4476),
+                      b=dict(recall=0.4212),
+                      c=dict(recall=0.3679),
+                      d=dict(recall=0.2574),
+                      e=dict(recall=0.5060))
+
+        classes = report.keys()
+        informedness = gen_model.calculate_informedness(report, classes)
+        self.assertAlmostEqual(informedness, -0.19996)
 
 
 class ScoreModelTests(unittest.TestCase):
