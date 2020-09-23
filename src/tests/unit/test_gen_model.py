@@ -42,6 +42,76 @@ class CreateValidationDatasetTest(unittest.TestCase):
         self.assertTrue(target_dataset.eq(validation_dataset).all().all())
 
 
+class GetCommitHashTest(unittest.TestCase):
+    """
+    Tests for gen_model.get_commit_hash()
+
+    """
+
+    def test_git_call_success(self):
+        """
+        Test get_commit_hash() when calls to git are successful.
+
+        """
+
+        def create_run_command_mock():
+            def run_command_mock(command):
+                if command == 'git diff':
+                    return ''
+
+                elif command == 'git rev-parse --verify HEAD':
+                    return '26223577219e04975a8ea93b95d0ab047a0ea536'
+
+                assert False
+
+            return run_command_mock
+
+        run_command_patch = patch.object(gen_model,
+                                         'run_command',
+                                         new_callable=create_run_command_mock)
+
+        with run_command_patch:
+            commit_hash = gen_model.get_commit_hash()
+
+        self.assertEqual(commit_hash, '26223577219e04975a8ea93b95d0ab047a0ea536')
+
+    def test_empty_git_diff(self):
+        """
+        Test get_commit_hash() when git diff returns the empty string.
+
+        """
+
+        run_command_patch = patch.object(gen_model,
+                                         'run_command',
+                                         return_value='')
+
+        with run_command_patch:
+            commit_hash = gen_model.get_commit_hash()
+
+        self.assertEqual(commit_hash, '')
+
+    def test_file_not_found_error(self):
+        """
+        Test get_commit_hash() when git can not be found
+
+        """
+
+        def create_run_command_mock():
+            def run_command_mock(command):
+                raise FileNotFoundError()
+
+            return run_command_mock
+
+        run_command_patch = patch.object(gen_model,
+                                         'run_command',
+                                         new_callable=create_run_command_mock)
+
+        with run_command_patch:
+            commit_hash = gen_model.get_commit_hash()
+
+        self.assertEqual(commit_hash, '')
+
+
 class RunCommandTest(unittest.TestCase):
     """
     Tests for gen_model.run_command()
