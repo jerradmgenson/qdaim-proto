@@ -11,7 +11,7 @@ from sklearn.datasets import load_iris
 import gen_model
 
 
-class PreprocessStage2Test(unittest.TestCase):
+class ModelConfigTestCase(unittest.TestCase):
     """
     Test cases for preprocess_stage2.py
 
@@ -19,7 +19,7 @@ class PreprocessStage2Test(unittest.TestCase):
 
     GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
     GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
-    TEST_DATA = GIT_ROOT / Path('src/test_data')
+    TEST_DATA = GIT_ROOT / Path('src/tests/data')
     LDA_STANDARD_CONFIG = TEST_DATA / Path('gen_model_config_lda_standard.json')
     QDA_PCA_CONFIG = TEST_DATA / Path('gen_model_config_qda_pca.json')
     SVM_ROBUST_CONFIG = TEST_DATA / Path('gen_model_config_svm_robust.json')

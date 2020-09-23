@@ -10,7 +10,7 @@ import preprocess_stage1
 
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
 GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
-TEST_DATA = GIT_ROOT / Path('src/test_data')
+TEST_DATA = GIT_ROOT / Path('src/tests/data')
 TEST_DATASET1 = TEST_DATA / Path('dataset1.data')
 TEST_DATASET2 = TEST_DATA / Path('dataset2.data')
 TEST_DATASET3 = TEST_DATA / Path('dataset3.data')

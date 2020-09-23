@@ -8,7 +8,7 @@ import pandas as pd
 
 import preprocess_stage1
 import preprocess_stage2
-from integration_tests import preprocess_stage1_tests
+from tests.integration import preprocess_stage1_tests
 
 
 class PreprocessStage2Test(unittest.TestCase):
@@ -20,7 +20,7 @@ class PreprocessStage2Test(unittest.TestCase):
     RANDOM_SEED = 667252912
     GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
     GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
-    TEST_DATA = GIT_ROOT / Path('src/test_data')
+    TEST_DATA = GIT_ROOT / Path('src/tests/data')
     BINARY_TESTING_DATASET1 = TEST_DATA / Path('binary_testing_dataset1.csv')
     BINARY_TRAINING_DATASET1 = TEST_DATA / Path('binary_training_dataset1.csv')
     BINARY_VALIDATION_DATASET1 = TEST_DATA / Path('binary_validation_dataset1.csv')
