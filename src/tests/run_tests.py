@@ -3,12 +3,16 @@ Run all unit and integration tests and report the results.
 
 """
 
+import re
 import os
 import sys
 import enum
 import unittest
 import subprocess
 from pathlib import Path
+from functools import partial
+
+from coverage import Coverage
 
 # Path to the root of the git repository.
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
@@ -43,7 +47,10 @@ def main():
     testcases = (extract_tests(unit_testsuite)
                  + extract_tests(integration_testsuite))
 
-    verdicts = list(map(run_test, testcases))
+    coverage = Coverage()
+    run_test_with_coverage = partial(run_test, coverage)
+    verdicts = list(map(run_test_with_coverage, testcases))
+    coverage.save()
     total_tests = len(verdicts)
     successes = verdicts.count(Verdict.SUCCESS)
     failures = verdicts.count(Verdict.FAILURE)
@@ -61,14 +68,19 @@ def main():
     report += f'Unexpected successes:    {unexpected_successes}\n'
     print(report)
 
+    src_files = (p for p in SRC_PATH.iterdir() if p.is_file())
+    py_files = [str(p) for p in src_files if p.suffix == '.py']
+    coverage.report(file=sys.stdout, include=py_files)
+
     return not (failures or errors or unexpected_successes)
 
 
-def run_test(test_case):
+def run_test(coverage, test_case):
     """
     Run a single test case and print errors/failures to stderr.
 
     Args
+      coverage: An instance of coverage.Coverage.
       test_case: An instance of unittest.TestCase.
 
     Returns
@@ -83,7 +95,9 @@ def run_test(test_case):
         try:
             sys.stdout = null_stream
             sys.stderr = null_stream
+            coverage.start()
             test_result = test_case.run()
+            coverage.stop()
 
         finally:
             sys.stdout = prev_stdout
