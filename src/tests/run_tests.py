@@ -54,8 +54,9 @@ class Testrunner(enum.Enum):
 def main():
     start_time = time.time()
     src_files = (p for p in SRC_PATH.iterdir() if p.is_file())
-    py_files = [str(p) for p in src_files if p.suffix == '.py']
-    pylint_jobs = [(run_pylint, p) for p in py_files]
+    py_files = set(str(p) for p in src_files if p.suffix == '.py')
+    changed_files = get_changed_files()
+    pylint_jobs = [(run_pylint, p) for p in py_files & changed_files]
     unittest_jobs = [(run_unittest, py_files)]
     with multiprocessing.Pool(multiprocessing.cpu_count()) as pool:
         test_results = pool.map(run_job, unittest_jobs + pylint_jobs)
@@ -82,8 +83,10 @@ def main():
     print(report)
     print(unittest_results.coverage_report)
 
+    if pylint_results:
+        print('\nPylint scores')
+
     pylint_failure = False
-    print('\nPylint scores')
     for pylint_result in pylint_results:
         if pylint_result.errors:
             print(f'{pylint_result.path}.... error')
@@ -277,6 +280,23 @@ def run_job(job):
     """
 
     return job[0](job[1])
+
+
+def get_changed_files():
+    """
+    Get files that changed since the last commit. If there have been no
+    changes since the last commit, return the files that changed between
+    the last commit and the penultimate commit.
+
+    """
+
+    git_diff = subprocess.check_output(['git', 'diff']).decode('utf-8')
+    if not git_diff.strip():
+        git_diff = subprocess.check_output(['git', 'diff', 'HEAD~1']).decode('utf-8')
+
+    changed_files = set(str(GIT_ROOT / Path(x)) for x in re.findall(r'\+\+\+ b/(.+)', git_diff))
+
+    return changed_files
 
 
 if __name__ == '__main__':
