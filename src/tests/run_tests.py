@@ -3,14 +3,17 @@ Run all unit and integration tests and report the results.
 
 """
 
+import re
 import os
 import sys
 import enum
 import unittest
 import subprocess
 from pathlib import Path
+from collections import namedtuple
 
 from coverage import Coverage
+from pylint import epylint as lint
 
 # Path to the root of the git repository.
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
@@ -70,8 +73,28 @@ def main():
     src_files = (p for p in SRC_PATH.iterdir() if p.is_file())
     py_files = [str(p) for p in src_files if p.suffix == '.py']
     coverage_percentage = coverage.report(file=sys.stdout, include=py_files)
+    pylint_results = map(run_pylint, py_files)
+    pylint_failure = False
+    print('\nPylint scores')
+    for pylint_result in pylint_results:
+        if pylint_result.errors:
+            print(f'{pylint_result.path}.... error')
+            pylint_failure = True
 
-    return failures or errors or unexpected_successes or coverage_percentage < 100
+        else:
+            print(f'{pylint_result.path}.... {pylint_result.score}/10')
+
+        if pylint_result.score < 9:
+            pylint_failure = True
+
+        if pylint_result.errors or pylint_result.score < 9:
+            print(pylint_result.report)
+
+    return (failures
+            or errors
+            or unexpected_successes
+            or coverage_percentage < 100
+            or pylint_failure)
 
 
 def run_test(test_case):
@@ -146,6 +169,37 @@ def extract_tests(testsuite):
             assert False
 
     return testcases
+
+
+PylintResult = namedtuple('PylintResult', 'path score errors report')
+
+
+def run_pylint(path):
+    """
+    Run pylint on the target file at `path` and return a PylintResult object.
+
+    """
+
+    try:
+        pylint_stdout, pylint_stderr = lint.py_run(path, return_std=True)
+        pylint_report = pylint_stdout.read()
+        pylint_error = pylint_stderr.read()
+
+    finally:
+        pylint_stdout.close()
+        pylint_stderr.close()
+
+    if pylint_error:
+        return PylintResult(path=path, score=0.0, errors=True)
+
+    errors = bool(re.search(r':\d+: error', pylint_report))
+    score = float(re.search(r'Your code has been rated at (\d+\.\d+)',
+                            pylint_report).group(1))
+
+    return PylintResult(path=path,
+                        score=score,
+                        errors=errors,
+                        report=pylint_report)
 
 
 if __name__ == '__main__':
