@@ -1,0 +1,11 @@
+{
+    "training_dataset": "src/tests/data/iris_dataset.csv",
+    "validation_dataset": "src/tests/data/iris_dataset.csv",
+    "random_seed": 3307259,
+    "scoring": "accuracy",
+    "preprocessing_methods": ["robust scaling"],
+    "pca_components": 3,
+    "pca_whiten": true,
+    "algorithm": "dtc",
+    "algorithm_parameters": []
+}

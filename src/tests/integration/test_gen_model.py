@@ -26,6 +26,9 @@ class ModelConfigTestCase(unittest.TestCase):
     RFC_CONFIG = TEST_DATA / Path('gen_model_config_rfc.json')
     RRC_CONFIG = TEST_DATA / Path('gen_model_config_rrc.json')
     LRC_CONFIG = TEST_DATA / Path('gen_model_config_lrc.json')
+    ETC_CONFIG = TEST_DATA / Path('gen_model_config_etc.json')
+    SGD_CONFIG = TEST_DATA / Path('gen_model_config_sgd.json')
+    DTC_CONFIG = TEST_DATA / Path('gen_model_config_dtc.json')
 
     def setUp(self):
         tempfile_descriptor = tempfile.mkstemp()
@@ -210,3 +213,93 @@ class ModelConfigTestCase(unittest.TestCase):
 
         self.assertAlmostEqual(accuracy, model.accuracy)
         self.assertGreater(accuracy, 0.88)
+
+    def test_etc_with_normalization(self):
+        """
+        Test generation of an extra trees model with normalization of
+        the input data.
+
+        """
+
+        gen_model.CONFIG_FILE_PATH = self.ETC_CONFIG
+        gen_model.main([])
+        with open(self.output_path, 'rb') as output_fp:
+            model = pickle.load(output_fp)
+
+        self.assertIsInstance(model, sklearn.pipeline.Pipeline)
+        self.assertEqual(len(model.steps), 2)
+        self.assertEqual(model.steps[0][0], 'normalize')
+        self.assertIsInstance(model.steps[0][1],
+                              sklearn.preprocessing.Normalizer)
+
+        self.assertEqual(model.steps[1][0], 'model')
+        self.assertIsInstance(model.steps[1][1],
+                              sklearn.ensemble.ExtraTreesClassifier)
+
+        iris_dataset = load_iris()
+        predictions = model.predict(iris_dataset['data'])
+        accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],
+                                                  predictions)
+
+        self.assertAlmostEqual(accuracy, model.accuracy)
+        self.assertGreater(accuracy, 0.95)
+
+    def test_sgd_with_standard_scaling(self):
+        """
+        Test generation of a stochastic gradient descent model with
+        standard scaling of the input data.
+
+        """
+
+        gen_model.CONFIG_FILE_PATH = self.SGD_CONFIG
+        gen_model.main([])
+        with open(self.output_path, 'rb') as output_fp:
+            model = pickle.load(output_fp)
+
+        self.assertIsInstance(model, sklearn.pipeline.Pipeline)
+        self.assertEqual(len(model.steps), 2)
+        self.assertEqual(model.steps[0][0], 'standard scaling')
+        self.assertIsInstance(model.steps[0][1],
+                              sklearn.preprocessing.StandardScaler)
+
+        self.assertEqual(model.steps[1][0], 'model')
+        self.assertIsInstance(model.steps[1][1],
+                              sklearn.linear_model.SGDClassifier)
+
+        iris_dataset = load_iris()
+        predictions = model.predict(iris_dataset['data'])
+        accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],
+                                                  predictions)
+
+        self.assertAlmostEqual(accuracy, model.accuracy)
+        self.assertGreater(accuracy, 0.95)
+
+    def test_dtc_with_robust_scaling(self):
+        """
+        Test generation of a stochastic gradient descent model with
+        standard scaling of the input data.
+
+        """
+
+        gen_model.CONFIG_FILE_PATH = self.DTC_CONFIG
+        gen_model.main([])
+        with open(self.output_path, 'rb') as output_fp:
+            model = pickle.load(output_fp)
+
+        self.assertIsInstance(model, sklearn.pipeline.Pipeline)
+        self.assertEqual(len(model.steps), 2)
+        self.assertEqual(model.steps[0][0], 'robust scaling')
+        self.assertIsInstance(model.steps[0][1],
+                              sklearn.preprocessing.RobustScaler)
+
+        self.assertEqual(model.steps[1][0], 'model')
+        self.assertIsInstance(model.steps[1][1],
+                              sklearn.tree.DecisionTreeClassifier)
+
+        iris_dataset = load_iris()
+        predictions = model.predict(iris_dataset['data'])
+        accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],
+                                                  predictions)
+
+        self.assertAlmostEqual(accuracy, model.accuracy)
+        self.assertGreater(accuracy, 0.95)
