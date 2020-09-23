@@ -10,6 +10,8 @@ import preprocess_stage1
 import preprocess_stage2
 from tests.integration import test_preprocess_stage1
 
+RANDOM_SEED = 667252912
+
 
 class PreprocessStage2Test(unittest.TestCase):
     """
@@ -17,7 +19,6 @@ class PreprocessStage2Test(unittest.TestCase):
 
     """
 
-    RANDOM_SEED = 667252912
     GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
     GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
     TEST_DATA = GIT_ROOT / Path('src/tests/data')
@@ -33,45 +34,11 @@ class PreprocessStage2Test(unittest.TestCase):
     MULTICLASS_TRAINING_DATASET = TEST_DATA / Path('multiclass_training_dataset.csv')
     MULTICLASS_VALIDATION_DATASET = TEST_DATA / Path('multiclass_validation_dataset.csv')
 
-
     def setUp(self):
-        tempfile_descriptor1 = tempfile.mkstemp()
-        os.close(tempfile_descriptor1[0])
-        self.testing_dataset_path = Path(tempfile_descriptor1[1])
-        tempfile_descriptor2 = tempfile.mkstemp()
-        os.close(tempfile_descriptor2[0])
-        self.training_dataset_path = Path(tempfile_descriptor2[1])
-        tempfile_descriptor3 = tempfile.mkstemp()
-        os.close(tempfile_descriptor3[0])
-        self.validation_dataset_path = Path(tempfile_descriptor3[1])
-
-        self.prev_classification_type = preprocess_stage2.CLASSIFICATION_TYPE
-        self.prev_random_seed = preprocess_stage2.RANDOM_SEED
-        self.prev_input_dataset_path = preprocess_stage2.INPUT_DATASET_PATH
-        self.prev_testing_dataset_path = preprocess_stage2.TESTING_DATASET_PATH
-        self.prev_training_dataset_path = preprocess_stage2.TRAINING_DATASET_PATH
-        self.prev_validation_dataset_path = preprocess_stage2.VALIDATION_DATASET_PATH
-
-        preprocess_stage2.CLASSIFICATION_TYPE = preprocess_stage2.ClassificationType.BINARY
-        preprocess_stage2.RANDOM_SEED = self.RANDOM_SEED
-        preprocess_stage2.INPUT_DATASET_PATH = \
-            test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS
-
-        preprocess_stage2.TESTING_DATASET_PATH = self.testing_dataset_path
-        preprocess_stage2.TRAINING_DATASET_PATH = self.training_dataset_path
-        preprocess_stage2.VALIDATION_DATASET_PATH = self.validation_dataset_path
+        setUp(self)
 
     def tearDown(self):
-        preprocess_stage2.CLASSIFICATION_TYPE = self.prev_classification_type
-        preprocess_stage2.RANDOM_SEED = self.prev_random_seed
-        preprocess_stage2.INPUT_DATASET_PATH = self.prev_input_dataset_path
-        preprocess_stage2.TESTING_DATASET_PATH = self.prev_testing_dataset_path
-        preprocess_stage2.TRAINING_DATASET_PATH = self.prev_training_dataset_path
-        preprocess_stage2.VALIDATION_DATASET_PATH = self.prev_validation_dataset_path
-
-        self.testing_dataset_path.unlink()
-        self.training_dataset_path.unlink()
-        self.validation_dataset_path.unlink()
+        tearDown(self)
 
     def test_binary_classification_datasets(self):
         """
@@ -181,3 +148,46 @@ class PreprocessStage2Test(unittest.TestCase):
         self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
 
         test_preprocess_stage1.tearDown(self)
+
+
+# Define setUp and tearDown functions outside of the class so that they are
+# callable from other TestCase classes.
+def setUp(self):
+    tempfile_descriptor1 = tempfile.mkstemp()
+    os.close(tempfile_descriptor1[0])
+    self.testing_dataset_path = Path(tempfile_descriptor1[1])
+    tempfile_descriptor2 = tempfile.mkstemp()
+    os.close(tempfile_descriptor2[0])
+    self.training_dataset_path = Path(tempfile_descriptor2[1])
+    tempfile_descriptor3 = tempfile.mkstemp()
+    os.close(tempfile_descriptor3[0])
+    self.validation_dataset_path = Path(tempfile_descriptor3[1])
+
+    self.prev_classification_type = preprocess_stage2.CLASSIFICATION_TYPE
+    self.prev_random_seed = preprocess_stage2.RANDOM_SEED
+    self.prev_input_dataset_path = preprocess_stage2.INPUT_DATASET_PATH
+    self.prev_testing_dataset_path = preprocess_stage2.TESTING_DATASET_PATH
+    self.prev_training_dataset_path = preprocess_stage2.TRAINING_DATASET_PATH
+    self.prev_validation_dataset_path = preprocess_stage2.VALIDATION_DATASET_PATH
+
+    preprocess_stage2.CLASSIFICATION_TYPE = preprocess_stage2.ClassificationType.BINARY
+    preprocess_stage2.RANDOM_SEED = RANDOM_SEED
+    preprocess_stage2.INPUT_DATASET_PATH = \
+        test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS
+
+    preprocess_stage2.TESTING_DATASET_PATH = self.testing_dataset_path
+    preprocess_stage2.TRAINING_DATASET_PATH = self.training_dataset_path
+    preprocess_stage2.VALIDATION_DATASET_PATH = self.validation_dataset_path
+
+
+def tearDown(self):
+    preprocess_stage2.CLASSIFICATION_TYPE = self.prev_classification_type
+    preprocess_stage2.RANDOM_SEED = self.prev_random_seed
+    preprocess_stage2.INPUT_DATASET_PATH = self.prev_input_dataset_path
+    preprocess_stage2.TESTING_DATASET_PATH = self.prev_testing_dataset_path
+    preprocess_stage2.TRAINING_DATASET_PATH = self.prev_training_dataset_path
+    preprocess_stage2.VALIDATION_DATASET_PATH = self.prev_validation_dataset_path
+
+    self.testing_dataset_path.unlink()
+    self.training_dataset_path.unlink()
+    self.validation_dataset_path.unlink()

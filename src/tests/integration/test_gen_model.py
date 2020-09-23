@@ -1,34 +1,30 @@
 import os
+import json
 import unittest
 import tempfile
 import subprocess
 import pickle
 from pathlib import Path
 
+import pandas as pd
 import sklearn
 from sklearn.datasets import load_iris
 
 import gen_model
+import preprocess_stage2
+from tests.integration import test_preprocess_stage2
+
+GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
+GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
+TEST_DATA = GIT_ROOT / Path('src/tests/data')
 
 
-class ModelConfigTestCase(unittest.TestCase):
+class GenModelTestCase(unittest.TestCase):
     """
-    Test cases for preprocess_stage2.py
+    Base class for all gen_model.py testcases. Defines a common set of
+    setUp() and tearDown().
 
     """
-
-    GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
-    GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
-    TEST_DATA = GIT_ROOT / Path('src/tests/data')
-    LDA_STANDARD_CONFIG = TEST_DATA / Path('gen_model_config_lda_standard.json')
-    QDA_PCA_CONFIG = TEST_DATA / Path('gen_model_config_qda_pca.json')
-    SVM_ROBUST_CONFIG = TEST_DATA / Path('gen_model_config_svm_robust.json')
-    RFC_CONFIG = TEST_DATA / Path('gen_model_config_rfc.json')
-    RRC_CONFIG = TEST_DATA / Path('gen_model_config_rrc.json')
-    LRC_CONFIG = TEST_DATA / Path('gen_model_config_lrc.json')
-    ETC_CONFIG = TEST_DATA / Path('gen_model_config_etc.json')
-    SGD_CONFIG = TEST_DATA / Path('gen_model_config_sgd.json')
-    DTC_CONFIG = TEST_DATA / Path('gen_model_config_dtc.json')
 
     def setUp(self):
         tempfile_descriptor = tempfile.mkstemp()
@@ -41,6 +37,23 @@ class ModelConfigTestCase(unittest.TestCase):
     def tearDown(self):
         gen_model.DEFAULT_OUTPUT_PATH = self.prev_default_output_path
         self.output_path.unlink()
+
+
+class ModelConfigTestCase(GenModelTestCase):
+    """
+    Test cases for preprocess_stage2.py
+
+    """
+
+    LDA_STANDARD_CONFIG = TEST_DATA / Path('gen_model_config_lda_standard.json')
+    QDA_PCA_CONFIG = TEST_DATA / Path('gen_model_config_qda_pca.json')
+    SVM_ROBUST_CONFIG = TEST_DATA / Path('gen_model_config_svm_robust.json')
+    RFC_CONFIG = TEST_DATA / Path('gen_model_config_rfc.json')
+    RRC_CONFIG = TEST_DATA / Path('gen_model_config_rrc.json')
+    LRC_CONFIG = TEST_DATA / Path('gen_model_config_lrc.json')
+    ETC_CONFIG = TEST_DATA / Path('gen_model_config_etc.json')
+    SGD_CONFIG = TEST_DATA / Path('gen_model_config_sgd.json')
+    DTC_CONFIG = TEST_DATA / Path('gen_model_config_dtc.json')
 
     def test_lda_with_standard_scaling(self):
         """
@@ -303,3 +316,53 @@ class ModelConfigTestCase(unittest.TestCase):
 
         self.assertAlmostEqual(accuracy, model.accuracy)
         self.assertGreater(accuracy, 0.95)
+
+
+class GenModelIntegrationTestCase(GenModelTestCase):
+    """
+    Testcase for integration of gen_model.py with preprocess_stage2.py
+
+    """
+
+    GEN_MODEL_CONFIG = TEST_DATA / Path('gen_model_config_dtc.json')
+
+    def test_run_gen_model_with_preprocess_stage2(self):
+        """
+        Test running gen_model.py on the output of preprocess_stage2.py
+
+        """
+
+        test_preprocess_stage2.setUp(self)
+        with self.GEN_MODEL_CONFIG.open() as config_template_fp:
+            gen_model_config = json.load(config_template_fp)
+
+        gen_model_config['training_dataset'] = str(self.training_dataset_path)
+        gen_model_config['validation_dataset'] = str(self.validation_dataset_path)
+        config_tempfile_descriptor = tempfile.mkstemp()
+        os.close(config_tempfile_descriptor[0])
+        with open(config_tempfile_descriptor[1], 'w') as tmp_config_fp:
+            json.dump(gen_model_config, tmp_config_fp)
+
+        preprocess_stage2.main()
+        gen_model.CONFIG_FILE_PATH = Path(config_tempfile_descriptor[1])
+        gen_model.main([])
+        with open(self.output_path, 'rb') as output_fp:
+            model = pickle.load(output_fp)
+
+        self.assertIsInstance(model, sklearn.pipeline.Pipeline)
+        self.assertEqual(len(model.steps), 2)
+        self.assertEqual(model.steps[0][0], 'robust scaling')
+        self.assertIsInstance(model.steps[0][1],
+                              sklearn.preprocessing.RobustScaler)
+
+        self.assertEqual(model.steps[1][0], 'model')
+        self.assertIsInstance(model.steps[1][1],
+                              sklearn.tree.DecisionTreeClassifier)
+
+        testing_dataset = pd.read_csv(self.testing_dataset_path)
+        testing_inputs = testing_dataset.to_numpy()[:, 0:-1]
+        testing_targets = testing_dataset.to_numpy()[:, -1]
+        predictions = model.predict(testing_inputs)
+        accuracy = sklearn.metrics.accuracy_score(testing_targets, predictions)
+        self.assertGreaterEqual(accuracy, 0.5)
+        test_preprocess_stage2.tearDown(self)
