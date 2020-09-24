@@ -61,11 +61,22 @@ class Testrunner(enum.Enum):
 def main(argv):
     start_time = time.time()
     command_line_arguments = parse_command_line(argv)
-    src_files = (p for p in SRC_PATH.iterdir() if p.is_file())
-    py_files = set(str(p) for p in src_files if p.suffix == '.py')
     changed_files = get_changed_files()
-    pylint_files = py_files if command_line_arguments.complete_pylint else py_files & changed_files
-    coverage_files = py_files if command_line_arguments.complete_coverage else py_files & changed_files
+    if command_line_arguments.complete_pylint:
+        pylint_files = get_python_files(SRC_PATH,
+                                        exclude=['unit', 'integration', '__init__.py'])
+
+    else:
+        pylint_files = (get_python_files(SRC_PATH, exclude=['unit', 'integration', '__init__.py'])
+                        & changed_files)
+
+    if command_line_arguments.complete_coverage:
+        coverage_files = get_python_files(SRC_PATH, exclude=['tests'])
+
+    else:
+        coverage_files = (get_python_files(SRC_PATH, exclude=['tests'])
+                          & changed_files)
+
     pylint_jobs = [(run_pylint, p) for p in pylint_files]
     unittest_jobs = [(run_unittest, coverage_files)]
     with multiprocessing.Pool(command_line_arguments.cpu) as pool:
@@ -224,8 +235,13 @@ def run_pylint(path):
         return PylintResult(path=path, score=0.0, errors=True)
 
     errors = bool(re.search(r':\d+: error', pylint_report))
-    score = float(re.search(r'Your code has been rated at (\d+\.\d+)',
-                            pylint_report).group(1))
+    try:
+        score = float(re.search(r'Your code has been rated at (\d+\.\d+)',
+                                pylint_report).group(1))
+
+    except AttributeError:
+        score = 0
+        errors = True
 
     pylint_result = PylintResult(path=path,
                                  score=score,
@@ -325,11 +341,11 @@ def parse_command_line(argv):
 
     description = 'Test source code for QDAIM.'
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('--complete_coverage',
+    parser.add_argument('--complete-coverage',
                         action='store_true',
                         help='Run code coverage on all source code files.')
 
-    parser.add_argument('--complete_pylint',
+    parser.add_argument('--complete-pylint',
                         action='store_true',
                         help='Run pylint on all source code files.')
 
@@ -339,6 +355,34 @@ def parse_command_line(argv):
                         help='Number of processes to use for running tests.')
 
     return parser.parse_args(argv)
+
+
+def get_python_files(path, exclude=None):
+    """
+    Get all Python files that live in `path` or any of its children.
+
+    Args
+      path: The path to the directory to search for Python files as either a
+            string or a Path object.
+      exclude: (Optional) A list of directory names not to descend into.
+
+    Returns
+      A set of path strings to all Python files within the directory at `path`.
+
+    """
+
+    if exclude is None:
+        return set(str(x) for x in Path(path).glob('**/*.py'))
+
+    python_files = set()
+    for child in Path(path).iterdir():
+        if child.is_dir() and child.name not in exclude:
+            python_files.update(get_python_files(child, exclude=exclude))
+
+        elif child.suffix == '.py' and child.name not in exclude:
+            python_files.add(str(child))
+
+    return python_files
 
 
 if __name__ == '__main__':
