@@ -482,6 +482,7 @@ def read_config_file(path):
     with path.open() as config_fp:
         config_json = json.load(config_fp)
 
+    is_valid_config(config_json)
     config_json['training_dataset'] = os.path.join(str(GIT_ROOT),
                                                    config_json['training_dataset'])
 
@@ -512,6 +513,132 @@ def read_config_file(path):
     config_json['algorithm_parameters'] = modified_algorithm_parameters
 
     return Config(**config_json)
+
+
+def is_valid_config(config, suppress_exceptions=False):
+    """
+    Check that loaded json config file contains only valid parameters.
+
+    Args
+      config: A dict corresponding to a json config file.
+      suppress_exceptions: (Default=False) Don't raise an exception if
+                           `config` is invalid.
+
+    Returns
+      True if `config` is valid, False if it is invalid.
+
+    Raises
+      InvalidConfig if `config` is invalid and `suppress_exceptions`
+      is False.
+
+    """
+
+    config_parameters = ('training_dataset',
+                         'validation_dataset',
+                         'random_seed',
+                         'scoring',
+                         'preprocessing_methods',
+                         'pca_components',
+                         'pca_whiten',
+                         'algorithm',
+                         'algorithm_parameters')
+
+    if not isinstance(config, dict):
+        if suppress_exceptions:
+            return False
+
+        raise InvalidConfig('config must be a dict.')
+
+    if set(config) != set(config_parameters) and set(config) != set(config_parameters[:-1]):
+        if suppress_exceptions:
+            return False
+
+        raise InvalidConfig('Config file contains invalid parameters.')
+
+    try:
+        if not (GIT_ROOT / Path(config['training_dataset'])).exists():
+            if suppress_exceptions:
+                return False
+
+            raise InvalidConfig(f'`{config["training_dataset"]}` does not exist.')
+
+    except TypeError:
+        if suppress_exceptions:
+            return False
+
+        raise InvalidConfig('`training_dataset` must be a path.')
+
+    try:
+        if not (GIT_ROOT / Path(config['validation_dataset'])).exists():
+            if suppress_exceptions:
+                return False
+
+            raise InvalidConfig(f'`{config["validation_dataset"]}` does not exist.')
+
+    except TypeError:
+        if suppress_exceptions:
+            return False
+
+        raise InvalidConfig('`validation_dataset` must be a path.')
+
+    try:
+        if 0 > int(config['random_seed']) > 2**32 - 1:
+            if suppress_exceptions:
+                return False
+
+            raise InvalidConfig('`random_seed` must be between 0 and 2**32 - 1.')
+
+    except ValueError:
+        if suppress_exceptions:
+            return False
+
+        raise InvalidConfig('`random_seed` not an integer.')
+
+    if config['scoring'] not in SCORING_METHODS:
+        if suppress_exceptions:
+            return False
+
+        raise InvalidConfig(f'`scoring` must be one of `{SCORING_METHODS}`.')
+
+    try:
+        if set(config['preprocessing_methods']) > set(PREPROCESSING_METHODS):
+            if suppress_exceptions:
+                return False
+
+            raise InvalidConfig(f'`preprocessing_methods` must be in {set(PREPROCESSING_METHODS)}.')
+
+    except TypeError:
+        if suppress_exceptions:
+            return False
+
+        raise InvalidConfig('`preprocessing_methods` must be a list.')
+
+    try:
+        if int(config['pca_components']) <= 0:
+            if suppress_exceptions:
+                return False
+
+            raise InvalidConfig('`pca_components` must be greater than 0.')
+
+    except TypeError:
+        if suppress_exceptions:
+            return False
+
+        raise InvalidConfig('`pca_components` must be an integer.')
+
+    if not isinstance(config['pca_whiten'], bool):
+        if suppress_exceptions:
+            return False
+
+        raise InvalidConfig('`pca_whiten` must be a boolean.')
+
+    if config['algorithm'] not in SUPPORTED_ALGORITHMS:
+        if suppress_exceptions:
+            return False
+
+        raise InvalidConfig(f'`algorithm` must be one of {SUPPORTED_ALGORITHMS}.')
+
+    return True
 
 
 def get_commit_hash():
@@ -725,6 +852,13 @@ def save_model(model, output_path):
 
     with output_path.open('wb') as output_file:
         pickle.dump(model, output_file)
+
+
+class InvalidConfig(Exception):
+    """
+    An exception that is raised when the config file is not valid.
+
+    """
 
 
 if __name__ == '__main__':  # pragma: no cover
