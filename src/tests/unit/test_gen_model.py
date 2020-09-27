@@ -759,12 +759,8 @@ class ReadConfigFileTest(unittest.TestCase):
                                        new_callable=create_json_load_mock)
 
         with json_load_patch:
-            with self.assertRaises(ValueError) as context_manager:
+            with self.assertRaises(gen_model.InvalidConfigError):
                 gen_model.read_config_file(Path(os.devnull))
-
-        self.assertEqual(str(context_manager.exception),
-                         "Unknown machine learning algorithm `invalid_algorithm`.")
-
 
     def test_invalid_preprocessing_methods(self):
         """
@@ -786,11 +782,8 @@ class ReadConfigFileTest(unittest.TestCase):
                                        new_callable=create_json_load_mock)
 
         with json_load_patch:
-            with self.assertRaises(ValueError) as context_manager:
+            with self.assertRaises(gen_model.InvalidConfigError):
                 gen_model.read_config_file(Path(os.devnull))
-
-        self.assertEqual(str(context_manager.exception),
-                         "Unknown preprocessing methods {'invalid_method'}.")
 
 
 if __name__ == '__main__':
