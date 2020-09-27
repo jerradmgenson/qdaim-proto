@@ -41,6 +41,9 @@ class GenModelTestCase(unittest.TestCase):
         tempfile_descriptor = tempfile.mkstemp()
         os.close(tempfile_descriptor[0])
         self.output_path = Path(tempfile_descriptor[1])
+        self.validation_path = (Path(self.output_path)
+                                .with_name(Path(self.output_path).name + '_validation.csv'))
+
         self.prev_config_file_path = gen_model.CONFIG_FILE_PATH
         self.prev_default_output_path = gen_model.DEFAULT_OUTPUT_PATH
         gen_model.DEFAULT_OUTPUT_PATH = self.output_path
@@ -48,6 +51,7 @@ class GenModelTestCase(unittest.TestCase):
     def tearDown(self):
         gen_model.DEFAULT_OUTPUT_PATH = self.prev_default_output_path
         self.output_path.unlink()
+        self.validation_path.unlink()
 
 
 class ModelConfigTestCase(GenModelTestCase):
@@ -74,7 +78,8 @@ class ModelConfigTestCase(GenModelTestCase):
         """
 
         gen_model.CONFIG_FILE_PATH = self.LDA_STANDARD_CONFIG
-        gen_model.main([])
+        exit_code = gen_model.main([])
+        self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
 
@@ -104,7 +109,8 @@ class ModelConfigTestCase(GenModelTestCase):
         """
 
         gen_model.CONFIG_FILE_PATH = self.QDA_PCA_CONFIG
-        gen_model.main([])
+        exit_code = gen_model.main([])
+        self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
 
@@ -134,7 +140,8 @@ class ModelConfigTestCase(GenModelTestCase):
         """
 
         gen_model.CONFIG_FILE_PATH = self.SVM_ROBUST_CONFIG
-        gen_model.main([])
+        exit_code = gen_model.main([])
+        self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
 
@@ -162,7 +169,8 @@ class ModelConfigTestCase(GenModelTestCase):
         """
 
         gen_model.CONFIG_FILE_PATH = self.RFC_CONFIG
-        gen_model.main([])
+        exit_code = gen_model.main([])
+        self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
 
@@ -186,7 +194,8 @@ class ModelConfigTestCase(GenModelTestCase):
         """
 
         gen_model.CONFIG_FILE_PATH = self.RRC_CONFIG
-        gen_model.main([])
+        exit_code = gen_model.main([])
+        self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
 
@@ -216,7 +225,8 @@ class ModelConfigTestCase(GenModelTestCase):
         """
 
         gen_model.CONFIG_FILE_PATH = self.LRC_CONFIG
-        gen_model.main([])
+        exit_code = gen_model.main([])
+        self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
 
@@ -246,7 +256,8 @@ class ModelConfigTestCase(GenModelTestCase):
         """
 
         gen_model.CONFIG_FILE_PATH = self.ETC_CONFIG
-        gen_model.main([])
+        exit_code = gen_model.main([])
+        self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
 
@@ -276,7 +287,8 @@ class ModelConfigTestCase(GenModelTestCase):
         """
 
         gen_model.CONFIG_FILE_PATH = self.SGD_CONFIG
-        gen_model.main([])
+        exit_code = gen_model.main([])
+        self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
 
@@ -306,7 +318,8 @@ class ModelConfigTestCase(GenModelTestCase):
         """
 
         gen_model.CONFIG_FILE_PATH = self.DTC_CONFIG
-        gen_model.main([])
+        exit_code = gen_model.main([])
+        self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
 
@@ -356,7 +369,8 @@ class GenModelIntegrationTestCase(GenModelTestCase):
 
         preprocess_stage2.main()
         gen_model.CONFIG_FILE_PATH = Path(config_tempfile_descriptor[1])
-        gen_model.main([])
+        exit_code = gen_model.main([])
+        self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
 
@@ -377,3 +391,66 @@ class GenModelIntegrationTestCase(GenModelTestCase):
         accuracy = sklearn.metrics.accuracy_score(testing_targets, predictions)
         self.assertGreaterEqual(accuracy, 0.5)
         test_preprocess_stage2.tearDown(self)
+
+
+class ValidationCSVTestCase(GenModelTestCase):
+    """
+    Testcase for the *_validation.csv output file of gen_model.py
+
+    """
+
+    DTC_MODEL_CONFIG = TEST_DATA / Path('gen_model_config_dtc.json')
+    QDA_MODEL_CONFIG = TEST_DATA / Path('gen_model_config_qda_pca.json')
+
+    def test_dtc_validation(self):
+        """
+        Test *_validation.csv when generating a decision tree classifier.
+
+        """
+
+        gen_model.CONFIG_FILE_PATH = self.DTC_MODEL_CONFIG
+        exit_code = gen_model.main([])
+        self.assertEqual(exit_code, 0)
+        with open(self.output_path, 'rb') as output_fp:
+            model = pickle.load(output_fp)
+
+        validation = pd.read_csv(self.validation_path)
+        iris_dataset = load_iris()
+        self.assertEqual(len(validation.columns),
+                         len(iris_dataset['data'][0]) + 2)
+
+        self.assertEqual(set(validation.columns[:-2]),
+                         set(iris_dataset['feature_names']))
+
+        self.assertTrue((validation.columns[-2:] == ['target', 'prediction']).all())
+        predictions = model.predict(iris_dataset['data'])
+        self.assertTrue((iris_dataset['data'] == validation.drop(['prediction', 'target'], axis=1)).all().all())
+        self.assertTrue((iris_dataset['target'] == validation['target']).all())
+        self.assertTrue((predictions == validation['prediction']).all())
+
+    def test_qda_validation(self):
+        """
+        Test *_validation.csv when generating a quadratic discriminant
+        analysis model.
+
+        """
+
+        gen_model.CONFIG_FILE_PATH = self.QDA_MODEL_CONFIG
+        exit_code = gen_model.main([])
+        self.assertEqual(exit_code, 0)
+        with open(self.output_path, 'rb') as output_fp:
+            model = pickle.load(output_fp)
+
+        validation = pd.read_csv(self.validation_path)
+        iris_dataset = load_iris()
+        self.assertEqual(len(validation.columns),
+                         len(iris_dataset['data'][0]) + 2)
+
+        self.assertEqual(set(validation.columns[:-2]),
+                         set(iris_dataset['feature_names']))
+
+        self.assertTrue((validation.columns[-2:] == ['target', 'prediction']).all())
+        predictions = model.predict(iris_dataset['data'])
+        self.assertTrue((iris_dataset['data'] == validation.drop(['prediction', 'target'], axis=1)).all().all())
+        self.assertTrue((iris_dataset['target'] == validation['target']).all())
+        self.assertTrue((predictions == validation['prediction']).all())
