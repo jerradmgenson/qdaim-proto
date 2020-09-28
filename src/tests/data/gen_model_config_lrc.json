@@ -5,7 +5,7 @@
     "scoring": "accuracy",
     "preprocessing_methods": ["power transformer"],
     "pca_components": 3,
-    "pca_whiten": true,
+    "pca_whiten": false,
     "algorithm": "lrc",
     "algorithm_parameters": []
 }

@@ -5,6 +5,6 @@
     "scoring": "accuracy",
     "preprocessing_methods": ["standard scaling"],
     "pca_components": 3,
-    "pca_whiten": true,
+    "pca_whiten": false,
     "algorithm": "sgd"
 }
