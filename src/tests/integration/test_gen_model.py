@@ -11,6 +11,7 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import os
 import json
+import json
 import unittest
 import tempfile
 import subprocess
@@ -50,8 +51,11 @@ class GenModelTestCase(unittest.TestCase):
 
     def tearDown(self):
         gen_model.DEFAULT_OUTPUT_PATH = self.prev_default_output_path
-        self.output_path.unlink()
-        self.validation_path.unlink()
+        if self.output_path.exists():
+            self.output_path.unlink()
+
+        if self.validation_path.exists():
+            self.validation_path.unlink()
 
 
 class ModelConfigTestCase(GenModelTestCase):
@@ -454,3 +458,31 @@ class ValidationCSVTestCase(GenModelTestCase):
         self.assertTrue((iris_dataset['data'] == validation.drop(['prediction', 'target'], axis=1)).all().all())
         self.assertTrue((iris_dataset['target'] == validation['target']).all())
         self.assertTrue((predictions == validation['prediction']).all())
+
+
+class ConfigFileTestCase(GenModelTestCase):
+    """
+    Testcase that gen_model_config.json contains invalid json.
+
+    """
+
+    def test_invalid_config_json(self):
+        """
+        Test gen_model.py when config file is not valid json.
+
+        """
+
+        gen_model.CONFIG_FILE_PATH = Path(os.devnull)
+        exit_code = gen_model.main([])
+        self.assertEqual(exit_code, 1)
+
+    def test_gen_model_config_is_valid(self):
+        """
+        Test that gen_model_config.json describes a valid configuration.
+
+        """
+
+        with gen_model.CONFIG_FILE_PATH.open() as config_fp:
+            config = json.load(config_fp)
+
+        self.assertTrue(gen_model.is_valid_config(config))

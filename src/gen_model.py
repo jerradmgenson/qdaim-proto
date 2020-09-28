@@ -551,23 +551,21 @@ def is_valid_config(config):
         raise InvalidConfigError('Config file contains invalid parameters.')
 
     try:
-        if not (GIT_ROOT / Path(config['training_dataset'])).exists():
-            raise InvalidConfigError(f'`{config["training_dataset"]}` does not exist.')
+        GIT_ROOT / Path(config['training_dataset'])
 
     except TypeError as type_error:
         logger.debug(type_error)
         raise InvalidConfigError('`training_dataset` must be a path.')
 
     try:
-        if not (GIT_ROOT / Path(config['validation_dataset'])).exists():
-            raise InvalidConfigError(f'`{config["validation_dataset"]}` does not exist.')
+        GIT_ROOT / Path(config['validation_dataset'])
 
     except TypeError as type_error:
         logger.debug(type_error)
         raise InvalidConfigError('`validation_dataset` must be a path.')
 
     try:
-        if 0 > int(config['random_seed']) > 2**32 - 1:
+        if int(config['random_seed']) > 2**32 - 1 or int(config['random_seed']) < 0:
             raise InvalidConfigError('`random_seed` must be between 0 and 2**32 - 1.')
 
     except ValueError as value_error:
@@ -578,7 +576,7 @@ def is_valid_config(config):
         raise InvalidConfigError(f'`scoring` must be one of `{SCORING_METHODS}`.')
 
     try:
-        if set(config['preprocessing_methods']) > set(PREPROCESSING_METHODS):
+        if not (set(config['preprocessing_methods']) <= set(PREPROCESSING_METHODS)):
             raise InvalidConfigError(f'`preprocessing_methods` must be in {set(PREPROCESSING_METHODS)}.')
 
     except TypeError as type_error:
@@ -597,7 +595,7 @@ def is_valid_config(config):
         raise InvalidConfigError('`pca_whiten` must be a boolean.')
 
     if config['algorithm'] not in SUPPORTED_ALGORITHMS:
-        raise InvalidConfigError(f'`algorithm` must be one of {SUPPORTED_ALGORITHMS}.')
+        raise InvalidConfigError(f'`algorithm` must be one of {list(SUPPORTED_ALGORITHMS)}.')
 
     if 'algorithm_parameters' in config:
         try:
@@ -614,10 +612,6 @@ def is_valid_config(config):
             logger.debug(type_error)
             invalid_parameter = re.search(r"keyword argument '(\w+)'", str(type_error)).group(1)
             raise InvalidConfigError(f'`{invalid_parameter}` is not a valid parameter for `{config["algorithm"]}`.')
-
-        except ValueError as value_error:
-            logger.debug(value_error)
-            raise InvalidConfigError('Invalid value in `algorithm_parameters`.')
 
     return True
 
