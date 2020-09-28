@@ -11,7 +11,6 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import os
 import json
-import json
 import unittest
 import tempfile
 import subprocess
@@ -45,6 +44,9 @@ class GenModelTestCase(unittest.TestCase):
         self.validation_path = (Path(self.output_path)
                                 .with_name(Path(self.output_path).name + '_validation.csv'))
 
+        self.logfile_path = (Path(self.output_path)
+                             .with_name(Path(self.output_path).name + '.log'))
+
         self.prev_config_file_path = gen_model.CONFIG_FILE_PATH
         self.prev_default_output_path = gen_model.DEFAULT_OUTPUT_PATH
         gen_model.DEFAULT_OUTPUT_PATH = self.output_path
@@ -56,6 +58,9 @@ class GenModelTestCase(unittest.TestCase):
 
         if self.validation_path.exists():
             self.validation_path.unlink()
+
+        if self.logfile_path.exists():
+            self.logfile_path.unlink()
 
 
 class ModelConfigTestCase(GenModelTestCase):

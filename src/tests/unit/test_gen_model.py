@@ -294,7 +294,7 @@ class CreateScorerTests(unittest.TestCase):
         score = scorer(model, inputs, targets)
         self.assertEqual(score, 0.5)
 
-    def test_scorer_with_invalid_metric(self):
+    def test_scorer_with_invalid_metric1(self):
         """
         Test create_scorer() with a scoring metric that is invalid for
         the given type of classification.
@@ -308,6 +308,16 @@ class CreateScorerTests(unittest.TestCase):
         scorer = gen_model.create_scorer('sensitivity')
         with self.assertRaises(ValueError):
             scorer(model, inputs, targets)
+
+    def test_scorer_with_invalid_metric2(self):
+        """
+        Test create_scorer() with a scoring metric that is invalid for
+        any type of classification.
+
+        """
+
+        with self.assertRaises(ValueError):
+            gen_model.create_scorer('invalid')
 
 
 class CalculateHmeanRecallTests(unittest.TestCase):
@@ -628,8 +638,8 @@ class ScoreModelTests(unittest.TestCase):
 
         """
 
-        input_data = np.array([])
-        target_data = np.array([0, 1, 0, 1])
+        input_data = np.array([0, 1, 0, 1])
+        target_data = input_data
         model = Mock()
         model.predict = Mock(return_value=np.array([0, 1, 1, 0]))
         scores, _ = gen_model.score_model(model, input_data, target_data)
@@ -647,8 +657,8 @@ class ScoreModelTests(unittest.TestCase):
 
         """
 
-        input_data = np.array([])
-        target_data = np.array([0, 1, 0, 1])
+        input_data = np.array([0, 1, 0, 1])
+        target_data = input_data
         model = Mock()
         model.predict = Mock(return_value=np.array([0, 0, 1, 0]))
         scores, _ = gen_model.score_model(model, input_data, target_data)
@@ -666,8 +676,8 @@ class ScoreModelTests(unittest.TestCase):
 
         """
 
-        input_data = np.array([])
-        target_data = np.array([0, 1, 2, 0, 1, 2])
+        input_data = np.array([0, 1, 2, 0, 1, 2])
+        target_data = input_data
         model = Mock()
         model.predict = Mock(return_value=target_data)
         scores, _ = gen_model.score_model(model, input_data, target_data)
@@ -682,8 +692,8 @@ class ScoreModelTests(unittest.TestCase):
 
         """
 
-        input_data = np.array([])
-        target_data = np.array([0, 1, 2, 0, 1, 2])
+        input_data = np.array([0, 1, 2, 0, 1, 2])
+        target_data = input_data
         model = Mock()
         model.predict = Mock(return_value=np.array([0, 1, 2, 2, 0, 1]))
         scores, _ = gen_model.score_model(model, input_data, target_data)
@@ -698,8 +708,8 @@ class ScoreModelTests(unittest.TestCase):
 
         """
 
-        input_data = np.array([])
-        target_data = np.array([0, 1, 2, 0, 1, 2])
+        input_data = np.array([0, 1, 2, 0, 1, 2])
+        target_data = input_data
         model = Mock()
         model.predict = Mock(return_value=np.array([1, 1, 1, 2, 2, 0]))
         scores, _ = gen_model.score_model(model, input_data, target_data)
@@ -707,6 +717,31 @@ class ScoreModelTests(unittest.TestCase):
         self.assertAlmostEqual(scores.hmean_precision, 0)
         self.assertAlmostEqual(scores.hmean_recall, 0)
         self.assertAlmostEqual(scores.informedness, -0.6666667)
+
+    def test_different_length_arrays(self):
+        """
+        Test score_model() with input_data and target_data of different
+        lengths.
+
+        """
+
+        input_data = np.array([0, 1, 2, 0, 1, 2])
+        target_data = np.array([])
+        model = Mock()
+        with self.assertRaises(ValueError):
+            gen_model.score_model(model, input_data, target_data)
+
+    def test_target_data_wrong_dimensions(self):
+        """
+        Test score_model() with target_data with the wrong dimensions.
+
+        """
+
+        input_data = np.array([0, 1, 2, 0, 1, 2])
+        target_data = np.array([[0, 0], [1, 1], [2, 2], [0, 0], [1, 1], [2, 2]])
+        model = Mock()
+        with self.assertRaises(ValueError):
+            gen_model.score_model(model, input_data, target_data)
 
 
 class BindModelMetadataTests(unittest.TestCase):

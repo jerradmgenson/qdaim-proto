@@ -5,7 +5,7 @@
     "scoring": "accuracy",
     "preprocessing_methods": ["quantile transformer"],
     "pca_components": 3,
-    "pca_whiten": true,
+    "pca_whiten": false,
     "algorithm": "rrc",
     "algorithm_parameters":
     [

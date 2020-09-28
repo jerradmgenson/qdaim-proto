@@ -5,7 +5,7 @@
     "scoring": "accuracy",
     "preprocessing_methods": ["robust scaling"],
     "pca_components": 3,
-    "pca_whiten": true,
+    "pca_whiten": false,
     "algorithm": "dtc",
     "algorithm_parameters": []
 }

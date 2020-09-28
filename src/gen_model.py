@@ -95,21 +95,9 @@ import joblib
 import threadpoolctl
 import sklearn
 from sklearn import svm
-from sklearn.linear_model import RidgeClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis
-from sklearn.model_selection import GridSearchCV
-from sklearn.linear_model import SGDClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import StandardScaler
-from sklearn.preprocessing import RobustScaler
-from sklearn.preprocessing import QuantileTransformer
-from sklearn.preprocessing import PowerTransformer
-from sklearn.preprocessing import Normalizer
-from sklearn.decomposition import PCA
+from sklearn import ensemble
+from sklearn import discriminant_analysis
 from sklearn.pipeline import Pipeline
-
 
 # Path to the root of the git repository.
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
@@ -131,26 +119,35 @@ MLAlgorithm = namedtuple('MLAlgorithm', 'name class_')
 # Keys are three-letter algorithm abbreviations.
 # Values are MLAlgorithm objects.
 SUPPORTED_ALGORITHMS = {
-    'svm': MLAlgorithm('support vector machine', svm.SVC),
-    'rfc': MLAlgorithm('random forest', RandomForestClassifier),
-    'etc': MLAlgorithm('extra trees', sklearn.ensemble.ExtraTreesClassifier),
-    'sgd': MLAlgorithm('stochastic gradient descent', SGDClassifier),
-    'rrc': MLAlgorithm('ridge regression classifier', RidgeClassifier),
-    'lrc': MLAlgorithm('logistic regression classifier', LogisticRegression),
-    'lda': MLAlgorithm('linear discriminant analysis', LinearDiscriminantAnalysis),
-    'qda': MLAlgorithm('quadratic discriminant analysis', QuadraticDiscriminantAnalysis),
-    'dtc': MLAlgorithm('decision tree', sklearn.tree.DecisionTreeClassifier),
+    'svm': MLAlgorithm('support vector machine',
+                       svm.SVC),
+    'rfc': MLAlgorithm('random forest',
+                       ensemble.RandomForestClassifier),
+    'etc': MLAlgorithm('extra trees',
+                       ensemble.ExtraTreesClassifier),
+    'sgd': MLAlgorithm('stochastic gradient descent',
+                       sklearn.linear_model.SGDClassifier),
+    'rrc': MLAlgorithm('ridge regression classifier',
+                       sklearn.linear_model.RidgeClassifier),
+    'lrc': MLAlgorithm('logistic regression classifier',
+                       sklearn.linear_model.LogisticRegression),
+    'lda': MLAlgorithm('linear discriminant analysis',
+                       discriminant_analysis.LinearDiscriminantAnalysis),
+    'qda': MLAlgorithm('quadratic discriminant analysis',
+                       discriminant_analysis.QuadraticDiscriminantAnalysis),
+    'dtc': MLAlgorithm('decision tree',
+                       sklearn.tree.DecisionTreeClassifier),
 }
 
 # Possible preprocessing methods that can be used to prepare data for
 # a model.
 PREPROCESSING_METHODS = {
-    'standard scaling': StandardScaler,
-    'robust scaling': RobustScaler,
-    'quantile transformer': QuantileTransformer,
-    'power transformer': PowerTransformer,
-    'normalize': Normalizer,
-    'pca': PCA,
+    'standard scaling': sklearn.preprocessing.StandardScaler,
+    'robust scaling': sklearn.preprocessing.RobustScaler,
+    'quantile transformer': sklearn.preprocessing.QuantileTransformer,
+    'power transformer': sklearn.preprocessing.PowerTransformer,
+    'normalize': sklearn.preprocessing.Normalizer,
+    'pca': sklearn.decomposition.PCA,
 }
 
 
@@ -167,7 +164,13 @@ Config = namedtuple('Config',
                      'pca_components'))
 
 # Possible scoring methods that may be used for hyperparameter tuning.
-SCORING_METHODS = 'accuracy precision hmean_precision hmean_recall sensitivity specificity informedness'
+SCORING_METHODS = ('accuracy',
+                   'precision',
+                   'hmean_precision',
+                   'hmean_recall',
+                   'sensitivity',
+                   'specificity',
+                   'informedness')
 
 # Collects model scores together in a single object.
 ModelScores = namedtuple('ModelScores', SCORING_METHODS)
@@ -179,6 +182,16 @@ Dataset = namedtuple('Dataset', 'inputs targets')
 Datasets = namedtuple('Datasets', 'training validation columns')
 
 
+class ExitCode:
+    """
+    Enumerates possible exit codes.
+
+    """
+
+    SUCCESS = 0
+    INVALID_CONFIG = 1
+
+
 def main(argv):
     """
     Program's main function. Primary execution starts here.
@@ -187,29 +200,34 @@ def main(argv):
 
     start_time = time.time()
     command_line_arguments = parse_command_line(argv)
-    logfile_path = command_line_arguments.output_path.with_name(command_line_arguments.output_path.stem + '.log')
+    logfile_path = command_line_arguments.output_path.with_name(
+        command_line_arguments.output_path.stem + '.log')
+
     logger = configure_logging(command_line_arguments.log_level, logfile_path)
+    logger.info('Reading configuration file...')
     try:
         config = read_config_file(CONFIG_FILE_PATH)
 
     except InvalidConfigError as invalid_config_error:
         logger.error(invalid_config_error)
-        return 1
+        return ExitCode.INVALID_CONFIG
 
     random.seed(config.random_seed)
     np.random.seed(config.random_seed)
+    logger.info('Loading datasets...')
     datasets = load_datasets(config.training_dataset,
                              config.validation_dataset)
 
-    print(f'Training dataset:      {config.training_dataset}')
-    print(f'Validation dataset:    {config.validation_dataset}')
-    print(f'Random number seed:    {config.random_seed}')
-    print(f'Scoring method:        {config.scoring}')
-    print(f'Algorithm:             {config.algorithm.name}')
-    print(f'Preprocessing methods: {config.preprocessing_methods}')
-    print(f'Training samples:      {len(datasets.training.inputs)}')
-    print(f'Validation samples:    {len(datasets.validation.inputs)}')
+    logger.info('Training dataset:      %s', config.training_dataset)
+    logger.info('Validation dataset:    %s', config.validation_dataset)
+    logger.info('Random number seed:    %s', config.random_seed)
+    logger.info('Scoring method:        %s', config.scoring)
+    logger.info('Algorithm:             %s', config.algorithm.name)
+    logger.info('Preprocessing methods: %s', config.preprocessing_methods)
+    logger.info('Training samples:      %d', len(datasets.training.inputs))
+    logger.info('Validation samples:    %d', len(datasets.validation.inputs))
     score_function = create_scorer(config.scoring)
+    logger.info('Generating model...')
     model = train_model(config.algorithm.class_,
                         datasets.training.inputs,
                         datasets.training.targets,
@@ -220,6 +238,7 @@ def main(argv):
                         cpus=command_line_arguments.cpu,
                         parameter_grid=config.algorithm_parameters)
 
+    logger.info('Scoring model...')
     model_scores, predictions = score_model(model,
                                             datasets.validation.inputs,
                                             datasets.validation.targets)
@@ -230,12 +249,14 @@ def main(argv):
                                                    predictions,
                                                    datasets.columns[:-1])
 
+    logger.info('\nSaving model to disk...')
     save_validation(validation_dataset, command_line_arguments.output_path)
     save_model(model, command_line_arguments.output_path)
-    print(f'\nSaved model to {command_line_arguments.output_path}')
-    print(f'Runtime: {time.time() - start_time:.2} seconds')
+    logger.info('Saved model to %s', command_line_arguments.output_path)
+    runtime = f'Runtime: {time.time() - start_time:.2} seconds'
+    logger.debug(runtime)
 
-    return 0
+    return ExitCode.SUCCESS
 
 
 def create_validation_dataset(input_data, target_data, prediction_data, columns):
@@ -263,6 +284,9 @@ def create_validation_dataset(input_data, target_data, prediction_data, columns)
     validation_dataset = pd.DataFrame(data=input_data, columns=columns)
     validation_dataset['target'] = target_data
     validation_dataset['prediction'] = prediction_data
+
+    assert len(validation_dataset) == len(input_data)
+    assert len(validation_dataset.columns) == len(columns) + 2
 
     return validation_dataset
 
@@ -310,14 +334,22 @@ def bind_model_metadata(model, scores):
 
     """
 
-    print('\nModel scores:')
+    logger = logging.getLogger(__name__)
+    logger.info('\nModel scores:')
+    model_attributes = len(dir(model))
+    score_count = 0
     for metric, score in scores._asdict().items():
         if score is None:
             continue
 
+        score_count += 1
         setattr(model, metric, score)
         label = metric + ':'
-        print(f'{label:16} {score:.4}')
+        msg = f'{label:16} {score:.4}'
+        logger.info(msg)
+
+    assert len(dir(model)) - model_attributes == score_count
+    model_attributes = len(dir(model))
 
     model.commit_hash = get_commit_hash()
     model.validated = False
@@ -334,6 +366,8 @@ def bind_model_metadata(model, scores):
     username = run_command('git config user.name')
     email = run_command('git config user.email')
     model.author = '{} <{}>'.format(username, email)
+
+    assert len(dir(model)) - model_attributes == 13
 
 
 def train_model(model_class,
@@ -395,11 +429,12 @@ def train_model(model_class,
 
     pipeline_steps.append(('model', model_class()))
     pipeline = Pipeline(steps=pipeline_steps)
+    assert len(pipeline) == len(preprocessing_methods) + 1
     if parameter_grid:
-        grid_estimator = GridSearchCV(pipeline,
-                                      parameter_grid,
-                                      scoring=score_function,
-                                      n_jobs=cpus)
+        grid_estimator = sklearn.model_selection.GridSearchCV(pipeline,
+                                                              parameter_grid,
+                                                              scoring=score_function,
+                                                              n_jobs=cpus)
 
         grid_estimator.fit(input_data, target_data)
         model = grid_estimator.best_estimator_
@@ -428,6 +463,8 @@ def load_datasets(training_dataset, validation_dataset):
     training_dataset = pd.read_csv(str(training_dataset))
     validation_dataset = pd.read_csv(str(validation_dataset))
 
+    assert set(training_dataset.columns) == set(validation_dataset.columns)
+
     return Datasets(training=Dataset(inputs=split_inputs(training_dataset),
                                      targets=split_target(training_dataset)),
                     validation=Dataset(inputs=split_inputs(validation_dataset),
@@ -443,7 +480,11 @@ def split_inputs(dataframe):
 
     """
 
-    return dataframe.to_numpy()[:, 0:-1]
+    inputs = dataframe.to_numpy()[:, 0:-1]
+    assert len(inputs) == len(dataframe)
+    assert len(inputs[0]) == len(dataframe.columns) - 1
+
+    return inputs
 
 
 def split_target(dataframe):
@@ -454,7 +495,11 @@ def split_target(dataframe):
 
     """
 
-    return dataframe.to_numpy()[:, -1]
+    targets = dataframe.to_numpy()[:, -1]
+    assert len(targets) == len(dataframe)
+    assert np.ndim(targets) == 1
+
+    return targets
 
 
 def save_validation(dataset, output_path):
@@ -576,8 +621,9 @@ def is_valid_config(config):
         raise InvalidConfigError(f'`scoring` must be one of `{SCORING_METHODS}`.')
 
     try:
-        if not (set(config['preprocessing_methods']) <= set(PREPROCESSING_METHODS)):
-            raise InvalidConfigError(f'`preprocessing_methods` must be in {set(PREPROCESSING_METHODS)}.')
+        if not set(config['preprocessing_methods']) <= set(PREPROCESSING_METHODS):
+            err = f'`preprocessing_methods` must be in {set(PREPROCESSING_METHODS)}.'
+            raise InvalidConfigError(err)
 
     except TypeError as type_error:
         logger.debug(type_error)
@@ -611,7 +657,8 @@ def is_valid_config(config):
         except TypeError as type_error:
             logger.debug(type_error)
             invalid_parameter = re.search(r"keyword argument '(\w+)'", str(type_error)).group(1)
-            raise InvalidConfigError(f'`{invalid_parameter}` is not a valid parameter for `{config["algorithm"]}`.')
+            err = f'`{invalid_parameter}` is not a valid parameter for `{config["algorithm"]}`.'
+            raise InvalidConfigError(err)
 
     return True
 
@@ -627,13 +674,15 @@ def get_commit_hash():
 
     """
 
+    logger = logging.getLogger(__name__)
     try:
         if run_command('git diff'):
             return ''
 
         return run_command('git rev-parse --verify HEAD')
 
-    except FileNotFoundError:
+    except FileNotFoundError as file_not_found_error:
+        logger.debug(file_not_found_error)
         return ''
 
 
@@ -684,7 +733,7 @@ def configure_logging(log_level, logfile_path):
 
     console_handler = logging.StreamHandler()
     console_handler.setLevel(log_level_number)
-    console_formatter = logging.Formatter('%(levelname)s: %(message)s')
+    console_formatter = logging.Formatter('%(message)s')
     console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
 
@@ -710,6 +759,9 @@ def create_scorer(scoring):
       `sklearn.model_selection.GridSearchCV`.
 
     """
+
+    if scoring not in SCORING_METHODS:
+        raise ValueError(f'`{scoring}` is not a valid scoring method.')
 
     def scorer(model, inputs, targets):
         model_scores, _ = score_model(model, inputs, targets)
@@ -738,9 +790,17 @@ def score_model(model, input_data, target_data):
 
     """
 
-    prediction_data = model.predict(input_data)
+    if len(input_data) != len(target_data):
+        raise ValueError('input_data and target_data must be the same length.')
+
+    if np.ndim(target_data) != 1:
+        raise ValueError('target_data must have dimensions N x 1.')
+
+    predictions = model.predict(input_data)
+    assert len(predictions) == len(target_data)
+    assert np.ndim(predictions) == 1
     report = sklearn.metrics.classification_report(target_data,
-                                                   prediction_data,
+                                                   predictions,
                                                    output_dict=True)
 
     classes = np.unique(target_data)
@@ -764,7 +824,7 @@ def score_model(model, input_data, target_data):
                                specificity=specificity,
                                informedness=calculate_informedness(report, classes))
 
-    return model_scores, prediction_data
+    return model_scores, predictions
 
 
 def calculate_hmean_recall(classification_report, classes):
@@ -780,7 +840,11 @@ def calculate_hmean_recall(classification_report, classes):
 
     """
 
-    return sp.stats.hmean([classification_report[str(x)]['recall'] for x in classes])
+    recalls = [classification_report[str(x)]['recall'] for x in classes]
+    hmean_recall = sp.stats.hmean(recalls)
+    assert -1 <= hmean_recall <= 1
+
+    return hmean_recall
 
 
 def calculate_hmean_precision(classification_report, classes):
@@ -796,7 +860,11 @@ def calculate_hmean_precision(classification_report, classes):
 
     """
 
-    return sp.stats.hmean([classification_report[str(x)]['precision'] for x in classes])
+    precisions = [classification_report[str(x)]['precision'] for x in classes]
+    hmean_precision = sp.stats.hmean(precisions)
+    assert 0 <= hmean_precision <= 1
+
+    return hmean_precision
 
 
 def calculate_informedness(classification_report, classes):
@@ -816,7 +884,10 @@ def calculate_informedness(classification_report, classes):
     """
 
     recall_sum = sum(classification_report[str(c)]['recall'] for c in classes)
-    return (recall_sum - len(classes) / 2) * (2 / len(classes))
+    informedness = (recall_sum - len(classes) / 2) * (2 / len(classes))
+    assert -1 <= informedness <= 1
+
+    return informedness
 
 
 def save_model(model, output_path):

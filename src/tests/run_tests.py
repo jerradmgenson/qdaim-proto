@@ -33,6 +33,12 @@ TESTS_PATH = SRC_PATH / Path('tests')
 UNIT_PATH = TESTS_PATH / Path('unit')
 INTEGRATION_PATH = TESTS_PATH / Path('integration')
 
+# The minimum pylint score (/10) required for the pylint test to pass.
+MIN_PYLINT_SCORE = 9
+
+# The minimum coverage percentage required for the coverage test to pass.
+MIN_COVERAGE_PERCENT = 100
+
 
 class Verdict(enum.Enum):
     """
@@ -116,16 +122,16 @@ def main(argv):
         else:
             print(f'{pylint_result.path}.... {pylint_result.score}/10')
 
-        if pylint_result.score < 9:
+        if pylint_result.score < MIN_PYLINT_SCORE:
             pylint_failure = True
 
-        if pylint_result.errors or pylint_result.score < 9:
+        if pylint_result.errors or pylint_result.score < MIN_PYLINT_SCORE:
             print(pylint_result.report)
 
     failed = (failures
               or errors
               or unexpected_successes
-              or coverage_percentage < 100
+              or coverage_percentage < MIN_COVERAGE_PERCENT
               or pylint_failure)
 
     if failed:
@@ -291,6 +297,8 @@ def run_unittest(coverage_files):
         coverage_stream.close()
 
     else:
+        # coverage not run on any file changes.
+        # Set coverage percentage to the highest possible value (100).
         coverage_percentage = 100
         coverage_report = ''
 
