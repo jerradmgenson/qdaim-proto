@@ -759,12 +759,8 @@ class ReadConfigFileTest(unittest.TestCase):
                                        new_callable=create_json_load_mock)
 
         with json_load_patch:
-            with self.assertRaises(ValueError) as context_manager:
+            with self.assertRaises(gen_model.InvalidConfigError):
                 gen_model.read_config_file(Path(os.devnull))
-
-        self.assertEqual(str(context_manager.exception),
-                         "Unknown machine learning algorithm `invalid_algorithm`.")
-
 
     def test_invalid_preprocessing_methods(self):
         """
@@ -786,11 +782,396 @@ class ReadConfigFileTest(unittest.TestCase):
                                        new_callable=create_json_load_mock)
 
         with json_load_patch:
-            with self.assertRaises(ValueError) as context_manager:
+            with self.assertRaises(gen_model.InvalidConfigError):
                 gen_model.read_config_file(Path(os.devnull))
 
-        self.assertEqual(str(context_manager.exception),
-                         "Unknown preprocessing methods {'invalid_method'}.")
+    def test_invalid_config_json(self):
+        """
+        Test read_config_file() when config file is not valid json.
+
+        """
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.read_config_file(Path(os.devnull))
+
+
+class IsValidConfigTest(unittest.TestCase):
+    """
+    Tests for gen_model.is_valid_config()
+
+    """
+
+    def test_valid_config_with_algorithm_parameters(self):
+        """
+        Test that `is_valid_config` raises an exception when `config` is
+        valid and contains algorithm parameters.
+
+        """
+
+        config = dict(training_dataset='',
+                      validation_dataset='',
+                      random_seed=str(1),
+                      scoring='accuracy',
+                      preprocessing_methods=['pca'],
+                      pca_components=1,
+                      pca_whiten=False,
+                      algorithm='svm',
+                      algorithm_parameters=[dict(C=[1])])
+
+        gen_model.is_valid_config(config)
+
+    def test_valid_config_without_algorithm_parameters(self):
+        """
+        Test that `is_valid_config` raises an exception when `config` is
+        valid and does not contain algorithm parameters.
+
+        """
+
+        config = dict(training_dataset='',
+                      validation_dataset='',
+                      random_seed=str(1),
+                      scoring='accuracy',
+                      preprocessing_methods=['pca'],
+                      pca_components=1,
+                      pca_whiten=False,
+                      algorithm='svm')
+
+        gen_model.is_valid_config(config)
+
+    def test_config_not_a_dict(self):
+        """
+        Test that `is_valid_config` raises an exception when `config` is
+        not a dict.
+
+        """
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.is_valid_config([])
+
+    def test_config_contains_misspelled_parameters(self):
+        """
+        Test that `is_valid_config` raises an exception when `config`
+        contains a misspelled parameter.
+
+        """
+
+        config = dict(training_dataset=None,
+                      validation_dataset=None,
+                      random_seed=None,
+                      scoring=None,
+                      preprocessing_method=None,
+                      pca_components=None,
+                      pca_whiten=None,
+                      algorithm=None)
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.is_valid_config(config)
+
+    def test_config_contains_missing_parameters(self):
+        """
+        Test that `is_valid_config` raises an exception when `config`
+        contains a missing parameter.
+
+        """
+
+        config = dict(training_dataset=None,
+                      validation_dataset=None,
+                      scoring=None,
+                      preprocessing_methods=None,
+                      pca_components=None,
+                      pca_whiten=None,
+                      algorithm=None)
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.is_valid_config(config)
+
+    def test_config_contains_extraneous_parameters(self):
+        """
+        Test that `is_valid_config` raises an exception when `config`
+        contains an extraneous parameter.
+
+        """
+
+        config = dict(training_dataset=None,
+                      validation_dataset=None,
+                      random_seed=None,
+                      scoring=None,
+                      preprocessing_methods=None,
+                      pca_components=None,
+                      pca_whiten=None,
+                      algorithm=None,
+                      extraneous_parameter=None)
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.is_valid_config(config)
+
+    def test_training_dataset_not_a_path(self):
+        """
+        Test that `is_valid_config` raises an exception when
+        `training_dataset` is not a path.
+
+        """
+
+        config = dict(training_dataset=None,
+                      validation_dataset=None,
+                      random_seed=None,
+                      scoring=None,
+                      preprocessing_methods=None,
+                      pca_components=None,
+                      pca_whiten=None,
+                      algorithm=None)
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.is_valid_config(config)
+
+    def test_validation_dataset_not_a_path(self):
+        """
+        Test that `is_valid_config` raises an exception when
+        `validation_dataset` is not a path.
+
+        """
+
+        config = dict(training_dataset='',
+                      validation_dataset=None,
+                      random_seed=None,
+                      scoring=None,
+                      preprocessing_methods=None,
+                      pca_components=None,
+                      pca_whiten=None,
+                      algorithm=None)
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.is_valid_config(config)
+
+    def test_random_seed_too_big(self):
+        """
+        Test that `is_valid_config` raises an exception when
+        `random_seed` is greater than 2**32-1.
+
+        """
+
+        config = dict(training_dataset='',
+                      validation_dataset='',
+                      random_seed=str(2**32),
+                      scoring=None,
+                      preprocessing_methods=None,
+                      pca_components=None,
+                      pca_whiten=None,
+                      algorithm=None)
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.is_valid_config(config)
+
+    def test_random_seed_too_small(self):
+        """
+        Test that `is_valid_config` raises an exception when
+        `random_seed` is less than 0.
+
+        """
+
+        config = dict(training_dataset='',
+                      validation_dataset='',
+                      random_seed=str(-1),
+                      scoring=None,
+                      preprocessing_methods=None,
+                      pca_components=None,
+                      pca_whiten=None,
+                      algorithm=None)
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.is_valid_config(config)
+
+    def test_random_seed_not_an_integer(self):
+        """
+        Test that `is_valid_config` raises an exception when
+        `random_seed` is not an integer.
+
+        """
+
+        config = dict(training_dataset='',
+                      validation_dataset='',
+                      random_seed=str(1.5),
+                      scoring=None,
+                      preprocessing_methods=None,
+                      pca_components=None,
+                      pca_whiten=None,
+                      algorithm=None)
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.is_valid_config(config)
+
+    def test_scoring_method_is_not_valid(self):
+        """
+        Test that `is_valid_config` raises an exception when
+        `scoring_method` is not valid.
+
+        """
+
+        config = dict(training_dataset='',
+                      validation_dataset='',
+                      random_seed=str(1),
+                      scoring='invalid',
+                      preprocessing_methods=None,
+                      pca_components=None,
+                      pca_whiten=None,
+                      algorithm=None)
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.is_valid_config(config)
+
+    def test_preprocessing_methods_not_valid(self):
+        """
+        Test that `is_valid_config` raises an exception when
+        `preprocessing_methods` are not valid.
+
+        """
+
+        config = dict(training_dataset='',
+                      validation_dataset='',
+                      random_seed=str(1),
+                      scoring='accuracy',
+                      preprocessing_methods=['invalid'],
+                      pca_components=None,
+                      pca_whiten=None,
+                      algorithm=None)
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.is_valid_config(config)
+
+    def test_preprocessing_methods_wrong_type(self):
+        """
+        Test that `is_valid_config` raises an exception when
+        `preprocessing_methods` is the wrong type.
+
+        """
+
+        config = dict(training_dataset='',
+                      validation_dataset='',
+                      random_seed=str(1),
+                      scoring='accuracy',
+                      preprocessing_methods=1,
+                      pca_components=None,
+                      pca_whiten=None,
+                      algorithm=None)
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.is_valid_config(config)
+
+    def test_pca_components_too_small(self):
+        """
+        Test that `is_valid_config` raises an exception when
+        `pca_components` is less than or equal to 0.
+
+        """
+
+        config = dict(training_dataset='',
+                      validation_dataset='',
+                      random_seed=str(1),
+                      scoring='accuracy',
+                      preprocessing_methods=['pca'],
+                      pca_components=0,
+                      pca_whiten=None,
+                      algorithm=None)
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.is_valid_config(config)
+
+    def test_pca_components_wrong_type(self):
+        """
+        Test that `is_valid_config` raises an exception when
+        `pca_components` is not an integer.
+
+        """
+
+        config = dict(training_dataset='',
+                      validation_dataset='',
+                      random_seed=str(1),
+                      scoring='accuracy',
+                      preprocessing_methods=['pca'],
+                      pca_components=[],
+                      pca_whiten=None,
+                      algorithm=None)
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.is_valid_config(config)
+
+    def test_pca_whiten_wrong_type(self):
+        """
+        Test that `is_valid_config` raises an exception when
+        `pca_whiten` is not a boolean.
+
+        """
+
+        config = dict(training_dataset='',
+                      validation_dataset='',
+                      random_seed=str(1),
+                      scoring='accuracy',
+                      preprocessing_methods=['pca'],
+                      pca_components=1,
+                      pca_whiten=[],
+                      algorithm=None)
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.is_valid_config(config)
+
+    def test_algorithm_is_not_valid(self):
+        """
+        Test that `is_valid_config` raises an exception when
+        `algorithm` is not a valid value.
+
+        """
+
+        config = dict(training_dataset='',
+                      validation_dataset='',
+                      random_seed=str(1),
+                      scoring='accuracy',
+                      preprocessing_methods=['pca'],
+                      pca_components=1,
+                      pca_whiten=False,
+                      algorithm='invalid')
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.is_valid_config(config)
+
+    def test_algorithm_parameters_wrong_type(self):
+        """
+        Test that `is_valid_config` raises an exception when
+        `algorithm_parameters` is not the correct type.
+
+        """
+
+        config = dict(training_dataset='',
+                      validation_dataset='',
+                      random_seed=str(1),
+                      scoring='accuracy',
+                      preprocessing_methods=['pca'],
+                      pca_components=1,
+                      pca_whiten=False,
+                      algorithm='qda',
+                      algorithm_parameters=None)
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.is_valid_config(config)
+
+    def test_algorithm_parameters_extraneous_parameter(self):
+        """
+        Test that `is_valid_config` raises an exception when
+        `algorithm_parameters` contains an extraneous parameter.
+
+        """
+
+        config = dict(training_dataset='',
+                      validation_dataset='',
+                      random_seed=str(1),
+                      scoring='accuracy',
+                      preprocessing_methods=['pca'],
+                      pca_components=1,
+                      pca_whiten=False,
+                      algorithm='qda',
+                      algorithm_parameters=[dict(C=[1])])
+
+        with self.assertRaises(gen_model.InvalidConfigError):
+            gen_model.is_valid_config(config)
 
 
 if __name__ == '__main__':

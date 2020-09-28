@@ -187,8 +187,15 @@ def main(argv):
 
     start_time = time.time()
     command_line_arguments = parse_command_line(argv)
-    configure_logging(command_line_arguments.log_level)
-    config = read_config_file(CONFIG_FILE_PATH)
+    logfile_path = command_line_arguments.output_path.with_name(command_line_arguments.output_path.stem + '.log')
+    logger = configure_logging(command_line_arguments.log_level, logfile_path)
+    try:
+        config = read_config_file(CONFIG_FILE_PATH)
+
+    except InvalidConfigError as invalid_config_error:
+        logger.error(invalid_config_error)
+        return 1
+
     random.seed(config.random_seed)
     np.random.seed(config.random_seed)
     datasets = load_datasets(config.training_dataset,
@@ -479,26 +486,23 @@ def read_config_file(path):
 
     """
 
+    logger = logging.getLogger(__name__)
     with path.open() as config_fp:
-        config_json = json.load(config_fp)
+        try:
+            config_json = json.load(config_fp)
 
+        except json.decoder.JSONDecodeError as json_decode_error:
+            logger.debug(json_decode_error)
+            raise InvalidConfigError(f'{path} does not contain valid json.')
+
+    assert is_valid_config(config_json)
     config_json['training_dataset'] = os.path.join(str(GIT_ROOT),
                                                    config_json['training_dataset'])
 
     config_json['validation_dataset'] = os.path.join(str(GIT_ROOT),
                                                      config_json['validation_dataset'])
 
-    try:
-        config_json['algorithm'] = SUPPORTED_ALGORITHMS[config_json['algorithm']]
-
-    except KeyError:
-        raise ValueError('Unknown machine learning algorithm `{}`.'.format(config_json['algorithm']))
-
-    methods_set = set(config_json['preprocessing_methods'])
-    if not methods_set.issubset(set(PREPROCESSING_METHODS)):
-        unknown_methods = methods_set - set(PREPROCESSING_METHODS)
-        raise ValueError(f'Unknown preprocessing methods {unknown_methods}.')
-
+    config_json['algorithm'] = SUPPORTED_ALGORITHMS[config_json['algorithm']]
     if 'algorithm_parameters' not in config_json:
         config_json['algorithm_parameters'] = []
 
@@ -512,6 +516,104 @@ def read_config_file(path):
     config_json['algorithm_parameters'] = modified_algorithm_parameters
 
     return Config(**config_json)
+
+
+def is_valid_config(config):
+    """
+    Check that loaded json config file contains only valid parameters.
+
+    Args
+      config: A dict corresponding to a json config file.
+
+    Returns
+      True if `config` is valid.
+
+    Raises
+      InvalidConfigError if `config` is invalid.
+
+    """
+
+    logger = logging.getLogger(__name__)
+    config_parameters = ('training_dataset',
+                         'validation_dataset',
+                         'random_seed',
+                         'scoring',
+                         'preprocessing_methods',
+                         'pca_components',
+                         'pca_whiten',
+                         'algorithm',
+                         'algorithm_parameters')
+
+    if not isinstance(config, dict):
+        raise InvalidConfigError('config must be a dict.')
+
+    if set(config) != set(config_parameters) and set(config) != set(config_parameters[:-1]):
+        raise InvalidConfigError('Config file contains invalid parameters.')
+
+    try:
+        GIT_ROOT / Path(config['training_dataset'])
+
+    except TypeError as type_error:
+        logger.debug(type_error)
+        raise InvalidConfigError('`training_dataset` must be a path.')
+
+    try:
+        GIT_ROOT / Path(config['validation_dataset'])
+
+    except TypeError as type_error:
+        logger.debug(type_error)
+        raise InvalidConfigError('`validation_dataset` must be a path.')
+
+    try:
+        if int(config['random_seed']) > 2**32 - 1 or int(config['random_seed']) < 0:
+            raise InvalidConfigError('`random_seed` must be between 0 and 2**32 - 1.')
+
+    except ValueError as value_error:
+        logger.debug(value_error)
+        raise InvalidConfigError('`random_seed` not an integer.')
+
+    if config['scoring'] not in SCORING_METHODS:
+        raise InvalidConfigError(f'`scoring` must be one of `{SCORING_METHODS}`.')
+
+    try:
+        if not (set(config['preprocessing_methods']) <= set(PREPROCESSING_METHODS)):
+            raise InvalidConfigError(f'`preprocessing_methods` must be in {set(PREPROCESSING_METHODS)}.')
+
+    except TypeError as type_error:
+        logger.debug(type_error)
+        raise InvalidConfigError('`preprocessing_methods` must be a list.')
+
+    try:
+        if int(config['pca_components']) <= 0:
+            raise InvalidConfigError('`pca_components` must be greater than 0.')
+
+    except TypeError as type_error:
+        logger.debug(type_error)
+        raise InvalidConfigError('`pca_components` must be an integer.')
+
+    if not isinstance(config['pca_whiten'], bool):
+        raise InvalidConfigError('`pca_whiten` must be a boolean.')
+
+    if config['algorithm'] not in SUPPORTED_ALGORITHMS:
+        raise InvalidConfigError(f'`algorithm` must be one of {list(SUPPORTED_ALGORITHMS)}.')
+
+    if 'algorithm_parameters' in config:
+        try:
+            parameter_grid = sklearn.model_selection.ParameterGrid(config['algorithm_parameters'])
+
+        except TypeError as type_error:
+            logger.debug(type_error)
+            raise InvalidConfigError('`algorithm_parameters` must be a dict or a list.')
+
+        try:
+            [SUPPORTED_ALGORITHMS[config['algorithm']].class_(**x) for x in parameter_grid]
+
+        except TypeError as type_error:
+            logger.debug(type_error)
+            invalid_parameter = re.search(r"keyword argument '(\w+)'", str(type_error)).group(1)
+            raise InvalidConfigError(f'`{invalid_parameter}` is not a valid parameter for `{config["algorithm"]}`.')
+
+    return True
 
 
 def get_commit_hash():
@@ -549,7 +651,7 @@ def parse_command_line(argv):
 
     description = 'Build a machine learning model to predict heart disease.'
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('-o', '--output_path',
+    parser.add_argument('-o', '--output-path',
                         default=DEFAULT_OUTPUT_PATH,
                         type=Path,
                         help='Path to output the heart disease model to.')
@@ -559,7 +661,7 @@ def parse_command_line(argv):
                         default=os.cpu_count(),
                         help='Number of processes to use for training models.')
 
-    parser.add_argument('--log_level',
+    parser.add_argument('--log-level',
                         choices=('critical', 'error', 'warning', 'info', 'debug'),
                         default='info',
                         help='Log level to configure logging with.')
@@ -567,7 +669,7 @@ def parse_command_line(argv):
     return parser.parse_args(argv)
 
 
-def configure_logging(log_level):
+def configure_logging(log_level, logfile_path):
     """
     Configure the logger for the current module.
 
@@ -578,12 +680,19 @@ def configure_logging(log_level):
 
     log_level_number = getattr(logging, log_level.upper())
     logger = logging.getLogger(__name__)
-    logger.setLevel(log_level_number)
+    logger.setLevel(logging.DEBUG)
+
     console_handler = logging.StreamHandler()
     console_handler.setLevel(log_level_number)
-    formatter = logging.Formatter('%(levelname)s: %(message)s')
-    console_handler.setFormatter(formatter)
+    console_formatter = logging.Formatter('%(levelname)s: %(message)s')
+    console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
+
+    file_handler = logging.FileHandler(logfile_path)
+    file_handler.setLevel(log_level_number)
+    file_formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s')
+    file_handler.setFormatter(file_formatter)
+    logger.addHandler(file_handler)
 
     return logger
 
@@ -725,6 +834,13 @@ def save_model(model, output_path):
 
     with output_path.open('wb') as output_file:
         pickle.dump(model, output_file)
+
+
+class InvalidConfigError(Exception):
+    """
+    An exception that is raised when the config file is not valid.
+
+    """
 
 
 if __name__ == '__main__':  # pragma: no cover

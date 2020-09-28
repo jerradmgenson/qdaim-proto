@@ -6,8 +6,5 @@
     "preprocessing_methods": ["pca"],
     "pca_components": 8,
     "pca_whiten": false,
-    "algorithm": "qda",
-    "algorithm_parameters":
-    [
-    ]
+    "algorithm": "qda"
 }
