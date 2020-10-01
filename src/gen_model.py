@@ -363,8 +363,14 @@ def bind_model_metadata(model, scores):
     model.operating_system = platform.system() + ' ' + platform.version() + ' ' + platform.release()
     model.architecture = platform.processor()
     model.created = datetime.datetime.today().isoformat()
-    username = run_command('git config user.name')
-    email = run_command('git config user.email')
+    try:
+        username = run_command('git config user.name')
+        email = run_command('git config user.email')
+
+    except subprocess.CalledProcessError:
+        username = ''
+        email = ''
+
     model.author = '{} <{}>'.format(username, email)
 
     assert len(dir(model)) - model_attributes == 13
