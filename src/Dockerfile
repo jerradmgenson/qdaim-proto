@@ -2,7 +2,7 @@
 FROM python:3.8
 
 # Copies your code file from your action repository to the filesystem path `/` of the container
-COPY .. /src
+COPY . /src
 
 RUN pip install -r src/ci/requirements.txt
 
