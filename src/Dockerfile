@@ -7,4 +7,4 @@ COPY . /src
 RUN pip install -r src/ci/requirements.txt
 
 # Code file to execute when the docker container starts up (`entrypoint.sh`)
-ENTRYPOINT ["python", "src/ci/helloworld.py"]
+ENTRYPOINT ["python", "src/test/run_test.py"]
