@@ -10,5 +10,5 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Run tests action step
-        uses: ./.github/actions
+        uses: ./.github/actions/run_tests.yml
         id: run_tests
