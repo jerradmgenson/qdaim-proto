@@ -7,4 +7,4 @@ COPY helloworld.py /helloworld.py
 RUN pip install numpy scipy pandas sklearn coverage
 
 # Code file to execute when the docker container starts up (`entrypoint.sh`)
-ENTRYPOINT ["python", "./helloworld.py"]
+ENTRYPOINT ["python", "/helloworld.py"]
