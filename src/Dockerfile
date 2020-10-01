@@ -10,4 +10,4 @@ RUN apt install python3-pip -y
 RUN pip3 install -r src/ci/requirements.txt
 
 # Code file to execute when the docker container starts up (`entrypoint.sh`)
-ENTRYPOINT ["python", "src/tests/run_tests.py"]
+ENTRYPOINT ["python3", "src/tests/run_tests.py"]
