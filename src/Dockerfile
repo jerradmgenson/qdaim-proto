@@ -1,10 +1,13 @@
 # Container image that runs your code
-FROM python:3.8
+FROM ubuntu:20.04
 
 # Copies your code file from your action repository to the filesystem path `/` of the container
 COPY ./ /src
 
-RUN pip install -r src/ci/requirements.txt
+RUN apt update
+RUN apt install git
+RUN apt install python3-pip
+RUN pip3 install -r src/ci/requirements.txt
 
 # Code file to execute when the docker container starts up (`entrypoint.sh`)
 ENTRYPOINT ["python", "src/tests/run_tests.py"]
