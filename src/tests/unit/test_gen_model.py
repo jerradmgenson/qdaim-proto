@@ -12,6 +12,7 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import os
 import unittest
 import random
+import subprocess
 from pathlib import Path
 from unittest.mock import patch, Mock
 
@@ -756,6 +757,24 @@ class BindModelMetadataTests(unittest.TestCase):
 
         """
 
+        def create_run_command_mock():
+            def run_command_mock(command):
+                if command == 'git config user.name':
+                    return 'Joshua Norton'
+
+                elif command == 'git config user.email':
+                    return 'emperorofamerica@gmail.com'
+
+                elif command == 'git diff':
+                    return ''
+
+                elif 'git rev-parse --verify HEAD':
+                    return '26223577219e04975a8ea93b95d0ab047a0ea536'
+
+                assert False
+
+            return run_command_mock
+
         scores = gen_model.ModelScores(1., 2., 3., 4., 5., 6., 7.)
         attributes = ('commit_hash', 'validated', 'reposistory', 'numpy_version',
                       'scipy_version', 'pandas_version', 'sklearn_version',
@@ -764,9 +783,57 @@ class BindModelMetadataTests(unittest.TestCase):
 
         attributes += tuple(scores._asdict().keys())
         model = Mock()
-        gen_model.bind_model_metadata(model, scores)
+        run_command_patch = patch.object(gen_model,
+                                         'run_command',
+                                         new_callable=create_run_command_mock)
+
+        with run_command_patch:
+            gen_model.bind_model_metadata(model, scores)
+
         for attribute in attributes:
             self.assertTrue(hasattr(model, attribute))
+
+    def test_run_command_raises_called_process_error(self):
+        """
+        Test bind_model_metadata() when run_command raises a
+        subprocess.CalledProcessError on git config user.name.
+
+        """
+
+        def create_run_command_mock():
+            def run_command_mock(command):
+                if command == 'git config user.name':
+                    raise subprocess.CalledProcessError(1, "['git', 'config', 'user.name']")
+
+                elif command == 'git diff':
+                    return ''
+
+                elif 'git rev-parse --verify HEAD':
+                    return '26223577219e04975a8ea93b95d0ab047a0ea536'
+
+                assert False
+
+            return run_command_mock
+
+        scores = gen_model.ModelScores(1., 2., 3., 4., 5., 6., 7.)
+        attributes = ('commit_hash', 'validated', 'reposistory', 'numpy_version',
+                      'scipy_version', 'pandas_version', 'sklearn_version',
+                      'joblib_version', 'threadpoolctl_version', 'operating_system',
+                      'architecture', 'created', 'author')
+
+        attributes += tuple(scores._asdict().keys())
+        model = Mock()
+        run_command_patch = patch.object(gen_model,
+                                         'run_command',
+                                         new_callable=create_run_command_mock)
+
+        with run_command_patch:
+            gen_model.bind_model_metadata(model, scores)
+
+        for attribute in attributes:
+            self.assertTrue(hasattr(model, attribute))
+
+        self.assertEqual(model.author, ' <>')
 
 
 class ReadConfigFileTest(unittest.TestCase):
