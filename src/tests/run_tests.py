@@ -334,7 +334,11 @@ def get_changed_files():
 
     git_diff = subprocess.check_output(['git', 'diff']).decode('utf-8')
     if not git_diff.strip():
-        git_diff = subprocess.check_output(['git', 'diff', 'HEAD~1']).decode('utf-8')
+        try:
+            git_diff = subprocess.check_output(['git', 'diff', 'HEAD~1']).decode('utf-8')
+
+        except subprocess.CalledProcessError:
+            return set()
 
     changed_files = set(str(GIT_ROOT / Path(x)) for x in re.findall(r'\+\+\+ b/(.+)', git_diff))
 
