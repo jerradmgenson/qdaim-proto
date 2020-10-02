@@ -67,8 +67,17 @@ class Testrunner(enum.Enum):
 def main(argv):
     start_time = time.time()
     command_line_arguments = parse_command_line(argv)
-    changed_files = get_changed_files()
-    if command_line_arguments.complete_pylint:
+    complete_pylint = command_line_arguments.complete_pylint
+    complete_coverage = command_line_arguments.complete_coverage
+    try:
+        changed_files = get_changed_files()
+
+    except subprocess.CalledProcessError:
+        changed_files = None
+        complete_pylint = True
+        complete_coverage = True
+
+    if complete_pylint:
         pylint_files = get_python_files(SRC_PATH,
                                         exclude=['unit', 'integration', '__init__.py'])
 
@@ -76,7 +85,7 @@ def main(argv):
         pylint_files = (get_python_files(SRC_PATH, exclude=['unit', 'integration', '__init__.py'])
                         & changed_files)
 
-    if command_line_arguments.complete_coverage:
+    if complete_coverage:
         coverage_files = get_python_files(SRC_PATH, exclude=['tests'])
 
     else:
