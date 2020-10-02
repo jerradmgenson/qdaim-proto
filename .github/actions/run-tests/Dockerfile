@@ -1,4 +1,5 @@
 FROM ubuntu:20.04
+COPY requirements.txt /
 
 RUN apt update
 RUN apt install git -y
