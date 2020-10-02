@@ -1,5 +1,5 @@
 FROM ubuntu:20.04
-COPY . /
+COPY $GITHUB_WORKSPACE /
 
 RUN apt update
 RUN apt install git -y
