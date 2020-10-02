@@ -12,3 +12,4 @@ jobs:
       - name: Run tests action step
         uses: ./.github/actions/run-tests
         id: run-tests
+	working-directory: $GITHUB_WORKSPACE
