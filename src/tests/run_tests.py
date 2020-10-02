@@ -337,13 +337,13 @@ def get_changed_files():
     """
     Get files that changed since the last commit. If there have been no
     changes since the last commit, return the files that changed between
-    the last commit and the penultimate commit.
+    the last commit and master.
 
     """
 
     git_diff = subprocess.check_output(['git', 'diff']).decode('utf-8')
     if not git_diff.strip():
-        git_diff = subprocess.check_output(['git', 'diff', 'HEAD~1']).decode('utf-8')
+        git_diff = subprocess.check_output(['git', 'diff', 'master']).decode('utf-8')
 
     changed_files = set(str(GIT_ROOT / Path(x)) for x in re.findall(r'\+\+\+ b/(.+)', git_diff))
 
