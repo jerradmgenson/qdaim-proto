@@ -1,5 +1,9 @@
 on: [push]
 
+defaults:
+  run:
+    working-directory: $GITHUB_WORKSPACE
+
 jobs:
   run_tests_job:
     runs-on: ubuntu-latest
@@ -12,4 +16,3 @@ jobs:
       - name: Run tests action step
         uses: ./.github/actions/run-tests
         id: run-tests
-	working-directory: $GITHUB_WORKSPACE
