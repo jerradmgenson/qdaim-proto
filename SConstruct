@@ -33,14 +33,16 @@ preprocess_stage2_builder = Builder(action=build_preprocess_stage2,
                                     src_suffix='.csv')
 
 def build_gen_model(target, source, env):
-    return gen_model.main([str(BUILD_DIR)] + [str(s) for s in source])
+    return gen_model.main([str(target[0]), str(source[0])])
 
-#gen_model_builder = Builder(action=build_gen_model, suffix='.dat')
+gen_model_builder = Builder(action=build_gen_model,
+                            suffix='.dat',
+                            src_suffix='.json')
 
 env = Environment(BUILDERS=dict(
     Preprocess_stage1=preprocess_stage1_builder,
     Preprocess_stage2=preprocess_stage2_builder,
-#    Gen_model: gen_model_builder,
+    Gen_model=gen_model_builder,
 ))
 
 Export('GIT_ROOT')

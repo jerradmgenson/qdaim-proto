@@ -16,7 +16,6 @@ env.Preprocess_stage1('aggregate_data',
                        str(DATA_DIR / 'long_beach'),
                        str(DATA_DIR / 'switzerland')])
 
-env.Preprocess_stage2('aggregate_data')
-#env.Gen_model('qdaim', [BUILD_DIR / 'training.csv',
-#                        BUILD_DIR / 'validation.csv',
-#                        SRC_DIR / 'gen_model_config.json'])
+stage2 = env.Preprocess_stage2('aggregate_data')
+qdaim = env.Gen_model('qdaim', 'gen_model_config')
+Depends(qdaim, stage2)
