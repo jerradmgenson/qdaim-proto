@@ -120,7 +120,7 @@ def parse_command_line(argv):
                         nargs='+',
                         help='Raw data files to preprocess.')
 
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 if __name__ == '__main__':  # pragma: no cover

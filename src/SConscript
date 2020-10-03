@@ -1,0 +1,22 @@
+"""
+Copyright 2020 Jerrad M. Genson
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+"""
+
+Import('env')
+Import('GIT_ROOT')
+DATA_DIR = GIT_ROOT / 'data'
+
+env.Preprocess_stage1('aggregate_data',
+		      [str(DATA_DIR / 'hungarian'),
+                       str(DATA_DIR / 'long_beach'),
+                       str(DATA_DIR / 'switzerland')])
+
+env.Preprocess_stage2('aggregate_data')
+#env.Gen_model('qdaim', [BUILD_DIR / 'training.csv',
+#                        BUILD_DIR / 'validation.csv',
+#                        SRC_DIR / 'gen_model_config.json'])
