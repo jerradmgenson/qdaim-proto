@@ -515,7 +515,7 @@ def save_validation(dataset, output_path):
 
     """
 
-    dataset_path = output_path.with_name(output_path.stem + '_validation.csv')
+    dataset_path = output_path.with_name(output_path.stem + '.csv')
     dataset.to_csv(dataset_path, index=None)
 
 
