@@ -23,9 +23,10 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 """
 
-import subprocess
-import sys
 import re
+import sys
+import argparse
+import subprocess
 from pathlib import Path
 
 import pandas as pd
@@ -36,14 +37,6 @@ GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
 BUILD = GIT_ROOT / Path('build')
 DATA = GIT_ROOT / Path('data')
 
-# Paths to the input datasets.
-INPUT_DATASETS = (DATA / Path('switzerland.data'),
-                  DATA / Path('hungarian.data'),
-                  DATA / Path('long_beach.data'))
-
-# Path to the output dataset.
-OUTPUT_PATH = BUILD / Path('combined_data.csv')
-
 # Path to the file containing column names for the above three datasets.
 COLUMNS_FILE = DATA / Path('column_names')
 
@@ -52,14 +45,15 @@ COLUMNS_FILE = DATA / Path('column_names')
 SUBSET_COLUMNS = ['age', 'sex', 'cp', 'thalrest', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'smoke', 'cigs', 'years', 'famhist', 'num']
 
 
-def main():
+def main(argv):
     """
     Program's 'main' function. Main execution starts here.
 
     """
 
+    command_line_arguments = parse_command_line(argv)
     combined_dataset = None
-    for dataset_path in INPUT_DATASETS:
+    for dataset_path in command_line_arguments.source:
         dataset = load_dataset(dataset_path)
         dataset_subset = dataset[SUBSET_COLUMNS]
         if combined_dataset is not None:
@@ -70,7 +64,7 @@ def main():
 
     # Rename num to target.
     combined_dataset.rename(mapper=dict(num='target'), axis=1, inplace=True)
-    combined_dataset.to_csv(str(OUTPUT_PATH), index=False)
+    combined_dataset.to_csv(command_line_arguments.target, index=False)
 
     return 0
 
@@ -104,5 +98,30 @@ def load_dataset(path):
     return dataset
 
 
+def parse_command_line(argv):
+    """
+    Parse the command line using argparse.
+
+    Args
+      argv: A list of command line arguments, excluding the program name.
+
+    Returns
+      The output of parse_args().
+
+    """
+
+    parser = argparse.ArgumentParser(description='Stage 1 preprocessor')
+    parser.add_argument('target',
+                        type=Path,
+                        help='Path to output the result of preprocess_stage1.py.')
+
+    parser.add_argument('source',
+                        type=Path,
+                        nargs='+',
+                        help='Raw data files to preprocess.')
+
+    return parser.parse_args()
+
+
 if __name__ == '__main__':  # pragma: no cover
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))
