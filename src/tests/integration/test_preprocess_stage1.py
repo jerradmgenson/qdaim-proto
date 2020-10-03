@@ -25,6 +25,7 @@ TEST_DATA = GIT_ROOT / Path('src/tests/data')
 TEST_DATASET1 = TEST_DATA / Path('dataset1.data')
 TEST_DATASET2 = TEST_DATA / Path('dataset2.data')
 TEST_DATASET3 = TEST_DATA / Path('dataset3.data')
+SOURCE_DATASETS = [str(TEST_DATASET1), str(TEST_DATASET2), str(TEST_DATASET3)]
 TEST_COLUMNS = TEST_DATA / Path('column_names')
 EXPECTED_OUTPUT_DEFAULT_PARAMETERS = TEST_DATA / Path('preprocess_stage1_default_parameters.csv')
 
@@ -47,7 +48,7 @@ class PreprocessStage1Test(unittest.TestCase):
 
         """
 
-        preprocess_stage1.main()
+        preprocess_stage1.main([str(self.output_path)] + SOURCE_DATASETS)
         actual_dataset = pd.read_csv(self.output_path)
         expected_dataset = pd.read_csv(EXPECTED_OUTPUT_DEFAULT_PARAMETERS)
         self.assertTrue(expected_dataset.equals(actual_dataset))
@@ -59,19 +60,11 @@ def setUp(self):
     tempfile_descriptor = tempfile.mkstemp()
     os.close(tempfile_descriptor[0])
     self.output_path = Path(tempfile_descriptor[1])
-    self.prev_output_path = preprocess_stage1.OUTPUT_PATH
     self.prev_columns_file = preprocess_stage1.COLUMNS_FILE
-    self.prev_input_datasets = preprocess_stage1.INPUT_DATASETS
-    preprocess_stage1.OUTPUT_PATH = self.output_path
     preprocess_stage1.COLUMNS_FILE = TEST_COLUMNS
-    preprocess_stage1.INPUT_DATASETS = (TEST_DATASET1,
-                                        TEST_DATASET2,
-                                        TEST_DATASET3)
 
 
 def tearDown(self):
-    preprocess_stage1.INPUT_DATASETS = self.prev_input_datasets
-    preprocess_stage1.OUTPUT_PATH = self.prev_output_path
     preprocess_stage1.COLUMNS_FILE = self.prev_columns_file
     self.output_path.unlink()
 

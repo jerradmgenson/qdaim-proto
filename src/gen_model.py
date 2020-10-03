@@ -106,12 +106,6 @@ GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
 # URL for the repository on Github.
 GITHUB_URL = 'https://github.com/jerradmgenson/cardiac'
 
-# Path to the configuration file
-CONFIG_FILE_PATH = GIT_ROOT / 'src/gen_model_config.json'
-
-# Path to save generated models to by default.
-DEFAULT_OUTPUT_PATH = GIT_ROOT / 'build/heart_disease_model.dat'
-
 # Identifies a machine learning algorithm's name and sklearn class.
 MLAlgorithm = namedtuple('MLAlgorithm', 'name class_')
 
@@ -200,13 +194,13 @@ def main(argv):
 
     start_time = time.time()
     command_line_arguments = parse_command_line(argv)
-    logfile_path = command_line_arguments.output_path.with_name(
-        command_line_arguments.output_path.stem + '.log')
+    logfile_path = command_line_arguments.target.with_name(
+        command_line_arguments.target.stem + '.log')
 
     logger = configure_logging(command_line_arguments.log_level, logfile_path)
     logger.info('Reading configuration file...')
     try:
-        config = read_config_file(CONFIG_FILE_PATH)
+        config = read_config_file(command_line_arguments.config)
 
     except InvalidConfigError as invalid_config_error:
         logger.error(invalid_config_error)
@@ -250,9 +244,9 @@ def main(argv):
                                                    datasets.columns[:-1])
 
     logger.info('\nSaving model to disk...')
-    save_validation(validation_dataset, command_line_arguments.output_path)
-    save_model(model, command_line_arguments.output_path)
-    logger.info('Saved model to %s', command_line_arguments.output_path)
+    save_validation(validation_dataset, command_line_arguments.target)
+    save_model(model, command_line_arguments.target)
+    logger.info('Saved model to %s', command_line_arguments.target)
     runtime = f'Runtime: {time.time() - start_time:.2} seconds'
     logger.debug(runtime)
 
@@ -521,7 +515,7 @@ def save_validation(dataset, output_path):
 
     """
 
-    dataset_path = output_path.with_name(output_path.stem + '_validation.csv')
+    dataset_path = output_path.with_name(output_path.stem + '.csv')
     dataset.to_csv(dataset_path, index=None)
 
 
@@ -704,12 +698,15 @@ def parse_command_line(argv):
 
     """
 
-    description = 'Build a machine learning model to predict heart disease.'
+    description = 'Generate a probabalistic classification model.'
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('-o', '--output-path',
-                        default=DEFAULT_OUTPUT_PATH,
+    parser.add_argument('target',
                         type=Path,
-                        help='Path to output the heart disease model to.')
+                        help='Output path to save the model to.')
+
+    parser.add_argument('config',
+                        type=Path,
+                        help='Path to the gen_model configuration file.')
 
     parser.add_argument('--cpu',
                         type=int,

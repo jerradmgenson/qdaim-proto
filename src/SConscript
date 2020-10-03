@@ -1,0 +1,27 @@
+"""
+Copyright 2020 Jerrad M. Genson
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+"""
+
+Import('env')
+Import('GIT_ROOT')
+DATA_DIR = GIT_ROOT / 'data'
+
+stage1 = env.Preprocess_stage1('aggregate_data',
+		               [str(DATA_DIR / 'hungarian'),
+                                str(DATA_DIR / 'long_beach'),
+                                str(DATA_DIR / 'switzerland')])
+
+Clean(stage1, 'SConscript')
+stage2 = env.Preprocess_stage2(stage1)
+Clean(stage2, 'training.csv')
+Clean(stage2, 'testing.csv')
+Clean(stage2, 'validation.csv')
+qdaim = env.Gen_model('qdaim', 'gen_model_config')
+Depends(qdaim, stage2)
+Clean(qdaim, 'gen_model_config.json')
+NoClean(qdaim)

@@ -23,6 +23,7 @@ from sklearn.datasets import load_iris
 
 import gen_model
 import preprocess_stage2
+from tests.integration import test_preprocess_stage1
 from tests.integration import test_preprocess_stage2
 
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
@@ -42,17 +43,12 @@ class GenModelTestCase(unittest.TestCase):
         os.close(tempfile_descriptor[0])
         self.output_path = Path(tempfile_descriptor[1])
         self.validation_path = (Path(self.output_path)
-                                .with_name(Path(self.output_path).name + '_validation.csv'))
+                                .with_name(Path(self.output_path).name + '.csv'))
 
         self.logfile_path = (Path(self.output_path)
                              .with_name(Path(self.output_path).name + '.log'))
 
-        self.prev_config_file_path = gen_model.CONFIG_FILE_PATH
-        self.prev_default_output_path = gen_model.DEFAULT_OUTPUT_PATH
-        gen_model.DEFAULT_OUTPUT_PATH = self.output_path
-
     def tearDown(self):
-        gen_model.DEFAULT_OUTPUT_PATH = self.prev_default_output_path
         if self.output_path.exists():
             self.output_path.unlink()
 
@@ -86,8 +82,9 @@ class ModelConfigTestCase(GenModelTestCase):
 
         """
 
-        gen_model.CONFIG_FILE_PATH = self.LDA_STANDARD_CONFIG
-        exit_code = gen_model.main([])
+        exit_code = gen_model.main([str(self.output_path),
+                                    str(self.LDA_STANDARD_CONFIG)])
+
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
@@ -117,8 +114,9 @@ class ModelConfigTestCase(GenModelTestCase):
 
         """
 
-        gen_model.CONFIG_FILE_PATH = self.QDA_PCA_CONFIG
-        exit_code = gen_model.main([])
+        exit_code = gen_model.main([str(self.output_path),
+                                    str(self.QDA_PCA_CONFIG)])
+
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
@@ -148,8 +146,9 @@ class ModelConfigTestCase(GenModelTestCase):
 
         """
 
-        gen_model.CONFIG_FILE_PATH = self.SVM_ROBUST_CONFIG
-        exit_code = gen_model.main([])
+        exit_code = gen_model.main([str(self.output_path),
+                                    str(self.SVM_ROBUST_CONFIG)])
+
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
@@ -177,8 +176,9 @@ class ModelConfigTestCase(GenModelTestCase):
 
         """
 
-        gen_model.CONFIG_FILE_PATH = self.RFC_CONFIG
-        exit_code = gen_model.main([])
+        exit_code = gen_model.main([str(self.output_path),
+                                    str(self.RFC_CONFIG)])
+
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
@@ -203,7 +203,9 @@ class ModelConfigTestCase(GenModelTestCase):
         """
 
         gen_model.CONFIG_FILE_PATH = self.RRC_CONFIG
-        exit_code = gen_model.main([])
+        exit_code = gen_model.main([str(self.output_path),
+                                    str(self.RRC_CONFIG)])
+
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
@@ -233,8 +235,9 @@ class ModelConfigTestCase(GenModelTestCase):
 
         """
 
-        gen_model.CONFIG_FILE_PATH = self.LRC_CONFIG
-        exit_code = gen_model.main([])
+        exit_code = gen_model.main([str(self.output_path),
+                                    str(self.LRC_CONFIG)])
+
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
@@ -264,8 +267,9 @@ class ModelConfigTestCase(GenModelTestCase):
 
         """
 
-        gen_model.CONFIG_FILE_PATH = self.ETC_CONFIG
-        exit_code = gen_model.main([])
+        exit_code = gen_model.main([str(self.output_path),
+                                    str(self.ETC_CONFIG)])
+
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
@@ -295,8 +299,9 @@ class ModelConfigTestCase(GenModelTestCase):
 
         """
 
-        gen_model.CONFIG_FILE_PATH = self.SGD_CONFIG
-        exit_code = gen_model.main([])
+        exit_code = gen_model.main([str(self.output_path),
+                                    str(self.SGD_CONFIG)])
+
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
@@ -326,8 +331,9 @@ class ModelConfigTestCase(GenModelTestCase):
 
         """
 
-        gen_model.CONFIG_FILE_PATH = self.DTC_CONFIG
-        exit_code = gen_model.main([])
+        exit_code = gen_model.main([str(self.output_path),
+                                    str(self.DTC_CONFIG)])
+
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
@@ -369,16 +375,20 @@ class GenModelIntegrationTestCase(GenModelTestCase):
         with self.GEN_MODEL_CONFIG.open() as config_template_fp:
             gen_model_config = json.load(config_template_fp)
 
-        gen_model_config['training_dataset'] = str(self.training_dataset_path)
-        gen_model_config['validation_dataset'] = str(self.validation_dataset_path)
+        gen_model_config['training_dataset'] = str(self.training_path)
+        gen_model_config['validation_dataset'] = str(self.validation_path)
         config_tempfile_descriptor = tempfile.mkstemp()
         os.close(config_tempfile_descriptor[0])
         with open(config_tempfile_descriptor[1], 'w') as tmp_config_fp:
             json.dump(gen_model_config, tmp_config_fp)
 
-        preprocess_stage2.main()
+        preprocess_stage2.main([str(self.output_directory),
+                                str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS)])
+
         gen_model.CONFIG_FILE_PATH = Path(config_tempfile_descriptor[1])
-        exit_code = gen_model.main([])
+        exit_code = gen_model.main([str(self.output_path),
+                                    config_tempfile_descriptor[1]])
+
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
@@ -393,7 +403,7 @@ class GenModelIntegrationTestCase(GenModelTestCase):
         self.assertIsInstance(model.steps[1][1],
                               sklearn.tree.DecisionTreeClassifier)
 
-        testing_dataset = pd.read_csv(self.testing_dataset_path)
+        testing_dataset = pd.read_csv(self.testing_path)
         testing_inputs = testing_dataset.to_numpy()[:, 0:-1]
         testing_targets = testing_dataset.to_numpy()[:, -1]
         predictions = model.predict(testing_inputs)
@@ -417,8 +427,9 @@ class ValidationCSVTestCase(GenModelTestCase):
 
         """
 
-        gen_model.CONFIG_FILE_PATH = self.DTC_MODEL_CONFIG
-        exit_code = gen_model.main([])
+        exit_code = gen_model.main([str(self.output_path),
+                                    str(self.DTC_MODEL_CONFIG)])
+
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
@@ -444,8 +455,9 @@ class ValidationCSVTestCase(GenModelTestCase):
 
         """
 
-        gen_model.CONFIG_FILE_PATH = self.QDA_MODEL_CONFIG
-        exit_code = gen_model.main([])
+        exit_code = gen_model.main([str(self.output_path),
+                                    str(self.QDA_MODEL_CONFIG)])
+
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
@@ -477,8 +489,7 @@ class ConfigFileTestCase(GenModelTestCase):
 
         """
 
-        gen_model.CONFIG_FILE_PATH = Path(os.devnull)
-        exit_code = gen_model.main([])
+        exit_code = gen_model.main([str(self.output_path), os.devnull])
         self.assertEqual(exit_code, 1)
 
     def test_gen_model_config_is_valid(self):
@@ -487,7 +498,8 @@ class ConfigFileTestCase(GenModelTestCase):
 
         """
 
-        with gen_model.CONFIG_FILE_PATH.open() as config_fp:
+        config_path = GIT_ROOT / 'src/gen_model_config.json'
+        with config_path.open() as config_fp:
             config = json.load(config_fp)
 
         self.assertTrue(gen_model.is_valid_config(config))
