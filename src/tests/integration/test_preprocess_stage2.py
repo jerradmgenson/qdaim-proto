@@ -58,17 +58,18 @@ class PreprocessStage2Test(unittest.TestCase):
 
         """
 
-        preprocess_stage2.main()
+        preprocess_stage2.main([str(self.output_directory),
+                                str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS)])
 
-        actual_testing_dataset = pd.read_csv(self.testing_dataset_path)
+        actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET1)
         self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
 
-        actual_training_dataset = pd.read_csv(self.training_dataset_path)
+        actual_training_dataset = pd.read_csv(self.training_path)
         expected_training_dataset = pd.read_csv(self.BINARY_TRAINING_DATASET1)
         self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
 
-        actual_validation_dataset = pd.read_csv(self.validation_dataset_path)
+        actual_validation_dataset = pd.read_csv(self.validation_path)
         expected_validation_dataset = pd.read_csv(self.BINARY_VALIDATION_DATASET1)
         self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
 
@@ -80,17 +81,18 @@ class PreprocessStage2Test(unittest.TestCase):
         """
 
         preprocess_stage2.CLASSIFICATION_TYPE = preprocess_stage2.ClassificationType.TERNARY
-        preprocess_stage2.main()
+        preprocess_stage2.main([str(self.output_directory),
+                                str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS)])
 
-        actual_testing_dataset = pd.read_csv(self.testing_dataset_path)
+        actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.TERNARY_TESTING_DATASET)
         self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
 
-        actual_training_dataset = pd.read_csv(self.training_dataset_path)
+        actual_training_dataset = pd.read_csv(self.training_path)
         expected_training_dataset = pd.read_csv(self.TERNARY_TRAINING_DATASET)
         self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
 
-        actual_validation_dataset = pd.read_csv(self.validation_dataset_path)
+        actual_validation_dataset = pd.read_csv(self.validation_path)
         expected_validation_dataset = pd.read_csv(self.TERNARY_VALIDATION_DATASET)
         self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
 
@@ -102,17 +104,18 @@ class PreprocessStage2Test(unittest.TestCase):
         """
 
         preprocess_stage2.CLASSIFICATION_TYPE = preprocess_stage2.ClassificationType.MULTICLASS
-        preprocess_stage2.main()
+        preprocess_stage2.main([str(self.output_directory),
+                                str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS)])
 
-        actual_testing_dataset = pd.read_csv(self.testing_dataset_path)
+        actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.MULTICLASS_TESTING_DATASET)
         self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
 
-        actual_training_dataset = pd.read_csv(self.training_dataset_path)
+        actual_training_dataset = pd.read_csv(self.training_path)
         expected_training_dataset = pd.read_csv(self.MULTICLASS_TRAINING_DATASET)
         self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
 
-        actual_validation_dataset = pd.read_csv(self.validation_dataset_path)
+        actual_validation_dataset = pd.read_csv(self.validation_path)
         expected_validation_dataset = pd.read_csv(self.MULTICLASS_VALIDATION_DATASET)
         self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
 
@@ -124,7 +127,8 @@ class PreprocessStage2Test(unittest.TestCase):
 
         preprocess_stage2.CLASSIFICATION_TYPE = 'invalid_classification_type'
         with self.assertRaises(ValueError) as context_manager:
-            preprocess_stage2.main()
+            preprocess_stage2.main([str(self.output_directory),
+                                    str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS)])
 
         self.assertEqual(str(context_manager.exception),
                          'Unknown classification type `invalid_classification_type`.')
@@ -137,14 +141,16 @@ class PreprocessStage2Test(unittest.TestCase):
 
         prev_validation_fraction = preprocess_stage2.VALIDATION_FRACTION
         preprocess_stage2.VALIDATION_FRACTION = 0
-        preprocess_stage2.main()
+        preprocess_stage2.main([str(self.output_directory),
+                                str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS)])
+
         preprocess_stage2.VALIDATION_FRACTION = prev_validation_fraction
 
-        actual_testing_dataset = pd.read_csv(self.testing_dataset_path)
+        actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET2)
         self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
 
-        actual_training_dataset = pd.read_csv(self.training_dataset_path)
+        actual_training_dataset = pd.read_csv(self.training_path)
         expected_training_dataset = pd.read_csv(self.BINARY_TRAINING_DATASET2)
         self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
 
@@ -155,19 +161,19 @@ class PreprocessStage2Test(unittest.TestCase):
         """
 
         test_preprocess_stage1.setUp(self)
-        preprocess_stage2.INPUT_DATASET_PATH = self.output_path
-        preprocess_stage1.main()
-        preprocess_stage2.main()
+        preprocess_stage1.main([str(self.output_path)] + test_preprocess_stage1.SOURCE_DATASETS)
+        preprocess_stage2.main([str(self.output_directory),
+                                str(self.output_path)])
 
-        actual_testing_dataset = pd.read_csv(self.testing_dataset_path)
+        actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET1)
         self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
 
-        actual_training_dataset = pd.read_csv(self.training_dataset_path)
+        actual_training_dataset = pd.read_csv(self.training_path)
         expected_training_dataset = pd.read_csv(self.BINARY_TRAINING_DATASET1)
         self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
 
-        actual_validation_dataset = pd.read_csv(self.validation_dataset_path)
+        actual_validation_dataset = pd.read_csv(self.validation_path)
         expected_validation_dataset = pd.read_csv(self.BINARY_VALIDATION_DATASET1)
         self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
 
@@ -177,41 +183,29 @@ class PreprocessStage2Test(unittest.TestCase):
 # Define setUp and tearDown functions outside of the class so that they are
 # callable from other TestCase classes.
 def setUp(self):
-    tempfile_descriptor1 = tempfile.mkstemp()
-    os.close(tempfile_descriptor1[0])
-    self.testing_dataset_path = Path(tempfile_descriptor1[1])
-    tempfile_descriptor2 = tempfile.mkstemp()
-    os.close(tempfile_descriptor2[0])
-    self.training_dataset_path = Path(tempfile_descriptor2[1])
-    tempfile_descriptor3 = tempfile.mkstemp()
-    os.close(tempfile_descriptor3[0])
-    self.validation_dataset_path = Path(tempfile_descriptor3[1])
+    self.output_directory = Path(tempfile.mkdtemp())
+    self.testing_path = self.output_directory / 'testing.csv'
+    self.training_path = self.output_directory / 'training.csv'
+    self.validation_path = self.output_directory / 'validation.csv'
 
     self.prev_classification_type = preprocess_stage2.CLASSIFICATION_TYPE
     self.prev_random_seed = preprocess_stage2.RANDOM_SEED
-    self.prev_input_dataset_path = preprocess_stage2.INPUT_DATASET_PATH
-    self.prev_testing_dataset_path = preprocess_stage2.TESTING_DATASET_PATH
-    self.prev_training_dataset_path = preprocess_stage2.TRAINING_DATASET_PATH
-    self.prev_validation_dataset_path = preprocess_stage2.VALIDATION_DATASET_PATH
 
     preprocess_stage2.CLASSIFICATION_TYPE = preprocess_stage2.ClassificationType.BINARY
     preprocess_stage2.RANDOM_SEED = RANDOM_SEED
-    preprocess_stage2.INPUT_DATASET_PATH = \
-        test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS
-
-    preprocess_stage2.TESTING_DATASET_PATH = self.testing_dataset_path
-    preprocess_stage2.TRAINING_DATASET_PATH = self.training_dataset_path
-    preprocess_stage2.VALIDATION_DATASET_PATH = self.validation_dataset_path
 
 
 def tearDown(self):
     preprocess_stage2.CLASSIFICATION_TYPE = self.prev_classification_type
     preprocess_stage2.RANDOM_SEED = self.prev_random_seed
-    preprocess_stage2.INPUT_DATASET_PATH = self.prev_input_dataset_path
-    preprocess_stage2.TESTING_DATASET_PATH = self.prev_testing_dataset_path
-    preprocess_stage2.TRAINING_DATASET_PATH = self.prev_training_dataset_path
-    preprocess_stage2.VALIDATION_DATASET_PATH = self.prev_validation_dataset_path
 
-    self.testing_dataset_path.unlink()
-    self.training_dataset_path.unlink()
-    self.validation_dataset_path.unlink()
+    if self.training_path.exists():
+        self.training_path.unlink()
+
+    if self.testing_path.exists():
+        self.testing_path.unlink()
+
+    if self.validation_path.exists():
+        self.validation_path.unlink()
+
+    self.output_directory.rmdir()
