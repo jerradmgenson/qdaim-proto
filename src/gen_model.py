@@ -237,7 +237,17 @@ def main(argv):
                                             datasets.validation.inputs,
                                             datasets.validation.targets)
 
-    bind_model_metadata(model, model_scores)
+    if command_line_arguments.roc_curve:
+        false_positive_rates, true_positive_rates = calculate_roc_curve(model, datasets)
+        auc = sklearn.metrics.auc(false_positive_rates, true_positive_rates)
+        bind_model_metadata(model, model_scores,
+                            false_positive_rates=false_positive_rates,
+                            true_positive_rates=true_positive_rates,
+                            auc=auc)
+
+    else:
+        bind_model_metadata(model, model_scores)
+
     validation_dataset = create_validation_dataset(datasets.validation.inputs,
                                                    datasets.validation.targets,
                                                    predictions,
@@ -300,7 +310,10 @@ def run_command(command):
     return subprocess.check_output(re.split(r'\s+', command)).decode('utf-8').strip()
 
 
-def bind_model_metadata(model, scores):
+def bind_model_metadata(model, scores,
+                        false_positive_rates=None,
+                        true_positive_rates=None,
+                        auc=None):
     """
     Generate metadata and bind it to the model. The following attributes
     will be assigned to `model`:
@@ -322,6 +335,14 @@ def bind_model_metadata(model, scores):
     Args
       model: An instance of a scikit-learn estimator.
       scores: An instance of ModelScores.
+      false_positive_rates: (Default=None) A list of false positive rates. If
+                            this argument is given, `true_positive_rates` must
+                            also be given.
+      true_positive_rates: (Default=None) A list of true positive rates
+                           that corresponds to the rates in
+                           `false_positive_rates`. If this argument is given,
+                           `false_positive_rates` must also be given.
+      auc: (Default=None) Area under the receiver operator characteristic curve.
 
     Returns
       None
@@ -329,6 +350,12 @@ def bind_model_metadata(model, scores):
     """
 
     logger = logging.getLogger(__name__)
+    # Logical test that both arguments are present or neither is present.
+    if not ((false_positive_rates and true_positive_rates)
+            or not (false_positive_rates or true_positive_rates)):
+        err = f'false_positive_rates is {false_positive_rates} while true_positive_rates is {true_positive_rates}.'
+        raise ValueError(err)
+
     logger.info('\nModel scores:')
     model_attributes = len(dir(model))
     score_count = 0
@@ -343,6 +370,16 @@ def bind_model_metadata(model, scores):
         logger.info(msg)
 
     assert len(dir(model)) - model_attributes == score_count
+    if auc:
+        logger.info(f'AUC:             {auc:.4}')
+        model.auc = auc
+
+    if false_positive_rates:
+        logger.info(f'false_positive_rates: {false_positive_rates}')
+        logger.info(f'true_positive_rates:  {true_positive_rates}')
+        model.false_positive_rates = false_positive_rates
+        model.true_positive_rates = true_positive_rates
+
     model_attributes = len(dir(model))
 
     model.commit_hash = get_commit_hash()
@@ -693,7 +730,7 @@ def parse_command_line(argv):
     Args
       argv: A list of command line arguments to parse.
 
-    Returns
+    Returnsp
       A Namespace object returned by parse_args().
 
     """
@@ -717,6 +754,10 @@ def parse_command_line(argv):
                         choices=('critical', 'error', 'warning', 'info', 'debug'),
                         default='info',
                         help='Log level to configure logging with.')
+
+    parser.add_argument('--roc-curve',
+                        action='store_true',
+                        help='Generate an ROC curve and AUC for model.')
 
     return parser.parse_args(argv)
 
@@ -908,6 +949,46 @@ def save_model(model, output_path):
 
     with output_path.open('wb') as output_file:
         pickle.dump(model, output_file)
+
+
+def calculate_roc_curve(model, datasets):
+    """
+    Calculate a receiver operator characteristic curve using 10-fold
+    cross-validation on the training and validation datasets.
+
+    Args
+      model: An trained instance of a scikit-learn estimator.
+      datasets: An instance of Datasets.
+
+    Returns
+     A tuple of (false positive rates, true positive rates).
+
+    """
+
+    inputs = np.concatenate((datasets.training.inputs,
+                             datasets.validation.inputs))
+
+    targets = np.concatenate((datasets.training.targets,
+                              datasets.validation.targets))
+
+    # Split according to 10-fold cross-validation.
+    kfold = sklearn.model_selection.KFold(n_splits=10)
+    true_positive_rates = []
+    false_positive_rates = []
+    for training_index, testing_index in kfold.split(inputs):
+        training_inputs = inputs[training_index]
+        training_targets = targets[training_index]
+        testing_inputs = inputs[testing_index]
+        testing_targets = targets[testing_index]
+
+        new_model = sklearn.clone(model)
+        new_model.fit(training_inputs, training_targets)
+        scores = score_model(new_model, testing_inputs, testing_targets)[0]
+        true_positive_rates.append(scores.sensitivity)
+        false_positive_rates.append(1 - scores.specificity)
+
+    # Sort both lists based on the order of false positive rates.
+    return zip(*sorted(zip(false_positive_rates, true_positive_rates)))
 
 
 class InvalidConfigError(Exception):
