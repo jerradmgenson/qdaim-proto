@@ -1,8 +1,7 @@
 # action.yml
 name: 'run_tests'
-description: 'Run tests for QDAIM'
+description: 'Run testcases for QDAIM'
 runs:
   using: 'docker'
   image: '../../../Dockerfile'
-  env:
-    GITHUB_WORKSPACE: $GITHUB_WORKSPACE
+  entrypoint: ['python3', 'src/tests/run_tests.py']
