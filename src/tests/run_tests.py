@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 """
 Run all unit and integration tests and report the results.
 
