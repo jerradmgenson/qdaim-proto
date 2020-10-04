@@ -3,6 +3,6 @@ name: 'run_tests'
 description: 'Run tests for QDAIM'
 runs:
   using: 'docker'
-  image: 'Dockerfile'
+  image: '../../Dockerfile'
   env:
     GITHUB_WORKSPACE: $GITHUB_WORKSPACE
