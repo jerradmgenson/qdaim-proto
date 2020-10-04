@@ -3,7 +3,7 @@ on: [push]
 jobs:
   run_tests_job:
     runs-on: ubuntu-latest
-    name: Run qdaim tests
+    name: commit gate
     steps:
       # To use this repository's private action,
       # you must check out the repository
