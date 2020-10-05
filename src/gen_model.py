@@ -351,8 +351,9 @@ def bind_model_metadata(model, scores,
 
     logger = logging.getLogger(__name__)
     # Logical test that both arguments are present or neither is present.
-    if not ((false_positive_rates and true_positive_rates)
-            or not (false_positive_rates or true_positive_rates)):
+    fpr = false_positive_rates is not None
+    tpr = true_positive_rates is not None
+    if not ((fpr and tpr) or not (fpr or tpr)):
         err = f'false_positive_rates is {false_positive_rates} while true_positive_rates is {true_positive_rates}.'
         raise ValueError(err)
 
@@ -371,12 +372,12 @@ def bind_model_metadata(model, scores,
 
     assert len(dir(model)) - model_attributes == score_count
     if auc:
-        logger.info(f'AUC:             {auc:.4}')
+        logger.info(f'auc:             {auc:.4}')
         model.auc = auc
 
-    if false_positive_rates:
-        logger.info(f'false_positive_rates: {false_positive_rates}')
-        logger.info(f'true_positive_rates:  {true_positive_rates}')
+    if fpr:
+        logger.info(f'false_positive_rates: {list(false_positive_rates)}')
+        logger.info(f'true_positive_rates:  {list(true_positive_rates)}')
         model.false_positive_rates = false_positive_rates
         model.true_positive_rates = true_positive_rates
 
@@ -973,8 +974,8 @@ def calculate_roc_curve(model, datasets):
 
     # Split according to 10-fold cross-validation.
     kfold = sklearn.model_selection.KFold(n_splits=10)
-    true_positive_rates = []
     false_positive_rates = []
+    true_positive_rates = []
     for training_index, testing_index in kfold.split(inputs):
         training_inputs = inputs[training_index]
         training_targets = targets[training_index]
@@ -987,8 +988,14 @@ def calculate_roc_curve(model, datasets):
         true_positive_rates.append(scores.sensitivity)
         false_positive_rates.append(1 - scores.specificity)
 
+    false_positive_array = np.array(false_positive_rates)
+    true_positive_array = np.array(true_positive_rates)
     # Sort both lists based on the order of false positive rates.
-    return zip(*sorted(zip(false_positive_rates, true_positive_rates)))
+    order = false_positive_array.argsort()
+    false_positive_array = false_positive_array[order]
+    true_positive_array = true_positive_array[order]
+
+    return false_positive_array, true_positive_array
 
 
 class InvalidConfigError(Exception):
