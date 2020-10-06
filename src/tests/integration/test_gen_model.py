@@ -34,9 +34,11 @@ TEST_DATA = GIT_ROOT / Path('src/tests/data')
 class GenModelTestCase(unittest.TestCase):
     """
     Base class for all gen_model.py testcases. Defines a common set of
-    setUp() and tearDown().
+    setUp() and tearDown() methods.
 
     """
+
+    QDA_PCA_CONFIG = TEST_DATA / Path('gen_model_config_qda_pca.json')
 
     def setUp(self):
         tempfile_descriptor = tempfile.mkstemp()
@@ -66,7 +68,6 @@ class ModelConfigTestCase(GenModelTestCase):
     """
 
     LDA_STANDARD_CONFIG = TEST_DATA / Path('gen_model_config_lda_standard.json')
-    QDA_PCA_CONFIG = TEST_DATA / Path('gen_model_config_qda_pca.json')
     SVM_ROBUST_CONFIG = TEST_DATA / Path('gen_model_config_svm_robust.json')
     RFC_CONFIG = TEST_DATA / Path('gen_model_config_rfc.json')
     RRC_CONFIG = TEST_DATA / Path('gen_model_config_rrc.json')
@@ -503,3 +504,53 @@ class ConfigFileTestCase(GenModelTestCase):
             config = json.load(config_fp)
 
         self.assertTrue(gen_model.is_valid_config(config))
+
+
+class CrossValidationTestCase(GenModelTestCase):
+    """
+    Test gen_model.cross_validate() integration with other functions.
+
+    """
+
+    def test_main_multiclass(self):
+        """
+        Test that gen_model.main() calls cross_validate() correctly with
+        multiclass classification.
+
+        """
+
+        exit_code = gen_model.main([str(self.output_path),
+                                    str(self.QDA_PCA_CONFIG),
+                                    '--cross-validate',
+                                    '5'])
+
+        self.assertEqual(exit_code, 0)
+        with open(self.output_path, 'rb') as output_fp:
+            model = pickle.load(output_fp)
+
+        self.assertAlmostEqual(model.median_accuracy, 0.95)
+        self.assertAlmostEqual(model.mad_accuracy, 0.0)
+        self.assertAlmostEqual(model.median_informedness, 0.925)
+        self.assertAlmostEqual(model.mad_informedness, 0.025000000000000133)
+        self.assertAlmostEqual(model.median_hmean_precision, 1.0)
+        self.assertAlmostEqual(model.mad_hmean_precision, 0.0)
+        self.assertAlmostEqual(model.median_hmean_recall, 0.9610389610389612)
+        self.assertAlmostEqual(model.mad_hmean_recall, 0.013670539986329722)
+
+        with self.assertRaises(AttributeError):
+            model.median_precision
+
+        with self.assertRaises(AttributeError):
+            model.mad_precision
+
+        with self.assertRaises(AttributeError):
+            model.median_sensitivity
+
+        with self.assertRaises(AttributeError):
+            model.mad_sensitivity
+
+        with self.assertRaises(AttributeError):
+            model.median_specificity
+
+        with self.assertRaises(AttributeError):
+            model.mad_specificity

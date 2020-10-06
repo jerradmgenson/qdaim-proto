@@ -775,7 +775,7 @@ class BindModelMetadataTests(unittest.TestCase):
 
             return run_command_mock
 
-        scores = gen_model.ModelScores(1., 2., 3., 4., 5., 6., 7.)
+        scores = gen_model.Scores(1., 2., 3., 4., 5., 6., 7.)
         attributes = ('commit_hash', 'validated', 'reposistory', 'numpy_version',
                       'scipy_version', 'pandas_version', 'sklearn_version',
                       'joblib_version', 'threadpoolctl_version', 'operating_system',
@@ -815,7 +815,7 @@ class BindModelMetadataTests(unittest.TestCase):
 
             return run_command_mock
 
-        scores = gen_model.ModelScores(1., 2., 3., 4., 5., 6., 7.)
+        scores = gen_model.Scores(1., 2., 3., 4., 5., 6., 7.)
         attributes = ('commit_hash', 'validated', 'reposistory', 'numpy_version',
                       'scipy_version', 'pandas_version', 'sklearn_version',
                       'joblib_version', 'threadpoolctl_version', 'operating_system',
@@ -1274,6 +1274,189 @@ class IsValidConfigTest(unittest.TestCase):
 
         with self.assertRaises(gen_model.InvalidConfigError):
             gen_model.is_valid_config(config)
+
+
+class CrossValidateTest(unittest.TestCase):
+    """
+    Tests for gen_model.cross_validate()
+
+    """
+
+    INPUTS = np.array([[0, 0], [0, 1], [1, 0], [1, 1], [0, 0], [0, 1], [1, 0], [1, 1]])
+    TARGETS = np.array([0, 1, 1, 1, 0, 1, 1, 1])
+
+    def test_perfect_model(self):
+        """
+        Test cross_validate() with a model that always predicts correctly.
+
+        """
+
+        def predict_mock(inputs):
+            inputs = inputs.tolist()
+            all_inputs = self.INPUTS.tolist()
+            targets = self.TARGETS.tolist()
+            predictions = []
+            for input_ in inputs:
+                predictions.append(targets[all_inputs.index(input_)])
+
+            return np.array(predictions)
+
+        model = Mock()
+        model.predict = predict_mock
+        datasets = gen_model.Datasets(gen_model.Dataset(self.INPUTS, self.TARGETS),
+                                      gen_model.Dataset(self.INPUTS, self.TARGETS),
+                                      ['x', 'y'])
+
+        sklearn_clone_patch = patch.object(sklearn,
+                                           'clone',
+                                           new_callable=lambda: lambda x: x)
+
+        with sklearn_clone_patch:
+            median_scores, mad_scores = gen_model.cross_validate(model,
+                                                                 datasets,
+                                                                 2)
+
+        self.assertEqual(median_scores,
+                         gen_model.Scores(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))
+
+        self.assertEqual(mad_scores,
+                         gen_model.Scores(0, 0, 0, 0, 0, 0, 0))
+
+    def test_useless_model(self):
+        """
+        Test cross_validate() with a model that always predicts incorrectly.
+
+        """
+
+        def predict_mock(inputs):
+            return np.full(len(inputs), 100)
+
+        model = Mock()
+        model.predict = predict_mock
+        datasets = gen_model.Datasets(gen_model.Dataset(self.INPUTS, self.TARGETS),
+                                      gen_model.Dataset(self.INPUTS, self.TARGETS),
+                                      ['x', 'y'])
+
+        sklearn_clone_patch = patch.object(sklearn,
+                                           'clone',
+                                           new_callable=lambda: lambda x: x)
+
+        with sklearn_clone_patch:
+            median_scores, mad_scores = gen_model.cross_validate(model,
+                                                                 datasets,
+                                                                 2)
+
+        self.assertEqual(median_scores,
+                         gen_model.Scores(0, 0, 0, 0, 0, 0, -1))
+
+        self.assertEqual(mad_scores,
+                         gen_model.Scores(0, 0, 0, 0, 0, 0, 0))
+
+    def test_random_model(self):
+        """
+        Test cross_validate() with a model that makes predictions at random.
+
+        """
+
+        def predict_mock(inputs):
+            return np.random.randint(0, 2, len(inputs))
+
+        np.random.seed(1)
+        model = Mock()
+        model.predict = predict_mock
+        datasets = gen_model.Datasets(gen_model.Dataset(np.repeat(self.INPUTS, 10000, 0),
+                                                        np.repeat(self.TARGETS, 10000)),
+                                      gen_model.Dataset(np.repeat(self.INPUTS, 10000, 0),
+                                                        np.repeat(self.TARGETS, 10000)),
+                                      ['x', 'y'])
+
+        sklearn_clone_patch = patch.object(sklearn,
+                                           'clone',
+                                           new_callable=lambda: lambda x: x)
+
+        with sklearn_clone_patch:
+            median_scores, mad_scores = gen_model.cross_validate(model,
+                                                                 datasets,
+                                                                 50)
+
+        np.testing.assert_allclose(median_scores,
+                                   gen_model.Scores(0.4975,
+                                                    0.4896894188226699,
+                                                    1.0,
+                                                    0.49750000000000005,
+                                                    0.4971875,
+                                                    0.4888125,
+                                                    -0.0050000000000000044))
+
+        np.testing.assert_allclose(mad_scores,
+                                   gen_model.Scores(0.007968749999999997,
+                                                    0.11482371024653085,
+                                                    0.0,
+                                                    0.00763604450600161,
+                                                    0.010833333333333306,
+                                                    0.00849999999999998,
+                                                    0.015145833333333303))
+
+    def test_large_spread_model(self):
+        """
+        Test cross_validate() with a model that makes predictions at random
+        with a large amount of spread.
+
+        """
+
+        def predict_mock(inputs):
+            choice = random.randint(0, 3)
+            if choice == 0:
+                return np.full(len(inputs), 0)
+
+            elif choice == 1:
+                return np.full(len(inputs), 1)
+
+            elif choice == 2:
+                return np.random.randint(0, 2, len(inputs))
+
+            elif choice == 3:
+                return np.full(len(inputs), 2)
+
+            else:
+                assert False
+
+        random.seed(3)
+        np.random.seed(3)
+        model = Mock()
+        model.predict = predict_mock
+        datasets = gen_model.Datasets(gen_model.Dataset(np.repeat(self.INPUTS, 20, 0),
+                                                        np.repeat(self.TARGETS, 20)),
+                                      gen_model.Dataset(np.repeat(self.INPUTS, 20, 0),
+                                                        np.repeat(self.TARGETS, 20)),
+                                      ['x', 'y'])
+
+        sklearn_clone_patch = patch.object(sklearn,
+                                           'clone',
+                                           new_callable=lambda: lambda x: x)
+
+        with sklearn_clone_patch:
+            median_scores, mad_scores = gen_model.cross_validate(model,
+                                                                 datasets,
+                                                                 10)
+
+        np.testing.assert_allclose(median_scores,
+                                   gen_model.Scores(0.5625,
+                                                    0.4375,
+                                                    0.0,
+                                                    0.0,
+                                                    0.53125,
+                                                    0.25,
+                                                    0.0))
+
+        np.testing.assert_allclose(mad_scores,
+                                   gen_model.Scores(0.375,
+                                                    0.32142857142857145,
+                                                    0.0,
+                                                    0.0,
+                                                    0.46875,
+                                                    0.25,
+                                                    0.625))
 
 
 if __name__ == '__main__':
