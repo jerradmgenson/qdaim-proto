@@ -10,7 +10,7 @@ Copyright 2020 Jerrad M. Genson
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at https://mozilla.org/MPL/2.0/.
-
+pp
 
 Configuration
 =============
@@ -90,6 +90,7 @@ from collections import namedtuple
 
 import numpy as np
 import scipy as sp
+from scipy.stats import median_abs_deviation
 import pandas as pd
 import joblib
 import threadpoolctl
@@ -167,7 +168,7 @@ SCORING_METHODS = ('accuracy',
                    'informedness')
 
 # Collects model scores together in a single object.
-ModelScores = namedtuple('ModelScores', SCORING_METHODS)
+Scores = namedtuple('Scores', SCORING_METHODS)
 
 # Contains input data and target data for a single dataset.
 Dataset = namedtuple('Dataset', 'inputs targets')
@@ -237,13 +238,15 @@ def main(argv):
                                             datasets.validation.inputs,
                                             datasets.validation.targets)
 
-    if command_line_arguments.roc_curve:
-        false_positive_rates, true_positive_rates = calculate_roc_curve(model, datasets)
-        auc = sklearn.metrics.auc(false_positive_rates, true_positive_rates)
+    if command_line_arguments.cross_validate:
+        median_scores, mad_scores = cross_validate(model,
+                                                   datasets,
+                                                   command_line_arguments.cross_validate)
+
         bind_model_metadata(model, model_scores,
-                            false_positive_rates=false_positive_rates,
-                            true_positive_rates=true_positive_rates,
-                            auc=auc)
+                            cross_validation_scores=(median_scores,
+                                                     mad_scores,
+                                                     command_line_arguments.cross_validate))
 
     else:
         bind_model_metadata(model, model_scores)
@@ -310,10 +313,7 @@ def run_command(command):
     return subprocess.check_output(re.split(r'\s+', command)).decode('utf-8').strip()
 
 
-def bind_model_metadata(model, scores,
-                        false_positive_rates=None,
-                        true_positive_rates=None,
-                        auc=None):
+def bind_model_metadata(model, scores, cross_validation_scores=None):
     """
     Generate metadata and bind it to the model. The following attributes
     will be assigned to `model`:
@@ -334,7 +334,7 @@ def bind_model_metadata(model, scores,
 
     Args
       model: An instance of a scikit-learn estimator.
-      scores: An instance of ModelScores.
+      scores: An instance of Scores.
       false_positive_rates: (Default=None) A list of false positive rates. If
                             this argument is given, `true_positive_rates` must
                             also be given.
@@ -350,12 +350,6 @@ def bind_model_metadata(model, scores,
     """
 
     logger = logging.getLogger(__name__)
-    # Logical test that both arguments are present or neither is present.
-    fpr = false_positive_rates is not None
-    tpr = true_positive_rates is not None
-    if not ((fpr and tpr) or not (fpr or tpr)):
-        err = f'false_positive_rates is {false_positive_rates} while true_positive_rates is {true_positive_rates}.'
-        raise ValueError(err)
 
     logger.info('\nModel scores:')
     model_attributes = len(dir(model))
@@ -366,22 +360,38 @@ def bind_model_metadata(model, scores,
 
         score_count += 1
         setattr(model, metric, score)
-        label = metric + ':'
-        msg = f'{label:16} {score:.4}'
+        msg = '{metric:16} {score:.4}'.format(metric=metric, score=score)
         logger.info(msg)
 
     assert len(dir(model)) - model_attributes == score_count
-    if auc:
-        logger.info(f'auc:             {auc:.4}')
-        model.auc = auc
-
-    if fpr:
-        logger.info(f'false_positive_rates: {list(false_positive_rates)}')
-        logger.info(f'true_positive_rates:  {list(true_positive_rates)}')
-        model.false_positive_rates = false_positive_rates
-        model.true_positive_rates = true_positive_rates
-
     model_attributes = len(dir(model))
+
+    if cross_validation_scores:
+        median_scores = cross_validation_scores[0]
+        mad_scores = cross_validation_scores[1]
+        n_splits = cross_validation_scores[2]
+        logger.info(f'\n{n_splits}-fold cross-validation scores:')
+        score_count = 0
+        median_dict = median_scores._asdict()
+        mad_dict = mad_scores._asdict()
+        for metric, median_score, mad_score in zip(mad_dict, median_dict.values(), mad_dict.values()):
+            if median_score is None:
+                continue
+
+            score_count += 2
+            setattr(model, 'median_' + metric, median_score)
+            setattr(model, 'mad_' + metric, mad_score)
+            median_msg = '{metric:23} {score:.4}'.format(metric='median ' + metric + ':',
+                                                         score=median_score)
+
+            mad_msg = '{metric:23} {score:.4}'.format(metric='mad ' + metric + ':',
+                                                      score=mad_score)
+
+            logger.info(median_msg)
+            logger.info(mad_msg)
+
+        assert len(dir(model)) - model_attributes == score_count
+        model_attributes = len(dir(model))
 
     model.commit_hash = get_commit_hash()
     model.validated = False
@@ -756,9 +766,10 @@ def parse_command_line(argv):
                         default='info',
                         help='Log level to configure logging with.')
 
-    parser.add_argument('--roc-curve',
-                        action='store_true',
-                        help='Generate an ROC curve and AUC for model.')
+    parser.add_argument('--cross-validate',
+                        type=int,
+                        default=0,
+                        help='Cross-validate the model using the specified number of folds.')
 
     return parser.parse_args(argv)
 
@@ -831,7 +842,7 @@ def score_model(model, input_data, target_data):
       target_data: A 1D numpy array of expected model outputs.
 
     Returns
-      An instance of ModelScores.
+      An instance of Scores.
 
     """
 
@@ -861,15 +872,15 @@ def score_model(model, input_data, target_data):
         sensitivity = None
         specificity = None
 
-    model_scores = ModelScores(accuracy=report['accuracy'],
-                               precision=precision,
-                               hmean_precision=calculate_hmean_precision(report, classes),
-                               hmean_recall=calculate_hmean_recall(report, classes),
-                               sensitivity=sensitivity,
-                               specificity=specificity,
-                               informedness=calculate_informedness(report, classes))
+    scores = Scores(accuracy=report['accuracy'],
+                    precision=precision,
+                    hmean_precision=calculate_hmean_precision(report, classes),
+                    hmean_recall=calculate_hmean_recall(report, classes),
+                    sensitivity=sensitivity,
+                    specificity=specificity,
+                    informedness=calculate_informedness(report, classes))
 
-    return model_scores, predictions
+    return scores, predictions
 
 
 def calculate_hmean_recall(classification_report, classes):
@@ -952,17 +963,20 @@ def save_model(model, output_path):
         pickle.dump(model, output_file)
 
 
-def calculate_roc_curve(model, datasets):
+def cross_validate(model, datasets, n_splits):
     """
-    Calculate a receiver operator characteristic curve using 10-fold
-    cross-validation on the training and validation datasets.
+    Cross-validate a model by splitting the dataset into training/validation
+    sets numerous times and calculating summary statistics for the model scores.
 
-    Args
+    Args:
       model: An trained instance of a scikit-learn estimator.
       datasets: An instance of Datasets.
+      n_splits: Number of splits (or folds) to use in cross-validation.
 
-    Returns
-     A tuple of (false positive rates, true positive rates).
+    Returns:
+     A 2-tuple of Scores objects, where the first element is the median of all
+     the models' scores, and the second element is the median absolute deviation
+     of all the models' scores.
 
     """
 
@@ -973,9 +987,8 @@ def calculate_roc_curve(model, datasets):
                               datasets.validation.targets))
 
     # Split according to 10-fold cross-validation.
-    kfold = sklearn.model_selection.KFold(n_splits=10)
-    false_positive_rates = []
-    true_positive_rates = []
+    kfold = sklearn.model_selection.KFold(n_splits=n_splits)
+    scores_lists = dict()
     for training_index, testing_index in kfold.split(inputs):
         training_inputs = inputs[training_index]
         training_targets = targets[training_index]
@@ -984,18 +997,29 @@ def calculate_roc_curve(model, datasets):
 
         new_model = sklearn.clone(model)
         new_model.fit(training_inputs, training_targets)
-        scores = score_model(new_model, testing_inputs, testing_targets)[0]
-        true_positive_rates.append(scores.sensitivity)
-        false_positive_rates.append(1 - scores.specificity)
+        scores, _ = score_model(new_model, testing_inputs, testing_targets)
+        for metric, score in scores._asdict().items():
+            if score is None:
+                continue
 
-    false_positive_array = np.array(false_positive_rates)
-    true_positive_array = np.array(true_positive_rates)
-    # Sort both lists based on the order of false positive rates.
-    order = false_positive_array.argsort()
-    false_positive_array = false_positive_array[order]
-    true_positive_array = true_positive_array[order]
+            if metric in scores_lists:
+                scores_lists[metric].append(score)
 
-    return false_positive_array, true_positive_array
+            else:
+                scores_lists[metric] = [score]
+
+    median_scores = dict()
+    if len(np.unique(targets)) > 2:
+        median_scores['precision'] = None
+        median_scores['sensitivity'] = None
+        median_scores['specificity'] = None
+
+    mad_scores = median_scores.copy()
+    for metric, score_list in scores_lists.items():
+        median_scores[metric] = np.median(score_list)
+        mad_scores[metric] = median_abs_deviation(score_list)
+
+    return Scores(**median_scores), Scores(**mad_scores)
 
 
 class InvalidConfigError(Exception):

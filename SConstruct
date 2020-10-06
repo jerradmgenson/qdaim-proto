@@ -18,6 +18,9 @@ GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
 GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
 BUILD_DIR = GIT_ROOT / Path('build')
 
+# Number of folds (or "splits") to use in cross-validation.
+N_SPLITS = 20
+
 
 def build_preprocess_stage1(target, source, env):
     return preprocess_stage1.main([str(target[0])] + [str(s) for s in source])
@@ -33,7 +36,7 @@ preprocess_stage2_builder = Builder(action=build_preprocess_stage2,
                                     src_suffix='.csv')
 
 def build_gen_model(target, source, env):
-    return gen_model.main([str(target[0]), str(source[0]), '--roc-curve'])
+    return gen_model.main([str(target[0]), str(source[0]), '--cross-validate', str(N_SPLITS)])
 
 gen_model_builder = Builder(action=build_gen_model,
                             suffix='.dat',

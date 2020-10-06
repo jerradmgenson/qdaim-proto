@@ -1276,5 +1276,30 @@ class IsValidConfigTest(unittest.TestCase):
             gen_model.is_valid_config(config)
 
 
+class CalculateROCCurveTest(unittest.TestCase):
+    """
+    Tests for gen_model.calculate_roc_curve()
+
+    """
+
+    INPUTS = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+    TARGETS = np.array([0, 1, 1, 1])
+
+    def test_perfect_model(self):
+        def predict_mock(inputs):
+            predictions = []
+            for input_ in inputs:
+                predictions.append(self.TARGETS[list(self.INPUTS).index(input_)])
+
+            return np.array(predictions)
+
+        model = Mock()
+        model.predict = Mock(return_value=self.TARGETS)
+        datasets = gen_model.Datasets(gen_model.Dataset(self.INPUTS, self.TARGETS),
+                                      gen_model.Dataset(self.INPUTS, self.TARGETS))
+
+
+
+
 if __name__ == '__main__':
     unittest.main()
