@@ -775,7 +775,7 @@ class BindModelMetadataTests(unittest.TestCase):
 
             return run_command_mock
 
-        scores = gen_model.ModelScores(1., 2., 3., 4., 5., 6., 7.)
+        scores = gen_model.Scores(1., 2., 3., 4., 5., 6., 7.)
         attributes = ('commit_hash', 'validated', 'reposistory', 'numpy_version',
                       'scipy_version', 'pandas_version', 'sklearn_version',
                       'joblib_version', 'threadpoolctl_version', 'operating_system',
@@ -815,7 +815,7 @@ class BindModelMetadataTests(unittest.TestCase):
 
             return run_command_mock
 
-        scores = gen_model.ModelScores(1., 2., 3., 4., 5., 6., 7.)
+        scores = gen_model.Scores(1., 2., 3., 4., 5., 6., 7.)
         attributes = ('commit_hash', 'validated', 'reposistory', 'numpy_version',
                       'scipy_version', 'pandas_version', 'sklearn_version',
                       'joblib_version', 'threadpoolctl_version', 'operating_system',
@@ -1274,31 +1274,6 @@ class IsValidConfigTest(unittest.TestCase):
 
         with self.assertRaises(gen_model.InvalidConfigError):
             gen_model.is_valid_config(config)
-
-
-class CalculateROCCurveTest(unittest.TestCase):
-    """
-    Tests for gen_model.calculate_roc_curve()
-
-    """
-
-    INPUTS = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
-    TARGETS = np.array([0, 1, 1, 1])
-
-    def test_perfect_model(self):
-        def predict_mock(inputs):
-            predictions = []
-            for input_ in inputs:
-                predictions.append(self.TARGETS[list(self.INPUTS).index(input_)])
-
-            return np.array(predictions)
-
-        model = Mock()
-        model.predict = Mock(return_value=self.TARGETS)
-        datasets = gen_model.Datasets(gen_model.Dataset(self.INPUTS, self.TARGETS),
-                                      gen_model.Dataset(self.INPUTS, self.TARGETS))
-
-
 
 
 if __name__ == '__main__':
