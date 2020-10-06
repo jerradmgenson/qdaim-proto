@@ -1009,15 +1009,18 @@ def cross_validate(model, datasets, n_splits):
                 scores_lists[metric] = [score]
 
     median_scores = dict()
+    mad_scores = dict()
+    for metric, score_list in scores_lists.items():
+        median_scores[metric] = np.median(score_list)
+        mad_scores[metric] = median_abs_deviation(score_list)
+
     if len(np.unique(targets)) > 2:
         median_scores['precision'] = None
         median_scores['sensitivity'] = None
         median_scores['specificity'] = None
-
-    mad_scores = median_scores.copy()
-    for metric, score_list in scores_lists.items():
-        median_scores[metric] = np.median(score_list)
-        mad_scores[metric] = median_abs_deviation(score_list)
+        mad_scores['precision'] = None
+        mad_scores['sensitivity'] = None
+        mad_scores['specificity'] = None
 
     return Scores(**median_scores), Scores(**mad_scores)
 
