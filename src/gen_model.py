@@ -257,7 +257,7 @@ def main(argv):
     print('\nSaving model to disk...')
     save_validation(validation_dataset, command_line_arguments.target)
     save_model(model, command_line_arguments.target)
-    print('Saved model to %s', command_line_arguments.target)
+    print(f'Saved model to {command_line_arguments.target}')
     runtime = f'Runtime: {time.time() - start_time:.2} seconds'
     logger.debug(runtime)
 
@@ -859,38 +859,20 @@ def score_model(model, input_data, target_data):
 
     scores = dict()
     scores['accuracy'] = sklearn.metrics.accuracy_score(target_data, predictions)
-    scores['informedness'] = sklearn.metrics.balanced_accuracy_score(target_data,
-                                                                     predictions,
-                                                                     adjusted=True)
-
+    scores['informedness'] = informedness_score(target_data, predictions)
     scores['mcc'] = sklearn.metrics.matthews_corrcoef(target_data, predictions)
+    scores['precision'] = precision_score(target_data, predictions)
+    scores['recall'] = recall_score(target_data, predictions)
+    scores['roc_auc'] = roc_auc_score(target_data, predictions)
+    scores['f1_score'] = f1_score(target_data, predictions)
+
     classes = np.unique(target_data)
     if len(classes) == 2:
-        positive_class = np.max(classes)
-        negative_class = np.min(classes)
-        scores['precision'] = sklearn.metrics.precision_score(target_data,
-                                                              predictions,
-                                                              pos_label=positive_class)
-
-        scores['recall'] = sklearn.metrics.recall_score(target_data,
-                                                        predictions,
-                                                        pos_label=positive_class)
-
-        scores['sensitivity'] = scores['recall']
-        scores['specificity'] = sklearn.metrics.recall_score(target_data,
-                                                             predictions,
-                                                             pos_label=negative_class)
-
+        scores['sensitivity'] = sensitivity_score(target_data, predictions)
+        scores['specificity'] = specificity_score(target_data, predictions)
         scores['dor'] = diagnostic_odds_ratio_score(target_data, predictions)
-
-    else:
-        scores['precision'] = sklearn.metrics.precision_score(target_data,
-                                                              predictions,
-                                                              average='weighted')
-
-        scores['recall'] = sklearn.metrics.recall_score(target_data,
-                                                        predictions,
-                                                        average='weighted')
+        scores['lr+'] = positive_likelihood_ratio_score(target_data, predictions)
+        scores['lr-'] = negative_likelihood_ratio_score(target_data, predictions)
 
     return scores
 
@@ -1002,9 +984,263 @@ def diagnostic_odds_ratio_score(y_true, y_pred):
     return tp * tn / (fp * fn)
 
 
+def positive_likelihood_ratio_score(y_true, y_pred, warn=True):
+    """
+    Compute the likelihood ratio for positive test results given by the
+    formula:
+
+    LR+ = sensitivity / (1 - specificity)
+
+    Note that this function is only defined for binary classification.
+    Source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4975285/
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+      warn: Whether to log a warning and return 0, nan, or inf when the
+            function is undefined or raise an exception. Defaults to True.
+
+    Returns:
+      The likelihood ratio for positive test results as a float. If the
+      specificity is 1 and warn is True, return inf.
+
+    Raises:
+      ValueError when `y_true` contains more than two classes and `warn`
+      is False or specificity is 1.
+
+    """
+
+    logger = logging.getLogger(__name__)
+    try:
+        sensitivity = sensitivity_score(y_true, y_pred)
+        specificity = specificity_score(y_true, y_pred)
+
+    except ValueError:
+        msg = 'likelihood ratio is undefined for the multiclass situation.'
+        raise ValueError(msg)
+
+    if specificity == 1:
+        msg = 'positive likelihood ratio is undefined when specificity is 1.'
+        if warn:
+            logger.warning(msg)
+            return np.inf
+
+        raise ValueError(msg)
+
+    return sensitivity / (1 - specificity)
+
+
+def negative_likelihood_ratio_score(y_true, y_pred, warn=True):
+    """
+    Compute the likelihood ratio for negative test results given by the
+    formula:
+
+    LR- = (1 - sensitivity) / specificity
+
+    Note that this function is only defined for binary classification.
+    Source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4975285/
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+      warn: Whether to log a warning and return 0, nan, or inf when the
+            function is undefined or raise an exception. Defaults to True.
+
+    Returns:
+      The likelihood ratio for negative test results as a float. If the
+      specificity is 0 and warn is True, return inf.
+
+    Raises:
+      ValueError when `y_true` contains more than two classes or `warn`
+      is True and specificity is 0.
+
+    """
+
+    logger = logging.getLogger(__name__)
+    try:
+        sensitivity = sensitivity_score(y_true, y_pred)
+        specificity = specificity_score(y_true, y_pred)
+
+    except ValueError:
+        msg = 'likelihood ratio is undefined for the multiclass situation.'
+        raise ValueError(msg)
+
+    if specificity == 0:
+        msg = 'negative likelihood ratio is undefined when specificity is 0.'
+        if warn:
+            logger.warning(msg)
+            return np.inf
+
+        raise ValueError(msg)
+
+    return (1 - sensitivity) / specificity
+
+
+def sensitivity_score(y_true, y_pred):
+    """
+    Compute the sensitivity, i.e. recall of the positive class.
+
+    Note that this function is only defined for binary classification.
+    Source: https://www.sciencedirect.com/science/article/pii/S2210832718301546
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+
+    Returns:
+      The sensitivity as a float.
+
+    Raises:
+      ValueError when `y_true` contains more than two classes.
+
+    """
+
+    classes = np.unique(y_true)
+    if len(classes) != 2:
+        msg = 'sensitivity is not defined for the multiclass situation.'
+        raise ValueError(msg)
+
+    positive_class = np.max(classes)
+    return sklearn.metrics.recall_score(y_true, y_pred, pos_label=positive_class)
+
+
+def specificity_score(y_true, y_pred):
+    """
+    Compute the specificity, i.e. recall of the negative class.
+
+    Note that this function is only defined for binary classification.
+    Source: https://www.sciencedirect.com/science/article/pii/S2210832718301546
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+
+    Returns:
+      The specificity as a float.
+
+    Raises:
+      ValueError when `y_true` contains more than two classes.
+
+    """
+
+    classes = np.unique(y_true)
+    if len(classes) != 2:
+        msg = 'specificity is not defined for the multiclass situation.'
+        raise ValueError(msg)
+
+    negative_class = np.min(classes)
+    return sklearn.metrics.recall_score(y_true, y_pred, pos_label=negative_class)
+
+
+def informedness_score(y_true, y_pred):
+    """
+    Compute the informedness, also known as Youden's J statistic.
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+
+    Returns:
+      The informedness as a float.
+
+    """
+
+    return sklearn.metrics.balanced_accuracy_score(y_true, y_pred, adjusted=True)
+
+
+def precision_score(y_true, y_pred):
+    """
+    Compute the precision. For the multiclass situation, use the weighted
+    average across all classes.
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+
+    Returns:
+      The precision as a float.
+
+    """
+
+    classes = np.unique(y_true)
+    if len(classes) == 2:
+        positive_class = np.max(classes)
+        return sklearn.metrics.precision_score(y_true, y_pred,
+                                               pos_label=positive_class)
+
+    return sklearn.metrics.precision_score(y_true, y_pred, average='weighted')
+
+
+def recall_score(y_true, y_pred):
+    """
+    Compute the recall. For the multiclass situation, use the weighted
+    average across all classes.
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+
+    Returns:
+      The recall as a float.
+
+    """
+
+    classes = np.unique(y_true)
+    if len(classes) == 2:
+        positive_class = np.max(classes)
+        return sklearn.metrics.recall_score(y_true, y_pred,
+                                            pos_label=positive_class)
+
+    return sklearn.metrics.recall_score(y_true, y_pred, average='weighted')
+
+
+def roc_auc_score(y_true, y_pred):
+    """
+    Compute the receiver operator curve area under the curve. For the
+    multiclass situation, use the weighted average across all classes.
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+
+    Returns:
+      The ROC AUC as a float.
+
+    """
+
+    classes = np.unique(y_true)
+    if len(classes) == 2:
+        return sklearn.metrics.roc_auc_score(y_true, y_pred)
+
+    return sklearn.metrics.roc_auc_score(y_true, y_pred,
+                                         average='weighted',
+                                         multiclass='ovo')
+
+
+def f1_score(y_true, y_pred):
+    """
+    Compute the F1 score. For the multiclass situation, use the weighted
+    average across all classes.
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+
+    Returns:
+      The F1 score as a float.
+
+    """
+
+    classes = np.unique(y_true)
+    if len(classes) == 2:
+        return sklearn.metrics.f1_score(y_true, y_pred)
+
+    return sklearn.metrics.f1_score(y_true, y_pred, average='weighted')
+
+
 class InvalidConfigError(Exception):
     """
-    An exception that is raised when the config file is not valid.
+    Raised when the config file is not valid.
 
     """
 
