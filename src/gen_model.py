@@ -196,7 +196,7 @@ def main(argv):
         command_line_arguments.target.stem + '.log')
 
     logger = configure_logging(command_line_arguments.log_level, logfile_path)
-    logger.info('Reading configuration file...')
+    print('Reading configuration file...')
     try:
         config = read_config_file(command_line_arguments.config)
 
@@ -206,20 +206,20 @@ def main(argv):
 
     random.seed(config.random_seed)
     np.random.seed(config.random_seed)
-    logger.info('Loading datasets...')
+    print('Loading datasets...')
     datasets = load_datasets(config.training_dataset,
                              config.validation_dataset)
 
-    logger.info('Training dataset:      %s', config.training_dataset)
-    logger.info('Validation dataset:    %s', config.validation_dataset)
-    logger.info('Random number seed:    %s', config.random_seed)
-    logger.info('Scoring method:        %s', config.scoring)
-    logger.info('Algorithm:             %s', config.algorithm.name)
-    logger.info('Preprocessing methods: %s', config.preprocessing_methods)
-    logger.info('Training samples:      %d', len(datasets.training.inputs))
-    logger.info('Validation samples:    %d', len(datasets.validation.inputs))
+    print(f'Training dataset:      {config.training_dataset}')
+    print(f'Validation dataset:    {config.validation_dataset}')
+    print(f'Random number seed:    {config.random_seed}')
+    print(f'Scoring method:        {config.scoring}')
+    print(f'Algorithm:             {config.algorithm.name}')
+    print(f'Preprocessing methods: {config.preprocessing_methods}')
+    print(f'Training samples:      {len(datasets.training.inputs)}')
+    print(f'Validation samples:    {len(datasets.validation.inputs)}')
     score_function = create_scorer(config.scoring)
-    logger.info('Generating model...')
+    print('Generating model...')
     model = train_model(config.algorithm.class_,
                         datasets.training.inputs,
                         datasets.training.targets,
@@ -230,7 +230,7 @@ def main(argv):
                         cpus=command_line_arguments.cpu,
                         parameter_grid=config.algorithm_parameters)
 
-    logger.info('Scoring model...')
+    print('Scoring model...')
     model_scores = score_model(model,
                                datasets.validation.inputs,
                                datasets.validation.targets)
@@ -254,10 +254,10 @@ def main(argv):
                                                    predictions,
                                                    datasets.columns[:-1])
 
-    logger.info('\nSaving model to disk...')
+    print('\nSaving model to disk...')
     save_validation(validation_dataset, command_line_arguments.target)
     save_model(model, command_line_arguments.target)
-    logger.info('Saved model to %s', command_line_arguments.target)
+    print('Saved model to %s', command_line_arguments.target)
     runtime = f'Runtime: {time.time() - start_time:.2} seconds'
     logger.debug(runtime)
 
@@ -347,9 +347,7 @@ def bind_model_metadata(model, scores, cross_validation_scores=None):
 
     """
 
-    logger = logging.getLogger(__name__)
-
-    logger.info('\nModel scores:')
+    print('\nModel scores:')
     model_attributes = len(dir(model))
     score_count = 0
     for metric, score in scores.items():
@@ -359,7 +357,7 @@ def bind_model_metadata(model, scores, cross_validation_scores=None):
         score_count += 1
         setattr(model, metric, score)
         msg = '{metric:13} {score:.4}'.format(metric=metric + ':', score=score)
-        logger.info(msg)
+        print(msg)
 
     assert len(dir(model)) - model_attributes == score_count
     model_attributes = len(dir(model))
@@ -368,7 +366,7 @@ def bind_model_metadata(model, scores, cross_validation_scores=None):
         median_scores = cross_validation_scores[0]
         mad_scores = cross_validation_scores[1]
         n_splits = cross_validation_scores[2]
-        logger.info(f'\n{n_splits}-fold cross-validation scores:')
+        print(f'\n{n_splits}-fold cross-validation scores:')
         score_count = 0
         for metric, median_score, mad_score in zip(mad_scores, median_scores.values(), mad_scores.values()):
             if median_score is None:
@@ -383,8 +381,8 @@ def bind_model_metadata(model, scores, cross_validation_scores=None):
             mad_msg = '{metric:20} {score:.4}'.format(metric='mad ' + metric + ':',
                                                       score=mad_score)
 
-            logger.info(median_msg)
-            logger.info(mad_msg)
+            print(median_msg)
+            print(mad_msg)
 
         assert len(dir(model)) - model_attributes == score_count
         model_attributes = len(dir(model))
@@ -785,7 +783,7 @@ def configure_logging(log_level, logfile_path):
 
     console_handler = logging.StreamHandler()
     console_handler.setLevel(log_level_number)
-    console_formatter = logging.Formatter('%(message)s')
+    console_formatter = logging.Formatter('%(levelname)s: %(message)s')
     console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
 
@@ -883,6 +881,8 @@ def score_model(model, input_data, target_data):
                                                              predictions,
                                                              pos_label=negative_class)
 
+        scores['dor'] = diagnostic_odds_ratio_score(target_data, predictions)
+
     else:
         scores['precision'] = sklearn.metrics.precision_score(target_data,
                                                               predictions,
@@ -935,7 +935,6 @@ def cross_validate(model, datasets, n_splits):
     targets = np.concatenate((datasets.training.targets,
                               datasets.validation.targets))
 
-    # Split according to 10-fold cross-validation.
     kfold = sklearn.model_selection.KFold(n_splits=n_splits)
     scores_lists = dict()
     for training_index, testing_index in kfold.split(inputs):
@@ -948,7 +947,7 @@ def cross_validate(model, datasets, n_splits):
         new_model.fit(training_inputs, training_targets)
         scores = score_model(new_model, testing_inputs, testing_targets)
         for metric, score in scores.items():
-            if score is None:
+            if score is None or np.isnan(score):
                 continue
 
             if metric in scores_lists:
@@ -964,6 +963,43 @@ def cross_validate(model, datasets, n_splits):
         mad_scores[metric] = median_abs_deviation(score_list)
 
     return median_scores, mad_scores
+
+
+def diagnostic_odds_ratio_score(y_true, y_pred):
+    """
+    Compute the diagnostic odds ratio given by the formula:
+
+    DOR = tp * tn / (fp * fn)
+
+    Note that this function is only defined for binary classification and is
+    also undefined when fp or fn equal 0.
+    Source: https://www.sciencedirect.com/science/article/pii/S2210832718301546
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+
+    Returns:
+      The diagnostic odds ratio as a float or NaN if it is undefined.
+
+    """
+
+    logger = logging.getLogger(__name__)
+    confusion_matrix = sklearn.metrics.confusion_matrix(y_true, y_pred)
+    if len(confusion_matrix[0]) != 2:
+        logger.warning('diagnostic odds ratio is undefined for the multiclass situation.')
+        return float('nan')
+
+    tp = confusion_matrix[0][0]
+    fp = confusion_matrix[0][1]
+    fn = confusion_matrix[1][0]
+    tn = confusion_matrix[1][1]
+
+    if fp == 0 or fn == 0:
+        logger.warning('diagnostic odds ratio undefined when fp or fn equal 0.')
+        return float('nan')
+
+    return tp * tn / (fp * fn)
 
 
 class InvalidConfigError(Exception):
