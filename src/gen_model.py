@@ -167,9 +167,6 @@ SCORING_METHODS = ('accuracy',
                    'specificity',
                    'informedness')
 
-# Collects model scores together in a single object.
-Scores = namedtuple('Scores', SCORING_METHODS)
-
 # Contains input data and target data for a single dataset.
 Dataset = namedtuple('Dataset', 'inputs targets')
 
@@ -234,9 +231,9 @@ def main(argv):
                         parameter_grid=config.algorithm_parameters)
 
     logger.info('Scoring model...')
-    model_scores, predictions = score_model(model,
-                                            datasets.validation.inputs,
-                                            datasets.validation.targets)
+    model_scores = score_model(model,
+                               datasets.validation.inputs,
+                               datasets.validation.targets)
 
     if command_line_arguments.cross_validate:
         median_scores, mad_scores = cross_validate(model,
@@ -251,6 +248,7 @@ def main(argv):
     else:
         bind_model_metadata(model, model_scores)
 
+    predictions = model.predict(datasets.validation.inputs)
     validation_dataset = create_validation_dataset(datasets.validation.inputs,
                                                    datasets.validation.targets,
                                                    predictions,
@@ -334,7 +332,7 @@ def bind_model_metadata(model, scores, cross_validation_scores=None):
 
     Args
       model: An instance of a scikit-learn estimator.
-      scores: An instance of Scores.
+      scores: A scores dict returned by `score_model`.
       false_positive_rates: (Default=None) A list of false positive rates. If
                             this argument is given, `true_positive_rates` must
                             also be given.
@@ -354,13 +352,13 @@ def bind_model_metadata(model, scores, cross_validation_scores=None):
     logger.info('\nModel scores:')
     model_attributes = len(dir(model))
     score_count = 0
-    for metric, score in scores._asdict().items():
+    for metric, score in scores.items():
         if score is None:
             continue
 
         score_count += 1
         setattr(model, metric, score)
-        msg = '{metric:16} {score:.4}'.format(metric=metric, score=score)
+        msg = '{metric:13} {score:.4}'.format(metric=metric + ':', score=score)
         logger.info(msg)
 
     assert len(dir(model)) - model_attributes == score_count
@@ -372,19 +370,17 @@ def bind_model_metadata(model, scores, cross_validation_scores=None):
         n_splits = cross_validation_scores[2]
         logger.info(f'\n{n_splits}-fold cross-validation scores:')
         score_count = 0
-        median_dict = median_scores._asdict()
-        mad_dict = mad_scores._asdict()
-        for metric, median_score, mad_score in zip(mad_dict, median_dict.values(), mad_dict.values()):
+        for metric, median_score, mad_score in zip(mad_scores, median_scores.values(), mad_scores.values()):
             if median_score is None:
                 continue
 
             score_count += 2
             setattr(model, 'median_' + metric, median_score)
             setattr(model, 'mad_' + metric, mad_score)
-            median_msg = '{metric:23} {score:.4}'.format(metric='median ' + metric + ':',
+            median_msg = '{metric:20} {score:.4}'.format(metric='median ' + metric + ':',
                                                          score=median_score)
 
-            mad_msg = '{metric:23} {score:.4}'.format(metric='mad ' + metric + ':',
+            mad_msg = '{metric:20} {score:.4}'.format(metric='mad ' + metric + ':',
                                                       score=mad_score)
 
             logger.info(median_msg)
@@ -820,9 +816,11 @@ def create_scorer(scoring):
         raise ValueError(f'`{scoring}` is not a valid scoring method.')
 
     def scorer(model, inputs, targets):
-        model_scores, _ = score_model(model, inputs, targets)
-        score = getattr(model_scores, scoring)
-        if score is None:
+        model_scores = score_model(model, inputs, targets)
+        try:
+            score = model_scores[scoring]
+
+        except KeyError:
             raise ValueError(f'`{scoring}` can not be used with this type of classification.')
 
         return score
@@ -835,14 +833,19 @@ def score_model(model, input_data, target_data):
     Score the given model on a set of data. The scoring metrics used are
     accuracy, precision, sensitivity, specificity, and informedness.
 
-    Args
+    Args:
       model: A trained instance of a scikit-learn estimator.
       input_data: A 2D numpy array of inputs to the model where the rows
                   are samples and the columns are features.
       target_data: A 1D numpy array of expected model outputs.
 
-    Returns
-      An instance of Scores.
+    Returns:
+      A dict with keys for all the scoring metrics that were performed. For
+      binary classifiction, scoring metrics include accuracy, precision,
+      sensitivity, specificity, recall, informedness, likelihood_ratio, and mcc.
+      For the multiclass situation, this includes accuracy, precision, recall,
+      informedness, and mcc. Precision and recall in this situation are averaged
+      by class weight.
 
     """
 
@@ -855,95 +858,41 @@ def score_model(model, input_data, target_data):
     predictions = model.predict(input_data)
     assert len(predictions) == len(target_data)
     assert np.ndim(predictions) == 1
-    report = sklearn.metrics.classification_report(target_data,
-                                                   predictions,
-                                                   output_dict=True)
 
+    scores = dict()
+    scores['accuracy'] = sklearn.metrics.accuracy_score(target_data, predictions)
+    scores['informedness'] = sklearn.metrics.balanced_accuracy_score(target_data,
+                                                                     predictions,
+                                                                     adjusted=True)
+
+    scores['mcc'] = sklearn.metrics.matthews_corrcoef(target_data, predictions)
     classes = np.unique(target_data)
     if len(classes) == 2:
-        positive_class = str(np.max(classes))
-        negative_class = str(np.min(classes))
-        precision = report[positive_class]['precision']
-        sensitivity = report[positive_class]['recall']
-        specificity = report[negative_class]['recall']
+        positive_class = np.max(classes)
+        negative_class = np.min(classes)
+        scores['precision'] = sklearn.metrics.precision_score(target_data,
+                                                              predictions,
+                                                              pos_label=positive_class)
+
+        scores['recall'] = sklearn.metrics.recall_score(target_data,
+                                                        predictions,
+                                                        pos_label=positive_class)
+
+        scores['sensitivity'] = scores['recall']
+        scores['specificity'] = sklearn.metrics.recall_score(target_data,
+                                                             predictions,
+                                                             pos_label=negative_class)
 
     else:
-        precision = None
-        sensitivity = None
-        specificity = None
+        scores['precision'] = sklearn.metrics.precision_score(target_data,
+                                                              predictions,
+                                                              average='weighted')
 
-    scores = Scores(accuracy=report['accuracy'],
-                    precision=precision,
-                    hmean_precision=calculate_hmean_precision(report, classes),
-                    hmean_recall=calculate_hmean_recall(report, classes),
-                    sensitivity=sensitivity,
-                    specificity=specificity,
-                    informedness=calculate_informedness(report, classes))
+        scores['recall'] = sklearn.metrics.recall_score(target_data,
+                                                        predictions,
+                                                        average='weighted')
 
-    return scores, predictions
-
-
-def calculate_hmean_recall(classification_report, classes):
-    """
-    Calculate the harmonic mean of the recall values across all classes.
-
-    Args
-      classification_report: A dict returned by sklearn.metrics.classification_report().
-      classes: A sequence of unique class names.
-
-    Returns
-      The harmonic mean recall as a real number.
-
-    """
-
-    recalls = [classification_report[str(x)]['recall'] for x in classes]
-    hmean_recall = sp.stats.hmean(recalls)
-    assert -1 <= hmean_recall <= 1
-
-    return hmean_recall
-
-
-def calculate_hmean_precision(classification_report, classes):
-    """
-    Calculate the harmonic mean of the precision values across all classes.
-
-    Args
-      classification_report: A dict returned by sklearn.metrics.classification_report().
-      classes: A sequence of unique class names.
-
-    Returns
-      The harmonic mean precision as a real number.
-
-    """
-
-    precisions = [classification_report[str(x)]['precision'] for x in classes]
-    hmean_precision = sp.stats.hmean(precisions)
-    assert 0 <= hmean_precision <= 1
-
-    return hmean_precision
-
-
-def calculate_informedness(classification_report, classes):
-    """
-    Calculate informedness, otherwise known as Youden's J statistic
-    generalized by the following formula:
-
-    (sum(recalls) - number of classes / 2) * (2 / number of classes)
-
-    Args
-      classification_report: A dict returned by sklearn.metrics.classification_report().
-      classes: A sequence of unique class names.
-
-    Returns
-      The calculated informedness value as a real number between -1 and 1.
-
-    """
-
-    recall_sum = sum(classification_report[str(c)]['recall'] for c in classes)
-    informedness = (recall_sum - len(classes) / 2) * (2 / len(classes))
-    assert -1 <= informedness <= 1
-
-    return informedness
+    return scores
 
 
 def save_model(model, output_path):
@@ -997,8 +946,8 @@ def cross_validate(model, datasets, n_splits):
 
         new_model = sklearn.clone(model)
         new_model.fit(training_inputs, training_targets)
-        scores, _ = score_model(new_model, testing_inputs, testing_targets)
-        for metric, score in scores._asdict().items():
+        scores = score_model(new_model, testing_inputs, testing_targets)
+        for metric, score in scores.items():
             if score is None:
                 continue
 
@@ -1014,15 +963,7 @@ def cross_validate(model, datasets, n_splits):
         median_scores[metric] = np.median(score_list)
         mad_scores[metric] = median_abs_deviation(score_list)
 
-    if len(np.unique(targets)) > 2:
-        median_scores['precision'] = None
-        median_scores['sensitivity'] = None
-        median_scores['specificity'] = None
-        mad_scores['precision'] = None
-        mad_scores['sensitivity'] = None
-        mad_scores['specificity'] = None
-
-    return Scores(**median_scores), Scores(**mad_scores)
+    return median_scores, mad_scores
 
 
 class InvalidConfigError(Exception):
