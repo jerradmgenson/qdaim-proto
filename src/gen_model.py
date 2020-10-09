@@ -865,6 +865,7 @@ def score_model(model, input_data, target_data):
     scores['recall'] = recall_score(target_data, predictions)
     scores['roc_auc'] = roc_auc_score(target_data, predictions)
     scores['f1_score'] = f1_score(target_data, predictions)
+    scores['ami'] = sklearn.metrics.adjusted_mutual_info_score(target_data, predictions)
 
     classes = np.unique(target_data)
     if len(classes) == 2:
@@ -914,9 +915,11 @@ def cross_validate(model, datasets, n_splits):
     inputs = np.concatenate((datasets.training.inputs,
                              datasets.validation.inputs))
 
+    assert len(inputs) == len(datasets.training.inputs) + len(datasets.validation.inputs)
     targets = np.concatenate((datasets.training.targets,
                               datasets.validation.targets))
 
+    assert len(targets) == len(datasets.training.targets) + len(datasets.validation.targets)
     kfold = sklearn.model_selection.KFold(n_splits=n_splits)
     scores_lists = dict()
     for training_index, testing_index in kfold.split(inputs):
@@ -941,8 +944,12 @@ def cross_validate(model, datasets, n_splits):
     median_scores = dict()
     mad_scores = dict()
     for metric, score_list in scores_lists.items():
+        assert len(score_list) <= n_splits
         median_scores[metric] = np.median(score_list)
         mad_scores[metric] = median_abs_deviation(score_list)
+
+    assert len(median_scores) == len(scores)
+    assert len(mad_scores) == len(scores)
 
     return median_scores, mad_scores
 
@@ -962,7 +969,8 @@ def diagnostic_odds_ratio_score(y_true, y_pred):
       y_pred: Estimated targets as returned by a classifier.
 
     Returns:
-      The diagnostic odds ratio as a float or NaN if it is undefined.
+      The diagnostic odds ratio as a float or NaN if it is undefined. If both fp
+      and fn are 0 (the model classifies perfectly), return Inf.
 
     """
 
@@ -976,6 +984,14 @@ def diagnostic_odds_ratio_score(y_true, y_pred):
     fp = confusion_matrix[0][1]
     fn = confusion_matrix[1][0]
     tn = confusion_matrix[1][1]
+
+    assert 0 <= tp <= len(y_true)
+    assert 0 <= fp <= len(y_true)
+    assert 0 <= fn <= len(y_true)
+    assert 0 <= tn <= len(y_true)
+
+    if fp == 0 and fn == 0:
+        return np.inf
 
     if fp == 0 or fn == 0:
         logger.warning('diagnostic odds ratio undefined when fp or fn equal 0.')
@@ -1214,7 +1230,7 @@ def roc_auc_score(y_true, y_pred):
 
     return sklearn.metrics.roc_auc_score(y_true, y_pred,
                                          average='weighted',
-                                         multiclass='ovo')
+                                         multi_class='ovo')
 
 
 def f1_score(y_true, y_pred):
