@@ -830,10 +830,11 @@ def score_model(model, input_data, target_data):
     Returns:
       A dict with keys for all the scoring metrics that were performed. For
       binary classifiction, scoring metrics include accuracy, precision,
-      sensitivity, specificity, recall, informedness, likelihood_ratio, and mcc.
-      For the multiclass situation, this includes accuracy, precision, recall,
-      informedness, and mcc. Precision and recall in this situation are averaged
-      by class weight.
+      sensitivity, specificity, recall, informedness, likelihood_ratio, mcc,
+      f1_score, ami, dor, lr_plus, lr_minus, and roc_auc. For the multiclass
+      situation, this includes accuracy, precision, recall, informedness, mcc,
+      f1_score, and ami. Precision, recall, and f1_score in this situation are
+      averaged by class weight.
 
     """
 
