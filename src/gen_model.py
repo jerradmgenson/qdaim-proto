@@ -167,9 +167,6 @@ SCORING_METHODS = ('accuracy',
                    'specificity',
                    'informedness')
 
-# Collects model scores together in a single object.
-Scores = namedtuple('Scores', SCORING_METHODS)
-
 # Contains input data and target data for a single dataset.
 Dataset = namedtuple('Dataset', 'inputs targets')
 
@@ -199,7 +196,7 @@ def main(argv):
         command_line_arguments.target.stem + '.log')
 
     logger = configure_logging(command_line_arguments.log_level, logfile_path)
-    logger.info('Reading configuration file...')
+    print('Reading configuration file...')
     try:
         config = read_config_file(command_line_arguments.config)
 
@@ -209,20 +206,20 @@ def main(argv):
 
     random.seed(config.random_seed)
     np.random.seed(config.random_seed)
-    logger.info('Loading datasets...')
+    print('Loading datasets...')
     datasets = load_datasets(config.training_dataset,
                              config.validation_dataset)
 
-    logger.info('Training dataset:      %s', config.training_dataset)
-    logger.info('Validation dataset:    %s', config.validation_dataset)
-    logger.info('Random number seed:    %s', config.random_seed)
-    logger.info('Scoring method:        %s', config.scoring)
-    logger.info('Algorithm:             %s', config.algorithm.name)
-    logger.info('Preprocessing methods: %s', config.preprocessing_methods)
-    logger.info('Training samples:      %d', len(datasets.training.inputs))
-    logger.info('Validation samples:    %d', len(datasets.validation.inputs))
+    print(f'Training dataset:      {config.training_dataset}')
+    print(f'Validation dataset:    {config.validation_dataset}')
+    print(f'Random number seed:    {config.random_seed}')
+    print(f'Scoring method:        {config.scoring}')
+    print(f'Algorithm:             {config.algorithm.name}')
+    print(f'Preprocessing methods: {config.preprocessing_methods}')
+    print(f'Training samples:      {len(datasets.training.inputs)}')
+    print(f'Validation samples:    {len(datasets.validation.inputs)}')
     score_function = create_scorer(config.scoring)
-    logger.info('Generating model...')
+    print('Generating model...')
     model = train_model(config.algorithm.class_,
                         datasets.training.inputs,
                         datasets.training.targets,
@@ -233,10 +230,10 @@ def main(argv):
                         cpus=command_line_arguments.cpu,
                         parameter_grid=config.algorithm_parameters)
 
-    logger.info('Scoring model...')
-    model_scores, predictions = score_model(model,
-                                            datasets.validation.inputs,
-                                            datasets.validation.targets)
+    print('Scoring model...')
+    model_scores = score_model(model,
+                               datasets.validation.inputs,
+                               datasets.validation.targets)
 
     if command_line_arguments.cross_validate:
         median_scores, mad_scores = cross_validate(model,
@@ -251,15 +248,16 @@ def main(argv):
     else:
         bind_model_metadata(model, model_scores)
 
+    predictions = model.predict(datasets.validation.inputs)
     validation_dataset = create_validation_dataset(datasets.validation.inputs,
                                                    datasets.validation.targets,
                                                    predictions,
                                                    datasets.columns[:-1])
 
-    logger.info('\nSaving model to disk...')
+    print('\nSaving model to disk...')
     save_validation(validation_dataset, command_line_arguments.target)
     save_model(model, command_line_arguments.target)
-    logger.info('Saved model to %s', command_line_arguments.target)
+    print(f'Saved model to {command_line_arguments.target}')
     runtime = f'Runtime: {time.time() - start_time:.2} seconds'
     logger.debug(runtime)
 
@@ -334,34 +332,24 @@ def bind_model_metadata(model, scores, cross_validation_scores=None):
 
     Args
       model: An instance of a scikit-learn estimator.
-      scores: An instance of Scores.
-      false_positive_rates: (Default=None) A list of false positive rates. If
-                            this argument is given, `true_positive_rates` must
-                            also be given.
-      true_positive_rates: (Default=None) A list of true positive rates
-                           that corresponds to the rates in
-                           `false_positive_rates`. If this argument is given,
-                           `false_positive_rates` must also be given.
-      auc: (Default=None) Area under the receiver operator characteristic curve.
+      scores: A scores dict returned by `score_model`.
+      cross_validation_scores: (Default=None) A 3-tuple of cross-validation scores
+                               consisting of (median_scores, mad_scores, n_splits).
 
     Returns
       None
 
     """
 
-    logger = logging.getLogger(__name__)
-
-    logger.info('\nModel scores:')
+    print('\nModel scores:')
     model_attributes = len(dir(model))
     score_count = 0
-    for metric, score in scores._asdict().items():
-        if score is None:
-            continue
-
-        score_count += 1
-        setattr(model, metric, score)
-        msg = '{metric:16} {score:.4}'.format(metric=metric, score=score)
-        logger.info(msg)
+    for metric, score in scores.items():
+        if score:
+            score_count += 1
+            setattr(model, metric, score)
+            msg = '{metric:13} {score:.4}'.format(metric=metric + ':', score=score)
+            print(msg)
 
     assert len(dir(model)) - model_attributes == score_count
     model_attributes = len(dir(model))
@@ -370,25 +358,21 @@ def bind_model_metadata(model, scores, cross_validation_scores=None):
         median_scores = cross_validation_scores[0]
         mad_scores = cross_validation_scores[1]
         n_splits = cross_validation_scores[2]
-        logger.info(f'\n{n_splits}-fold cross-validation scores:')
+        print(f'\n{n_splits}-fold cross-validation scores:')
         score_count = 0
-        median_dict = median_scores._asdict()
-        mad_dict = mad_scores._asdict()
-        for metric, median_score, mad_score in zip(mad_dict, median_dict.values(), mad_dict.values()):
-            if median_score is None:
-                continue
+        for metric, median_score, mad_score in zip(mad_scores, median_scores.values(), mad_scores.values()):
+            if median_score:
+                score_count += 2
+                setattr(model, 'median_' + metric, median_score)
+                setattr(model, 'mad_' + metric, mad_score)
+                median_msg = '{metric:20} {score:.4}'.format(metric='median ' + metric + ':',
+                                                             score=median_score)
 
-            score_count += 2
-            setattr(model, 'median_' + metric, median_score)
-            setattr(model, 'mad_' + metric, mad_score)
-            median_msg = '{metric:23} {score:.4}'.format(metric='median ' + metric + ':',
-                                                         score=median_score)
+                mad_msg = '{metric:20} {score:.4}'.format(metric='mad ' + metric + ':',
+                                                          score=mad_score)
 
-            mad_msg = '{metric:23} {score:.4}'.format(metric='mad ' + metric + ':',
-                                                      score=mad_score)
-
-            logger.info(median_msg)
-            logger.info(mad_msg)
+                print(median_msg)
+                print(mad_msg)
 
         assert len(dir(model)) - model_attributes == score_count
         model_attributes = len(dir(model))
@@ -789,7 +773,7 @@ def configure_logging(log_level, logfile_path):
 
     console_handler = logging.StreamHandler()
     console_handler.setLevel(log_level_number)
-    console_formatter = logging.Formatter('%(message)s')
+    console_formatter = logging.Formatter('%(levelname)s: %(message)s')
     console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
 
@@ -820,9 +804,11 @@ def create_scorer(scoring):
         raise ValueError(f'`{scoring}` is not a valid scoring method.')
 
     def scorer(model, inputs, targets):
-        model_scores, _ = score_model(model, inputs, targets)
-        score = getattr(model_scores, scoring)
-        if score is None:
+        model_scores = score_model(model, inputs, targets)
+        try:
+            score = model_scores[scoring]
+
+        except KeyError:
             raise ValueError(f'`{scoring}` can not be used with this type of classification.')
 
         return score
@@ -835,14 +821,20 @@ def score_model(model, input_data, target_data):
     Score the given model on a set of data. The scoring metrics used are
     accuracy, precision, sensitivity, specificity, and informedness.
 
-    Args
+    Args:
       model: A trained instance of a scikit-learn estimator.
       input_data: A 2D numpy array of inputs to the model where the rows
                   are samples and the columns are features.
       target_data: A 1D numpy array of expected model outputs.
 
-    Returns
-      An instance of Scores.
+    Returns:
+      A dict with keys for all the scoring metrics that were performed. For
+      binary classifiction, scoring metrics include accuracy, precision,
+      sensitivity, specificity, recall, informedness, likelihood_ratio, mcc,
+      f1_score, ami, dor, lr_plus, lr_minus, and roc_auc. For the multiclass
+      situation, this includes accuracy, precision, recall, informedness, mcc,
+      f1_score, and ami. Precision, recall, and f1_score in this situation are
+      averaged by class weight.
 
     """
 
@@ -855,95 +847,31 @@ def score_model(model, input_data, target_data):
     predictions = model.predict(input_data)
     assert len(predictions) == len(target_data)
     assert np.ndim(predictions) == 1
-    report = sklearn.metrics.classification_report(target_data,
-                                                   predictions,
-                                                   output_dict=True)
 
-    classes = np.unique(target_data)
+    scores = dict()
+    scores['accuracy'] = sklearn.metrics.accuracy_score(target_data, predictions)
+    scores['informedness'] = informedness_score(target_data, predictions)
+    scores['mcc'] = sklearn.metrics.matthews_corrcoef(target_data, predictions)
+    scores['precision'] = precision_score(target_data, predictions)
+    scores['recall'] = recall_score(target_data, predictions)
+    scores['f1_score'] = f1_score(target_data, predictions)
+    scores['ami'] = sklearn.metrics.adjusted_mutual_info_score(target_data, predictions)
+
+    classes = np.unique(np.concatenate([target_data, predictions]))
     if len(classes) == 2:
-        positive_class = str(np.max(classes))
-        negative_class = str(np.min(classes))
-        precision = report[positive_class]['precision']
-        sensitivity = report[positive_class]['recall']
-        specificity = report[negative_class]['recall']
+        scores['sensitivity'] = sensitivity_score(target_data, predictions)
+        scores['specificity'] = specificity_score(target_data, predictions)
+        scores['dor'] = diagnostic_odds_ratio_score(target_data, predictions)
+        scores['lr_plus'] = positive_likelihood_ratio_score(target_data, predictions)
+        scores['lr_minus'] = negative_likelihood_ratio_score(target_data, predictions)
+        try:
+            scores['roc_auc'] = sklearn.metrics.roc_auc_score(target_data, predictions)
 
-    else:
-        precision = None
-        sensitivity = None
-        specificity = None
+        except ValueError as value_error:
+            logger = logging.getLogger(__name__)
+            logger.warning(str(value_error))
 
-    scores = Scores(accuracy=report['accuracy'],
-                    precision=precision,
-                    hmean_precision=calculate_hmean_precision(report, classes),
-                    hmean_recall=calculate_hmean_recall(report, classes),
-                    sensitivity=sensitivity,
-                    specificity=specificity,
-                    informedness=calculate_informedness(report, classes))
-
-    return scores, predictions
-
-
-def calculate_hmean_recall(classification_report, classes):
-    """
-    Calculate the harmonic mean of the recall values across all classes.
-
-    Args
-      classification_report: A dict returned by sklearn.metrics.classification_report().
-      classes: A sequence of unique class names.
-
-    Returns
-      The harmonic mean recall as a real number.
-
-    """
-
-    recalls = [classification_report[str(x)]['recall'] for x in classes]
-    hmean_recall = sp.stats.hmean(recalls)
-    assert -1 <= hmean_recall <= 1
-
-    return hmean_recall
-
-
-def calculate_hmean_precision(classification_report, classes):
-    """
-    Calculate the harmonic mean of the precision values across all classes.
-
-    Args
-      classification_report: A dict returned by sklearn.metrics.classification_report().
-      classes: A sequence of unique class names.
-
-    Returns
-      The harmonic mean precision as a real number.
-
-    """
-
-    precisions = [classification_report[str(x)]['precision'] for x in classes]
-    hmean_precision = sp.stats.hmean(precisions)
-    assert 0 <= hmean_precision <= 1
-
-    return hmean_precision
-
-
-def calculate_informedness(classification_report, classes):
-    """
-    Calculate informedness, otherwise known as Youden's J statistic
-    generalized by the following formula:
-
-    (sum(recalls) - number of classes / 2) * (2 / number of classes)
-
-    Args
-      classification_report: A dict returned by sklearn.metrics.classification_report().
-      classes: A sequence of unique class names.
-
-    Returns
-      The calculated informedness value as a real number between -1 and 1.
-
-    """
-
-    recall_sum = sum(classification_report[str(c)]['recall'] for c in classes)
-    informedness = (recall_sum - len(classes) / 2) * (2 / len(classes))
-    assert -1 <= informedness <= 1
-
-    return informedness
+    return scores
 
 
 def save_model(model, output_path):
@@ -983,10 +911,11 @@ def cross_validate(model, datasets, n_splits):
     inputs = np.concatenate((datasets.training.inputs,
                              datasets.validation.inputs))
 
+    assert len(inputs) == len(datasets.training.inputs) + len(datasets.validation.inputs)
     targets = np.concatenate((datasets.training.targets,
                               datasets.validation.targets))
 
-    # Split according to 10-fold cross-validation.
+    assert len(targets) == len(datasets.training.targets) + len(datasets.validation.targets)
     kfold = sklearn.model_selection.KFold(n_splits=n_splits)
     scores_lists = dict()
     for training_index, testing_index in kfold.split(inputs):
@@ -997,9 +926,9 @@ def cross_validate(model, datasets, n_splits):
 
         new_model = sklearn.clone(model)
         new_model.fit(training_inputs, training_targets)
-        scores, _ = score_model(new_model, testing_inputs, testing_targets)
-        for metric, score in scores._asdict().items():
-            if score is None:
+        scores = score_model(new_model, testing_inputs, testing_targets)
+        for metric, score in scores.items():
+            if score is None or np.isnan(score):
                 continue
 
             if metric in scores_lists:
@@ -1011,23 +940,295 @@ def cross_validate(model, datasets, n_splits):
     median_scores = dict()
     mad_scores = dict()
     for metric, score_list in scores_lists.items():
+        assert len(score_list) <= n_splits
         median_scores[metric] = np.median(score_list)
         mad_scores[metric] = median_abs_deviation(score_list)
 
-    if len(np.unique(targets)) > 2:
-        median_scores['precision'] = None
-        median_scores['sensitivity'] = None
-        median_scores['specificity'] = None
-        mad_scores['precision'] = None
-        mad_scores['sensitivity'] = None
-        mad_scores['specificity'] = None
+    return median_scores, mad_scores
 
-    return Scores(**median_scores), Scores(**mad_scores)
+
+def diagnostic_odds_ratio_score(y_true, y_pred):
+    """
+    Compute the diagnostic odds ratio given by the formula:
+
+    DOR = tp * tn / (fp * fn)
+
+    Note that this function is only defined for binary classification and is
+    also undefined when fp or fn equal 0.
+    Source: https://www.sciencedirect.com/science/article/pii/S2210832718301546
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+
+    Returns:
+      The diagnostic odds ratio as a float or NaN if it is undefined. If both fp
+      and fn are 0 (the model classifies perfectly), return Inf.
+
+    """
+
+    logger = logging.getLogger(__name__)
+    confusion_matrix = sklearn.metrics.confusion_matrix(y_true, y_pred)
+    if len(confusion_matrix[0]) != 2:
+        raise ValueError('diagnostic odds ratio is undefined for the multiclass situation.')
+
+    tp = confusion_matrix[0][0]
+    fp = confusion_matrix[0][1]
+    fn = confusion_matrix[1][0]
+    tn = confusion_matrix[1][1]
+
+    assert 0 <= tp <= len(y_true)
+    assert 0 <= fp <= len(y_true)
+    assert 0 <= fn <= len(y_true)
+    assert 0 <= tn <= len(y_true)
+
+    if fp == 0 and fn == 0:
+        return np.inf
+
+    if fp == 0 or fn == 0:
+        logger.warning('diagnostic odds ratio undefined when fp or fn equal 0.')
+        return np.nan
+
+    return tp * tn / (fp * fn)
+
+
+def positive_likelihood_ratio_score(y_true, y_pred, warn=True):
+    """
+    Compute the likelihood ratio for positive test results given by the
+    formula:
+
+    LR+ = sensitivity / (1 - specificity)
+
+    Note that this function is only defined for binary classification.
+    Source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4975285/
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+      warn: Whether to log a warning and return 0, nan, or inf when the
+            function is undefined or raise an exception. Defaults to True.
+
+    Returns:
+      The likelihood ratio for positive test results as a float. If the
+      specificity is 1 and warn is True, return inf.
+
+    Raises:
+      ValueError when `y_true` contains more than two classes and `warn`
+      is False or specificity is 1.
+
+    """
+
+    logger = logging.getLogger(__name__)
+    try:
+        sensitivity = sensitivity_score(y_true, y_pred)
+        specificity = specificity_score(y_true, y_pred)
+
+    except ValueError:
+        msg = 'likelihood ratio is undefined for the multiclass situation.'
+        raise ValueError(msg)
+
+    if specificity == 1:
+        msg = 'positive likelihood ratio is undefined when specificity is 1.'
+        if warn:
+            logger.warning(msg)
+            return np.inf
+
+        raise ValueError(msg)
+
+    return sensitivity / (1 - specificity)
+
+
+def negative_likelihood_ratio_score(y_true, y_pred, warn=True):
+    """
+    Compute the likelihood ratio for negative test results given by the
+    formula:
+
+    LR- = (1 - sensitivity) / specificity
+
+    Note that this function is only defined for binary classification.
+    Source: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4975285/
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+      warn: Whether to log a warning and return 0, nan, or inf when the
+            function is undefined or raise an exception. Defaults to True.
+
+    Returns:
+      The likelihood ratio for negative test results as a float. If the
+      specificity is 0 and warn is True, return inf.
+
+    Raises:
+      ValueError when `y_true` contains more than two classes or `warn`
+      is True and specificity is 0.
+
+    """
+
+    logger = logging.getLogger(__name__)
+    try:
+        sensitivity = sensitivity_score(y_true, y_pred)
+        specificity = specificity_score(y_true, y_pred)
+
+    except ValueError:
+        msg = 'likelihood ratio is undefined for the multiclass situation.'
+        raise ValueError(msg)
+
+    if specificity == 0:
+        msg = 'negative likelihood ratio is undefined when specificity is 0.'
+        if warn:
+            logger.warning(msg)
+            return np.inf
+
+        raise ValueError(msg)
+
+    return (1 - sensitivity) / specificity
+
+
+def sensitivity_score(y_true, y_pred):
+    """
+    Compute the sensitivity, i.e. recall of the positive class.
+
+    Note that this function is only defined for binary classification.
+    Source: https://www.sciencedirect.com/science/article/pii/S2210832718301546
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+
+    Returns:
+      The sensitivity as a float.
+
+    Raises:
+      ValueError when `y_true` contains more than two classes.
+
+    """
+
+    classes = np.unique(np.concatenate([y_true, y_pred]))
+    if len(classes) != 2:
+        msg = 'sensitivity is not defined for the multiclass situation.'
+        raise ValueError(msg)
+
+    positive_class = np.max(classes)
+    return sklearn.metrics.recall_score(y_true, y_pred, pos_label=positive_class)
+
+
+def specificity_score(y_true, y_pred):
+    """
+    Compute the specificity, i.e. recall of the negative class.
+
+    Note that this function is only defined for binary classification.
+    Source: https://www.sciencedirect.com/science/article/pii/S2210832718301546
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+
+    Returns:
+      The specificity as a float.
+
+    Raises:
+      ValueError when `y_true` contains more than two classes.
+
+    """
+
+    classes = np.unique(np.concatenate([y_true, y_pred]))
+    if len(classes) != 2:
+        msg = 'specificity is not defined for the multiclass situation.'
+        raise ValueError(msg)
+
+    negative_class = np.min(classes)
+    return sklearn.metrics.recall_score(y_true, y_pred, pos_label=negative_class)
+
+
+def informedness_score(y_true, y_pred):
+    """
+    Compute the informedness, also known as Youden's J statistic.
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+
+    Returns:
+      The informedness as a float.
+
+    """
+
+    if len(np.unique(np.concatenate([y_true, y_pred]))) == 2:
+        return sensitivity_score(y_true, y_pred) + specificity_score(y_true, y_pred) - 1
+
+    return sklearn.metrics.balanced_accuracy_score(y_true, y_pred, adjusted=True)
+
+
+def precision_score(y_true, y_pred):
+    """
+    Compute the precision. For the multiclass situation, use the weighted
+    average across all classes.
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+
+    Returns:
+      The precision as a float.
+
+    """
+
+    classes = np.unique(np.concatenate([y_true, y_pred]))
+    if len(classes) == 2:
+        positive_class = np.max(classes)
+        return sklearn.metrics.precision_score(y_true, y_pred,
+                                               pos_label=positive_class)
+
+    return sklearn.metrics.precision_score(y_true, y_pred, average='weighted')
+
+
+def recall_score(y_true, y_pred):
+    """
+    Compute the recall. For the multiclass situation, use the weighted
+    average across all classes.
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+
+    Returns:
+      The recall as a float.
+
+    """
+
+    classes = np.unique(np.concatenate([y_true, y_pred]))
+    if len(classes) == 2:
+        positive_class = np.max(classes)
+        return sklearn.metrics.recall_score(y_true, y_pred,
+                                            pos_label=positive_class)
+
+    return sklearn.metrics.recall_score(y_true, y_pred, average='weighted')
+
+
+def f1_score(y_true, y_pred):
+    """
+    Compute the F1 score. For the multiclass situation, use the weighted
+    average across all classes.
+
+    Args:
+      y_true: Ground truth (correct) target values.
+      y_pred: Estimated targets as returned by a classifier.
+
+    Returns:
+      The F1 score as a float.
+
+    """
+
+    classes = np.unique(np.concatenate([y_true, y_pred]))
+    if len(classes) == 2:
+        return sklearn.metrics.f1_score(y_true, y_pred)
+
+    return sklearn.metrics.f1_score(y_true, y_pred, average='weighted')
 
 
 class InvalidConfigError(Exception):
     """
-    An exception that is raised when the config file is not valid.
+    Raised when the config file is not valid.
 
     """
 
