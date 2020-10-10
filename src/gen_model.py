@@ -333,14 +333,8 @@ def bind_model_metadata(model, scores, cross_validation_scores=None):
     Args
       model: An instance of a scikit-learn estimator.
       scores: A scores dict returned by `score_model`.
-      false_positive_rates: (Default=None) A list of false positive rates. If
-                            this argument is given, `true_positive_rates` must
-                            also be given.
-      true_positive_rates: (Default=None) A list of true positive rates
-                           that corresponds to the rates in
-                           `false_positive_rates`. If this argument is given,
-                           `false_positive_rates` must also be given.
-      auc: (Default=None) Area under the receiver operator characteristic curve.
+      cross_validation_scores: (Default=None) A 3-tuple of cross-validation scores
+                               consisting of (median_scores, mad_scores, n_splits).
 
     Returns
       None
