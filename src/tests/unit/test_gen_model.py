@@ -321,110 +321,6 @@ class CreateScorerTests(unittest.TestCase):
             gen_model.create_scorer('invalid')
 
 
-class CalculateHmeanRecallTests(unittest.TestCase):
-    """
-    Tests for gen_model.calculate_hmean_recall
-
-    """
-
-    def test_100_percent_correct(self):
-        """
-        Test calculate_hmean_recall() with 100% correct recall.
-
-        """
-
-        report = dict(a=dict(recall=1.0),
-                      b=dict(recall=1.0),
-                      c=dict(recall=1.0),
-                      d=dict(recall=1.0))
-
-        classes = report.keys()
-        hmean_recall = gen_model.calculate_hmean_recall(report, classes)
-        self.assertEqual(hmean_recall, 1.0)
-
-    def test_random_recalls1(self):
-        """
-        Test calculate_hmean_recall() with randomly-generated recall values.
-
-        """
-
-        report = dict(a=dict(recall=0.0161),
-                      b=dict(recall=0.8070),
-                      c=dict(recall=0.1344),
-                      d=dict(recall=0.0156),
-                      e=dict(recall=0.6629))
-
-        classes = report.keys()
-        hmean_recall = gen_model.calculate_hmean_recall(report, classes)
-        self.assertAlmostEqual(hmean_recall, 0.0366562)
-
-    def test_random_recalls2(self):
-        """
-        Test calculate_hmean_recall() with randomly-generated recall values.
-
-        """
-
-        report = dict(a=dict(recall=0.3014),
-                      b=dict(recall=0.2736),
-                      c=dict(recall=0.2339))
-
-        classes = report.keys()
-        hmean_recall = gen_model.calculate_hmean_recall(report, classes)
-        self.assertAlmostEqual(hmean_recall, 0.2667105)
-
-
-class CalculateHmeanPrecisionTests(unittest.TestCase):
-    """
-    Tests for gen_model.calculate_hmean_precision
-
-    """
-
-    def test_100_percent_correct(self):
-        """
-        Test calculate_hmean_precision() with 100% correct precision.
-
-        """
-
-        report = dict(a=dict(precision=1.0),
-                      b=dict(precision=1.0),
-                      c=dict(precision=1.0),
-                      d=dict(precision=1.0))
-
-        classes = report.keys()
-        hmean_precision = gen_model.calculate_hmean_precision(report, classes)
-        self.assertEqual(hmean_precision, 1.0)
-
-    def test_random_precisions1(self):
-        """
-        Test calculate_hmean_precision() with randomly-generated precision values.
-
-        """
-
-        report = dict(a=dict(precision=0.0161),
-                      b=dict(precision=0.8070),
-                      c=dict(precision=0.1344),
-                      d=dict(precision=0.0156),
-                      e=dict(precision=0.6629))
-
-        classes = report.keys()
-        hmean_precision = gen_model.calculate_hmean_precision(report, classes)
-        self.assertAlmostEqual(hmean_precision, 0.0366562)
-
-    def test_random_precisions2(self):
-        """
-        Test calculate_hmean_precision() with randomly-generated precision values.
-
-        """
-
-        report = dict(a=dict(precision=0.3014),
-                      b=dict(precision=0.2736),
-                      c=dict(precision=0.2339))
-
-        classes = report.keys()
-        hmean_precision = gen_model.calculate_hmean_precision(report, classes)
-        self.assertAlmostEqual(hmean_precision, 0.2667105)
-
-
 class CalculateInformednessTests(unittest.TestCase):
     """
     Tests for gen_model.calculate_informedness
@@ -437,11 +333,9 @@ class CalculateInformednessTests(unittest.TestCase):
 
         """
 
-        report = dict(a=dict(recall=1.0),
-                      b=dict(recall=1.0))
-
-        classes = report.keys()
-        informedness = gen_model.calculate_informedness(report, classes)
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        informedness = gen_model.informedness_score(y_true, y_pred)
         self.assertEqual(informedness, 1.0)
 
     def test_50_percent_correct_binary_classification(self):
@@ -450,11 +344,9 @@ class CalculateInformednessTests(unittest.TestCase):
 
         """
 
-        report = dict(a=dict(recall=0.5),
-                      b=dict(recall=0.5))
-
-        classes = report.keys()
-        informedness = gen_model.calculate_informedness(report, classes)
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        informedness = gen_model.informedness_score(y_true, y_pred)
         self.assertEqual(informedness, 0)
 
     def test_random_binary_classifications(self):
@@ -463,12 +355,10 @@ class CalculateInformednessTests(unittest.TestCase):
 
         """
 
-        report = dict(a=dict(recall=0.7572),
-                      b=dict(recall=0.4744))
-
-        classes = report.keys()
-        informedness = gen_model.calculate_informedness(report, classes)
-        self.assertAlmostEqual(informedness, 0.2316)
+        y_true = np.array([1, 0, 1, 1, 1, 1, 0, 0, 1, 0])
+        y_pred = np.array([0, 1, 1, 1, 1, 1, 0, 1, 0, 1])
+        informedness = gen_model.informedness_score(y_true, y_pred)
+        self.assertAlmostEqual(informedness, -0.08333333333333337)
 
     def test_100_percent_correct_ternary_classification(self):
         """
@@ -476,12 +366,9 @@ class CalculateInformednessTests(unittest.TestCase):
 
         """
 
-        report = dict(a=dict(recall=1.0),
-                      b=dict(recall=1.0),
-                      c=dict(recall=1.0))
-
-        classes = report.keys()
-        informedness = gen_model.calculate_informedness(report, classes)
+        y_true = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2])
+        y_pred = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2])
+        informedness = gen_model.informedness_score(y_true, y_pred)
         self.assertEqual(informedness, 1.0)
 
     def test_50_percent_correct_ternary_classification(self):
@@ -490,13 +377,10 @@ class CalculateInformednessTests(unittest.TestCase):
 
         """
 
-        report = dict(a=dict(recall=0.5),
-                      b=dict(recall=0.5),
-                      c=dict(recall=0.5))
-
-        classes = report.keys()
-        informedness = gen_model.calculate_informedness(report, classes)
-        self.assertEqual(informedness, 0)
+        y_true = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2])
+        y_pred = np.array([0, 0, 0, 1, 1, 0, 0, 0, 0, 0])
+        informedness = gen_model.informedness_score(y_true, y_pred)
+        self.assertEqual(informedness, 0.3333333333333332)
 
     def test_random_ternary_classifications(self):
         """
@@ -504,13 +388,10 @@ class CalculateInformednessTests(unittest.TestCase):
 
         """
 
-        report = dict(a=dict(recall=0.1859),
-                      b=dict(recall=0.8663),
-                      c=dict(recall=0.2619))
-
-        classes = report.keys()
-        informedness = gen_model.calculate_informedness(report, classes)
-        self.assertAlmostEqual(informedness, -0.1239333)
+        y_true = np.array([2, 0, 1, 2, 0, 0, 0, 1, 0, 1])
+        y_pred = np.array([0, 1, 0, 0, 2, 2, 0, 2, 1, 1])
+        informedness = gen_model.informedness_score(y_true, y_pred)
+        self.assertAlmostEqual(informedness, -0.23333333333333328)
 
     def test_100_percent_correct_quaternary_classification(self):
         """
@@ -518,13 +399,9 @@ class CalculateInformednessTests(unittest.TestCase):
 
         """
 
-        report = dict(a=dict(recall=1.0),
-                      b=dict(recall=1.0),
-                      c=dict(recall=1.0),
-                      d=dict(recall=1.0))
-
-        classes = report.keys()
-        informedness = gen_model.calculate_informedness(report, classes)
+        y_true = np.array([0, 0, 1, 1, 2, 2, 3, 3, 3, 3])
+        y_pred = np.array([0, 0, 1, 1, 2, 2, 3, 3, 3, 3])
+        informedness = gen_model.informedness_score(y_true, y_pred)
         self.assertEqual(informedness, 1.0)
 
     def test_50_percent_correct_quaternary_classification(self):
@@ -533,14 +410,10 @@ class CalculateInformednessTests(unittest.TestCase):
 
         """
 
-        report = dict(a=dict(recall=0.5),
-                      b=dict(recall=0.5),
-                      c=dict(recall=0.5),
-                      d=dict(recall=0.5))
-
-        classes = report.keys()
-        informedness = gen_model.calculate_informedness(report, classes)
-        self.assertEqual(informedness, 0)
+        y_true = np.array([0, 0, 1, 1, 2, 2, 3, 3, 3, 3])
+        y_pred = np.array([0, 0, 1, 1, 2, 0, 0, 0, 0, 0])
+        informedness = gen_model.informedness_score(y_true, y_pred)
+        self.assertEqual(informedness, 0.5)
 
     def test_random_quaternary_classifications(self):
         """
@@ -548,14 +421,10 @@ class CalculateInformednessTests(unittest.TestCase):
 
         """
 
-        report = dict(a=dict(recall=0.9741),
-                      b=dict(recall=0.8153),
-                      c=dict(recall=0.3981),
-                      d=dict(recall=0.4263))
-
-        classes = report.keys()
-        informedness = gen_model.calculate_informedness(report, classes)
-        self.assertAlmostEqual(informedness, 0.3069)
+        y_true = np.array([3, 2, 3, 0, 1, 3, 1, 1, 4, 4])
+        y_pred = np.array([0, 3, 4, 2, 0, 0, 2, 3, 0, 3])
+        informedness = gen_model.informedness_score(y_true, y_pred)
+        self.assertAlmostEqual(informedness, -0.25)
 
     def test_100_percent_correct_quinary_classification(self):
         """
@@ -563,14 +432,9 @@ class CalculateInformednessTests(unittest.TestCase):
 
         """
 
-        report = dict(a=dict(recall=1.0),
-                      b=dict(recall=1.0),
-                      c=dict(recall=1.0),
-                      d=dict(recall=1.0),
-                      e=dict(recall=1.0))
-
-        classes = report.keys()
-        informedness = gen_model.calculate_informedness(report, classes)
+        y_true = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4])
+        y_pred = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4])
+        informedness = gen_model.informedness_score(y_true, y_pred)
         self.assertEqual(informedness, 1.0)
 
     def test_50_percent_correct_quinary_classification(self):
@@ -579,15 +443,10 @@ class CalculateInformednessTests(unittest.TestCase):
 
         """
 
-        report = dict(a=dict(recall=0.5),
-                      b=dict(recall=0.5),
-                      c=dict(recall=0.5),
-                      d=dict(recall=0.5),
-                      e=dict(recall=0.5))
-
-        classes = report.keys()
-        informedness = gen_model.calculate_informedness(report, classes)
-        self.assertEqual(informedness, 0)
+        y_true = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4])
+        y_pred = np.array([0, 1, 1, 0, 2, 0, 3, 0, 4, 0])
+        informedness = gen_model.informedness_score(y_true, y_pred)
+        self.assertEqual(informedness, 0.37499999999999994)
 
     def test_random_quinary_classifications(self):
         """
@@ -595,15 +454,10 @@ class CalculateInformednessTests(unittest.TestCase):
 
         """
 
-        report = dict(a=dict(recall=0.4476),
-                      b=dict(recall=0.4212),
-                      c=dict(recall=0.3679),
-                      d=dict(recall=0.2574),
-                      e=dict(recall=0.5060))
-
-        classes = report.keys()
-        informedness = gen_model.calculate_informedness(report, classes)
-        self.assertAlmostEqual(informedness, -0.19996)
+        y_true = np.array([4, 2, 0, 5, 4, 0, 2, 0, 3, 1])
+        y_pred = np.array([5, 1, 1, 1, 2, 0, 3, 4, 5, 1])
+        informedness = gen_model.informedness_score(y_true, y_pred)
+        self.assertAlmostEqual(informedness, 0.06666666666666667)
 
 
 class ScoreModelTests(unittest.TestCase):
@@ -622,16 +476,22 @@ class ScoreModelTests(unittest.TestCase):
         target_data = np.array([0, 1, 1, 0])
         model = Mock()
         model.predict = Mock(return_value=target_data)
-        scores, _ = gen_model.score_model(model, input_data, target_data)
+        scores = gen_model.score_model(model, input_data, target_data)
         self.assertEqual(model.predict.call_count, 1)
         self.assertTrue((model.predict.call_args[0][0] == input_data).all())
-        self.assertEqual(scores.accuracy, 1.0)
-        self.assertEqual(scores.precision, 1.0)
-        self.assertEqual(scores.hmean_precision, 1.0)
-        self.assertEqual(scores.hmean_recall, 1.0)
-        self.assertEqual(scores.sensitivity, 1.0)
-        self.assertEqual(scores.specificity, 1.0)
-        self.assertEqual(scores.informedness, 1.0)
+        self.assertEqual(scores['accuracy'], 1.0)
+        self.assertEqual(scores['precision'], 1.0)
+        self.assertEqual(scores['recall'], 1.0)
+        self.assertEqual(scores['sensitivity'], 1.0)
+        self.assertEqual(scores['specificity'], 1.0)
+        self.assertEqual(scores['informedness'], 1.0)
+        self.assertEqual(scores['mcc'], 1.0)
+        self.assertEqual(scores['f1_score'], 1.0)
+        self.assertEqual(scores['ami'], 1.0)
+        self.assertEqual(scores['dor'], np.inf)
+        self.assertEqual(scores['lr_plus'], np.inf)
+        self.assertEqual(scores['lr_minus'], 0.0)
+        self.assertEqual(scores['roc_auc'], 1.0)
 
     def test_50_percent_binary_classification(self):
         """
@@ -643,14 +503,19 @@ class ScoreModelTests(unittest.TestCase):
         target_data = input_data
         model = Mock()
         model.predict = Mock(return_value=np.array([0, 1, 1, 0]))
-        scores, _ = gen_model.score_model(model, input_data, target_data)
-        self.assertAlmostEqual(scores.accuracy, 0.5)
-        self.assertAlmostEqual(scores.precision, 0.5)
-        self.assertAlmostEqual(scores.hmean_precision, 0.5)
-        self.assertAlmostEqual(scores.hmean_recall, 0.5)
-        self.assertAlmostEqual(scores.sensitivity, 0.5)
-        self.assertAlmostEqual(scores.specificity, 0.5)
-        self.assertAlmostEqual(scores.informedness, 0)
+        scores = gen_model.score_model(model, input_data, target_data)
+        self.assertAlmostEqual(scores['accuracy'], 0.5)
+        self.assertAlmostEqual(scores['precision'], 0.5)
+        self.assertAlmostEqual(scores['recall'], 0.5)
+        self.assertAlmostEqual(scores['f1_score'], 0.5)
+        self.assertAlmostEqual(scores['ami'], -0.49999999999999956)
+        self.assertAlmostEqual(scores['sensitivity'], 0.5)
+        self.assertAlmostEqual(scores['specificity'], 0.5)
+        self.assertAlmostEqual(scores['informedness'], 0)
+        self.assertAlmostEqual(scores['dor'], 1.0)
+        self.assertAlmostEqual(scores['lr_plus'], 1.0)
+        self.assertAlmostEqual(scores['lr_minus'], 1.0)
+        self.assertAlmostEqual(scores['roc_auc'], 0.5)
 
     def test_random_binary_classifications(self):
         """
@@ -662,14 +527,20 @@ class ScoreModelTests(unittest.TestCase):
         target_data = input_data
         model = Mock()
         model.predict = Mock(return_value=np.array([0, 0, 1, 0]))
-        scores, _ = gen_model.score_model(model, input_data, target_data)
-        self.assertAlmostEqual(scores.accuracy, 0.25)
-        self.assertEqual(scores.precision, 0)
-        self.assertAlmostEqual(scores.hmean_precision, 0)
-        self.assertAlmostEqual(scores.hmean_recall, 0)
-        self.assertAlmostEqual(scores.sensitivity, 0)
-        self.assertAlmostEqual(scores.specificity, 0.5)
-        self.assertAlmostEqual(scores.informedness, -0.5)
+        scores = gen_model.score_model(model, input_data, target_data)
+        self.assertAlmostEqual(scores['accuracy'], 0.25)
+        self.assertEqual(scores['precision'], 0)
+        self.assertAlmostEqual(scores['sensitivity'], 0)
+        self.assertAlmostEqual(scores['specificity'], 0.5)
+        self.assertAlmostEqual(scores['informedness'], -0.5)
+        self.assertAlmostEqual(scores['mcc'], -0.5773502691896258)
+        self.assertAlmostEqual(scores['recall'], 0.0)
+        self.assertAlmostEqual(scores['f1_score'], 0.0)
+        self.assertAlmostEqual(scores['ami'], 2.6948494595149616e-16)
+        self.assertAlmostEqual(scores['dor'], 0.0)
+        self.assertAlmostEqual(scores['lr_plus'], 0.0)
+        self.assertAlmostEqual(scores['lr_minus'], 2.0)
+        self.assertAlmostEqual(scores['roc_auc'], 0.25)
 
     def test_100_percent_ternary_classification(self):
         """
@@ -681,11 +552,14 @@ class ScoreModelTests(unittest.TestCase):
         target_data = input_data
         model = Mock()
         model.predict = Mock(return_value=target_data)
-        scores, _ = gen_model.score_model(model, input_data, target_data)
-        self.assertEqual(scores.accuracy, 1.0)
-        self.assertEqual(scores.hmean_precision, 1.0)
-        self.assertEqual(scores.hmean_recall, 1.0)
-        self.assertEqual(scores.informedness, 1.0)
+        scores = gen_model.score_model(model, input_data, target_data)
+        self.assertEqual(scores['accuracy'], 1.0)
+        self.assertEqual(scores['precision'], 1.0)
+        self.assertEqual(scores['recall'], 1.0)
+        self.assertEqual(scores['informedness'], 1.0)
+        self.assertEqual(scores['mcc'], 1.0)
+        self.assertEqual(scores['f1_score'], 1.0)
+        self.assertEqual(scores['ami'], 1.0)
 
     def test_50_percent_ternary_classification(self):
         """
@@ -697,11 +571,14 @@ class ScoreModelTests(unittest.TestCase):
         target_data = input_data
         model = Mock()
         model.predict = Mock(return_value=np.array([0, 1, 2, 2, 0, 1]))
-        scores, _ = gen_model.score_model(model, input_data, target_data)
-        self.assertAlmostEqual(scores.accuracy, 0.5)
-        self.assertAlmostEqual(scores.hmean_precision, 0.5)
-        self.assertAlmostEqual(scores.hmean_recall, 0.5)
-        self.assertAlmostEqual(scores.informedness, 0)
+        scores = gen_model.score_model(model, input_data, target_data)
+        self.assertAlmostEqual(scores['accuracy'], 0.5)
+        self.assertAlmostEqual(scores['informedness'], 0.25)
+        self.assertAlmostEqual(scores['mcc'], 0.25)
+        self.assertAlmostEqual(scores['precision'], 0.5)
+        self.assertAlmostEqual(scores['recall'], 0.5)
+        self.assertAlmostEqual(scores['f1_score'], 0.5)
+        self.assertAlmostEqual(scores['ami'], -0.2499999999999995)
 
     def test_random_ternary_classifications(self):
         """
@@ -713,11 +590,14 @@ class ScoreModelTests(unittest.TestCase):
         target_data = input_data
         model = Mock()
         model.predict = Mock(return_value=np.array([1, 1, 1, 2, 2, 0]))
-        scores, _ = gen_model.score_model(model, input_data, target_data)
-        self.assertAlmostEqual(scores.accuracy, 0.1666667)
-        self.assertAlmostEqual(scores.hmean_precision, 0)
-        self.assertAlmostEqual(scores.hmean_recall, 0)
-        self.assertAlmostEqual(scores.informedness, -0.6666667)
+        scores = gen_model.score_model(model, input_data, target_data)
+        self.assertAlmostEqual(scores['accuracy'], 0.1666667)
+        self.assertAlmostEqual(scores['informedness'], -0.24999999999999997)
+        self.assertAlmostEqual(scores['mcc'], -0.26111648393354675)
+        self.assertAlmostEqual(scores['precision'], 0.1111111111111111)
+        self.assertAlmostEqual(scores['recall'], 0.16666666666666666)
+        self.assertAlmostEqual(scores['f1_score'], 0.13333333333333333)
+        self.assertAlmostEqual(scores['ami'], -0.3349071351468493)
 
     def test_different_length_arrays(self):
         """
@@ -775,13 +655,26 @@ class BindModelMetadataTests(unittest.TestCase):
 
             return run_command_mock
 
-        scores = gen_model.Scores(1., 2., 3., 4., 5., 6., 7.)
+        scores = dict(accuracy=1.,
+                      informedness=2.,
+                      mcc=3.,
+                      precision=4.,
+                      recall=5.,
+                      f1_score=6.,
+                      ami=7.,
+                      sensitivity=8.,
+                      specificity=9.,
+                      dor=10.,
+                      lr_plus=11.,
+                      lr_minus=12.,
+                      roc_auc=13.)
+
         attributes = ('commit_hash', 'validated', 'reposistory', 'numpy_version',
                       'scipy_version', 'pandas_version', 'sklearn_version',
                       'joblib_version', 'threadpoolctl_version', 'operating_system',
                       'architecture', 'created', 'author')
 
-        attributes += tuple(scores._asdict().keys())
+        attributes += tuple(scores.keys())
         model = Mock()
         run_command_patch = patch.object(gen_model,
                                          'run_command',
@@ -815,13 +708,26 @@ class BindModelMetadataTests(unittest.TestCase):
 
             return run_command_mock
 
-        scores = gen_model.Scores(1., 2., 3., 4., 5., 6., 7.)
+        scores = dict(accuracy=1.,
+                      informedness=2.,
+                      mcc=3.,
+                      precision=4.,
+                      recall=5.,
+                      f1_score=6.,
+                      ami=7.,
+                      sensitivity=8.,
+                      specificity=9.,
+                      dor=10.,
+                      lr_plus=11.,
+                      lr_minus=12.,
+                      roc_auc=13.)
+
         attributes = ('commit_hash', 'validated', 'reposistory', 'numpy_version',
                       'scipy_version', 'pandas_version', 'sklearn_version',
                       'joblib_version', 'threadpoolctl_version', 'operating_system',
                       'architecture', 'created', 'author')
 
-        attributes += tuple(scores._asdict().keys())
+        attributes += tuple(scores.keys())
         model = Mock()
         run_command_patch = patch.object(gen_model,
                                          'run_command',
@@ -1317,10 +1223,37 @@ class CrossValidateTest(unittest.TestCase):
                                                                  2)
 
         self.assertEqual(median_scores,
-                         gen_model.Scores(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0))
+                         dict(accuracy=1.0,
+                              informedness=1.0,
+                              mcc=1.0,
+                              precision=1.0,
+                              recall=1.0,
+                              f1_score=1.0,
+                              ami=1.0,
+                              sensitivity=1.0,
+                              specificity=1.0,
+                              dor=np.inf,
+                              lr_plus=np.inf,
+                              lr_minus=0.0,
+                              roc_auc=1.0))
 
-        self.assertEqual(mad_scores,
-                         gen_model.Scores(0, 0, 0, 0, 0, 0, 0))
+        self.assertTrue(np.isnan(mad_scores['dor']))
+        self.assertTrue(np.isnan(mad_scores['lr_plus']))
+        mad_scores_sans_nan = mad_scores.copy()
+        del mad_scores_sans_nan['dor']
+        del mad_scores_sans_nan['lr_plus']
+        self.assertEqual(mad_scores_sans_nan,
+                         dict(accuracy=0.0,
+                              informedness=0.0,
+                              mcc=0.0,
+                              precision=0.0,
+                              recall=0.0,
+                              f1_score=0.0,
+                              ami=0.0,
+                              sensitivity=0.0,
+                              specificity=0.0,
+                              lr_minus=0.0,
+                              roc_auc=0.0))
 
     def test_useless_model(self):
         """
@@ -1347,10 +1280,22 @@ class CrossValidateTest(unittest.TestCase):
                                                                  2)
 
         self.assertEqual(median_scores,
-                         gen_model.Scores(0, 0, 0, 0, 0, 0, -1))
+                         dict(accuracy=0.0,
+                              informedness=-1.0,
+                              mcc=0.0,
+                              precision=0.0,
+                              recall=0.0,
+                              f1_score=0.0,
+                              ami=-1.1845850666627777e-15))
 
         self.assertEqual(mad_scores,
-                         gen_model.Scores(0, 0, 0, 0, 0, 0, 0))
+                         dict(accuracy=0.0,
+                              informedness=0.0,
+                              mcc=0.0,
+                              precision=0.0,
+                              recall=0.0,
+                              f1_score=0.0,
+                              ami=0.0))
 
     def test_random_model(self):
         """
@@ -1379,23 +1324,42 @@ class CrossValidateTest(unittest.TestCase):
                                                                  datasets,
                                                                  50)
 
-        np.testing.assert_allclose(median_scores,
-                                   gen_model.Scores(0.4975,
-                                                    0.4896894188226699,
-                                                    1.0,
-                                                    0.49750000000000005,
-                                                    0.4971875,
-                                                    0.4888125,
-                                                    -0.0050000000000000044))
+        expected_median_scores = dict(accuracy=0.4975,
+                                      informedness=-0.50171875,
+                                      mcc=0.0,
+                                      precision=1.0,
+                                      recall=0.495,
+                                      f1_score=0.6615078803758534,
+                                      ami=5.184292427413571e-15,
+                                      sensitivity=0.495,
+                                      specificity=0.0,
+                                      lr_plus=0.496875,
+                                      lr_minus=np.inf,
+                                      dor=0.9452974770681903,
+                                      roc_auc=0.4929404761904762)
 
-        np.testing.assert_allclose(mad_scores,
-                                   gen_model.Scores(0.007968749999999997,
-                                                    0.11482371024653085,
-                                                    0.0,
-                                                    0.00763604450600161,
-                                                    0.010833333333333306,
-                                                    0.00849999999999998,
-                                                    0.015145833333333303))
+        for score_x, score_y in zip(median_scores.values(), expected_median_scores.values()):
+            self.assertAlmostEqual(score_x, score_y)
+
+        expected_mad_scores = dict(accuracy=0.007968749999999997,
+                                   informedness=0.009531249999999991,
+                                   mcc=0.0,
+                                   precision=0.0,
+                                   recall=0.00927083333333334,
+                                   f1_score=0.010489296852607799,
+                                   ami=1.995059231561136e-15,
+                                   sensitivity=0.00927083333333334,
+                                   specificity=0.0,
+                                   lr_plus=0.011249999999999982,
+                                   lr_minus=np.nan,
+                                   dor=0.025665399623180152,
+                                   roc_auc=0.003409226190476178)
+
+        for score_x, score_y in zip(mad_scores.values(), expected_mad_scores.values()):
+            if np.isnan(score_x) and np.isnan(score_y):
+                continue
+
+            self.assertAlmostEqual(score_x, score_y)
 
     def test_large_spread_model(self):
         """
@@ -1440,24 +1404,42 @@ class CrossValidateTest(unittest.TestCase):
                                                                  datasets,
                                                                  10)
 
-        np.testing.assert_allclose(median_scores,
-                                   gen_model.Scores(0.5625,
-                                                    0.4375,
-                                                    0.0,
-                                                    0.0,
-                                                    0.53125,
-                                                    0.25,
-                                                    0.0))
+        expected_median_scores = dict(accuracy=0.5625,
+                                      informedness=0.0,
+                                      mcc=0.0,
+                                      precision=0.4375,
+                                      recall=0.53125,
+                                      f1_score=0.5227272727272727,
+                                      ami=0.011661702327125191,
+                                      sensitivity=0.5,
+                                      specificity=0.0,
+                                      lr_plus=1.0,
+                                      lr_minus=np.inf,
+                                      roc_auc=0.5,
+                                      dor=1.9142857142857144)
 
-        np.testing.assert_allclose(mad_scores,
-                                   gen_model.Scores(0.375,
-                                                    0.32142857142857145,
-                                                    0.0,
-                                                    0.0,
-                                                    0.46875,
-                                                    0.25,
-                                                    0.625))
+        for score_a, score_b in zip(median_scores.values(), expected_median_scores.values()):
+            self.assertAlmostEqual(score_a, score_b)
 
+        expected_mad_scores = dict(accuracy=0.375,
+                                   informedness=0.125,
+                                   mcc=0.0,
+                                   precision=0.4375,
+                                   recall=0.46875,
+                                   f1_score=0.4772727272727273,
+                                   ami=0.02377993878345713,
+                                   sensitivity=0.5,
+                                   specificity=0.0,
+                                   lr_plus=0.8,
+                                   lr_minus=np.nan,
+                                   roc_auc=0.0,
+                                   dor=0.9142857142857144)
+
+        for score_a, score_b in zip(mad_scores.values(), expected_mad_scores.values()):
+            if np.isnan(score_a) and np.isnan(score_b):
+                continue
+
+            self.assertAlmostEqual(score_a, score_b)
 
 if __name__ == '__main__':
     unittest.main()

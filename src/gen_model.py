@@ -863,17 +863,22 @@ def score_model(model, input_data, target_data):
     scores['mcc'] = sklearn.metrics.matthews_corrcoef(target_data, predictions)
     scores['precision'] = precision_score(target_data, predictions)
     scores['recall'] = recall_score(target_data, predictions)
-    scores['roc_auc'] = roc_auc_score(target_data, predictions)
     scores['f1_score'] = f1_score(target_data, predictions)
     scores['ami'] = sklearn.metrics.adjusted_mutual_info_score(target_data, predictions)
 
-    classes = np.unique(target_data)
+    classes = np.unique(np.concatenate([target_data, predictions]))
     if len(classes) == 2:
         scores['sensitivity'] = sensitivity_score(target_data, predictions)
         scores['specificity'] = specificity_score(target_data, predictions)
         scores['dor'] = diagnostic_odds_ratio_score(target_data, predictions)
-        scores['lr+'] = positive_likelihood_ratio_score(target_data, predictions)
-        scores['lr-'] = negative_likelihood_ratio_score(target_data, predictions)
+        scores['lr_plus'] = positive_likelihood_ratio_score(target_data, predictions)
+        scores['lr_minus'] = negative_likelihood_ratio_score(target_data, predictions)
+        try:
+            scores['roc_auc'] = sklearn.metrics.roc_auc_score(target_data, predictions)
+
+        except ValueError as value_error:
+            logger = logging.getLogger(__name__)
+            logger.warning(str(value_error))
 
     return scores
 
@@ -948,9 +953,6 @@ def cross_validate(model, datasets, n_splits):
         median_scores[metric] = np.median(score_list)
         mad_scores[metric] = median_abs_deviation(score_list)
 
-    assert len(median_scores) == len(scores)
-    assert len(mad_scores) == len(scores)
-
     return median_scores, mad_scores
 
 
@@ -978,7 +980,7 @@ def diagnostic_odds_ratio_score(y_true, y_pred):
     confusion_matrix = sklearn.metrics.confusion_matrix(y_true, y_pred)
     if len(confusion_matrix[0]) != 2:
         logger.warning('diagnostic odds ratio is undefined for the multiclass situation.')
-        return float('nan')
+        return np.nan
 
     tp = confusion_matrix[0][0]
     fp = confusion_matrix[0][1]
@@ -995,7 +997,7 @@ def diagnostic_odds_ratio_score(y_true, y_pred):
 
     if fp == 0 or fn == 0:
         logger.warning('diagnostic odds ratio undefined when fp or fn equal 0.')
-        return float('nan')
+        return np.nan
 
     return tp * tn / (fp * fn)
 
@@ -1111,7 +1113,7 @@ def sensitivity_score(y_true, y_pred):
 
     """
 
-    classes = np.unique(y_true)
+    classes = np.unique(np.concatenate([y_true, y_pred]))
     if len(classes) != 2:
         msg = 'sensitivity is not defined for the multiclass situation.'
         raise ValueError(msg)
@@ -1139,7 +1141,7 @@ def specificity_score(y_true, y_pred):
 
     """
 
-    classes = np.unique(y_true)
+    classes = np.unique(np.concatenate([y_true, y_pred]))
     if len(classes) != 2:
         msg = 'specificity is not defined for the multiclass situation.'
         raise ValueError(msg)
@@ -1161,6 +1163,9 @@ def informedness_score(y_true, y_pred):
 
     """
 
+    if len(np.unique(np.concatenate([y_true, y_pred]))) == 2:
+        return sensitivity_score(y_true, y_pred) + specificity_score(y_true, y_pred) - 1
+
     return sklearn.metrics.balanced_accuracy_score(y_true, y_pred, adjusted=True)
 
 
@@ -1178,7 +1183,7 @@ def precision_score(y_true, y_pred):
 
     """
 
-    classes = np.unique(y_true)
+    classes = np.unique(np.concatenate([y_true, y_pred]))
     if len(classes) == 2:
         positive_class = np.max(classes)
         return sklearn.metrics.precision_score(y_true, y_pred,
@@ -1201,36 +1206,13 @@ def recall_score(y_true, y_pred):
 
     """
 
-    classes = np.unique(y_true)
+    classes = np.unique(np.concatenate([y_true, y_pred]))
     if len(classes) == 2:
         positive_class = np.max(classes)
         return sklearn.metrics.recall_score(y_true, y_pred,
                                             pos_label=positive_class)
 
     return sklearn.metrics.recall_score(y_true, y_pred, average='weighted')
-
-
-def roc_auc_score(y_true, y_pred):
-    """
-    Compute the receiver operator curve area under the curve. For the
-    multiclass situation, use the weighted average across all classes.
-
-    Args:
-      y_true: Ground truth (correct) target values.
-      y_pred: Estimated targets as returned by a classifier.
-
-    Returns:
-      The ROC AUC as a float.
-
-    """
-
-    classes = np.unique(y_true)
-    if len(classes) == 2:
-        return sklearn.metrics.roc_auc_score(y_true, y_pred)
-
-    return sklearn.metrics.roc_auc_score(y_true, y_pred,
-                                         average='weighted',
-                                         multi_class='ovo')
 
 
 def f1_score(y_true, y_pred):
@@ -1247,7 +1229,7 @@ def f1_score(y_true, y_pred):
 
     """
 
-    classes = np.unique(y_true)
+    classes = np.unique(np.concatenate([y_true, y_pred]))
     if len(classes) == 2:
         return sklearn.metrics.f1_score(y_true, y_pred)
 
