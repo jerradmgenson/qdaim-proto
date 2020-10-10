@@ -351,13 +351,11 @@ def bind_model_metadata(model, scores, cross_validation_scores=None):
     model_attributes = len(dir(model))
     score_count = 0
     for metric, score in scores.items():
-        if score is None:
-            continue
-
-        score_count += 1
-        setattr(model, metric, score)
-        msg = '{metric:13} {score:.4}'.format(metric=metric + ':', score=score)
-        print(msg)
+        if score:
+            score_count += 1
+            setattr(model, metric, score)
+            msg = '{metric:13} {score:.4}'.format(metric=metric + ':', score=score)
+            print(msg)
 
     assert len(dir(model)) - model_attributes == score_count
     model_attributes = len(dir(model))
@@ -369,20 +367,18 @@ def bind_model_metadata(model, scores, cross_validation_scores=None):
         print(f'\n{n_splits}-fold cross-validation scores:')
         score_count = 0
         for metric, median_score, mad_score in zip(mad_scores, median_scores.values(), mad_scores.values()):
-            if median_score is None:
-                continue
+            if median_score:
+                score_count += 2
+                setattr(model, 'median_' + metric, median_score)
+                setattr(model, 'mad_' + metric, mad_score)
+                median_msg = '{metric:20} {score:.4}'.format(metric='median ' + metric + ':',
+                                                             score=median_score)
 
-            score_count += 2
-            setattr(model, 'median_' + metric, median_score)
-            setattr(model, 'mad_' + metric, mad_score)
-            median_msg = '{metric:20} {score:.4}'.format(metric='median ' + metric + ':',
-                                                         score=median_score)
+                mad_msg = '{metric:20} {score:.4}'.format(metric='mad ' + metric + ':',
+                                                          score=mad_score)
 
-            mad_msg = '{metric:20} {score:.4}'.format(metric='mad ' + metric + ':',
-                                                      score=mad_score)
-
-            print(median_msg)
-            print(mad_msg)
+                print(median_msg)
+                print(mad_msg)
 
         assert len(dir(model)) - model_attributes == score_count
         model_attributes = len(dir(model))
@@ -979,8 +975,7 @@ def diagnostic_odds_ratio_score(y_true, y_pred):
     logger = logging.getLogger(__name__)
     confusion_matrix = sklearn.metrics.confusion_matrix(y_true, y_pred)
     if len(confusion_matrix[0]) != 2:
-        logger.warning('diagnostic odds ratio is undefined for the multiclass situation.')
-        return np.nan
+        raise ValueError('diagnostic odds ratio is undefined for the multiclass situation.')
 
     tp = confusion_matrix[0][0]
     fp = confusion_matrix[0][1]

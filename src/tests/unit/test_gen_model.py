@@ -1441,5 +1441,509 @@ class CrossValidateTest(unittest.TestCase):
 
             self.assertAlmostEqual(score_a, score_b)
 
+
+class DiagnosticOddsRatioScoreTest(unittest.TestCase):
+    """
+    Tests for gen_model.diagnostic_odds_ratio_score()
+
+    """
+
+    def test_perfect_binary_classifier(self):
+        """
+        Test a binary model that always predicts correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        dor = gen_model.diagnostic_odds_ratio_score(y_true, y_pred)
+        self.assertEqual(dor, np.inf)
+
+    def test_useless_binary_classifier(self):
+        """
+        Test a binary model that always predicts incorrectly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0])
+        dor = gen_model.diagnostic_odds_ratio_score(y_true, y_pred)
+        self.assertEqual(dor, 0)
+
+    def test_half_correct_binary_classifier(self):
+        """
+        Test a binary model that predicts 50% correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+        dor = gen_model.diagnostic_odds_ratio_score(y_true, y_pred)
+        self.assertAlmostEqual(dor, 2.25)
+
+    def test_mostly_correct_binary_classifier(self):
+        """
+        Test a binary model that predicts 80% correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 0])
+        dor = gen_model.diagnostic_odds_ratio_score(y_true, y_pred)
+        self.assertAlmostEqual(dor, 16)
+
+    def test_mostly_incorrect_binary_classifier(self):
+        """
+        Test a binary model that predicts 20% correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 1])
+        dor = gen_model.diagnostic_odds_ratio_score(y_true, y_pred)
+        self.assertAlmostEqual(dor, 0.0625)
+
+    def test_binary_classifier_with_no_false_negatives(self):
+        """
+        Test a binary model that predicts with no false negatives.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        dor = gen_model.diagnostic_odds_ratio_score(y_true, y_pred)
+        self.assertTrue(np.isnan(dor))
+
+    def test_binary_classifier_with_no_false_positives(self):
+        """
+        Test a binary model that predicts with no false positives.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+        dor = gen_model.diagnostic_odds_ratio_score(y_true, y_pred)
+        self.assertTrue(np.isnan(dor))
+
+    def test_multiclass_classifier_raises_value_error(self):
+        """
+        Test that multiclass models correctly raise ValueError.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 2])
+        y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 2])
+        with self.assertRaises(ValueError):
+            gen_model.diagnostic_odds_ratio_score(y_true, y_pred)
+
+
+class PositiveLikelihoodRatioScoreTest(unittest.TestCase):
+    """
+    Tests for gen_model.positive_likelihood_ratio_score()
+
+    """
+
+    def test_perfect_binary_classifier_warn_true(self):
+        """
+        Test a binary model that always predicts correctly with warnings.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        lr_plus = gen_model.positive_likelihood_ratio_score(y_true, y_pred,
+                                                            warn=True)
+
+        self.assertEqual(lr_plus, np.inf)
+
+    def test_perfect_binary_classifier_warn_false(self):
+        """
+        Test a binary model that always predicts correctly without warnings.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        with self.assertRaises(ValueError):
+            gen_model.positive_likelihood_ratio_score(y_true, y_pred,
+                                                      warn=False)
+
+    def test_useless_binary_classifier(self):
+        """
+        Test a binary model that always predicts incorrectly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0])
+        lr_plus = gen_model.positive_likelihood_ratio_score(y_true, y_pred)
+        self.assertEqual(lr_plus, 0)
+
+    def test_half_correct_binary_classifier(self):
+        """
+        Test a binary model that predicts 50% correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+        lr_plus = gen_model.positive_likelihood_ratio_score(y_true, y_pred)
+        self.assertAlmostEqual(lr_plus, 1.4999999999999998)
+
+    def test_mostly_correct_binary_classifier(self):
+        """
+        Test a binary model that predicts 80% correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 0])
+        lr_plus = gen_model.positive_likelihood_ratio_score(y_true, y_pred)
+        self.assertAlmostEqual(lr_plus, 4)
+
+    def test_mostly_incorrect_binary_classifier(self):
+        """
+        Test a binary model that predicts 20% correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 1])
+        lr_plus = gen_model.positive_likelihood_ratio_score(y_true, y_pred)
+        self.assertAlmostEqual(lr_plus, 0.25)
+
+    def test_binary_classifier_with_no_false_positives(self):
+        """
+        Test a binary model that predicts with no false positives.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        lr_plus = gen_model.positive_likelihood_ratio_score(y_true, y_pred)
+        self.assertEqual(lr_plus, np.inf)
+
+    def test_binary_classifier_with_no_false_negatives(self):
+        """
+        Test a binary model that predicts with no false negatives.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+        lr_plus = gen_model.positive_likelihood_ratio_score(y_true, y_pred)
+        self.assertEqual(lr_plus, 1)
+
+    def test_multiclass_classifier_raises_value_error(self):
+        """
+        Test that multiclass models correctly raise ValueError.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 2])
+        y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 2])
+        with self.assertRaises(ValueError):
+            gen_model.positive_likelihood_ratio_score(y_true, y_pred)
+
+
+class NegativeLikelihoodRatioScoreTest(unittest.TestCase):
+    """
+    Tests for gen_model.negative_likelihood_ratio_score()
+
+    """
+
+    def test_perfect_binary_classifier(self):
+        """
+        Test a binary model that always predicts correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        lr_minus = gen_model.negative_likelihood_ratio_score(y_true, y_pred)
+        self.assertEqual(lr_minus, 0)
+
+    def test_useless_binary_classifier(self):
+        """
+        Test a binary model that always predicts incorrectly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0])
+        lr_minus = gen_model.negative_likelihood_ratio_score(y_true, y_pred)
+        self.assertEqual(lr_minus, np.inf)
+
+    def test_half_correct_binary_classifier(self):
+        """
+        Test a binary model that predicts 50% correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+        lr_minus = gen_model.negative_likelihood_ratio_score(y_true, y_pred)
+        self.assertAlmostEqual(lr_minus, 0.6666666666666667)
+
+    def test_mostly_correct_binary_classifier(self):
+        """
+        Test a binary model that predicts 80% correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 0])
+        lr_minus = gen_model.negative_likelihood_ratio_score(y_true, y_pred)
+        self.assertAlmostEqual(lr_minus, 0.24999999999999994)
+
+    def test_mostly_incorrect_binary_classifier(self):
+        """
+        Test a binary model that predicts 20% correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 1])
+        lr_minus = gen_model.negative_likelihood_ratio_score(y_true, y_pred)
+        self.assertAlmostEqual(lr_minus, 4.0)
+
+    def test_binary_classifier_with_no_false_positives(self):
+        """
+        Test a binary model that predicts with no false positives.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        lr_minus = gen_model.negative_likelihood_ratio_score(y_true, y_pred)
+        self.assertEqual(lr_minus, 1)
+
+    def test_binary_classifier_with_no_false_negatives_with_warnings(self):
+        """
+        Test a binary model that predicts with no false negatives with warnings.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+        lr_minus = gen_model.negative_likelihood_ratio_score(y_true, y_pred,
+                                                             warn=True)
+
+        self.assertEqual(lr_minus, np.inf)
+
+    def test_binary_classifier_with_no_false_negatives_without_warnings(self):
+        """
+        Test a binary model that predicts with no false negatives without warnings.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+        with self.assertRaises(ValueError):
+            gen_model.negative_likelihood_ratio_score(y_true, y_pred,
+                                                      warn=False)
+
+    def test_multiclass_classifier_raises_value_error(self):
+        """
+        Test that multiclass models correctly raise ValueError.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 2])
+        y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 2])
+        with self.assertRaises(ValueError):
+            gen_model.negative_likelihood_ratio_score(y_true, y_pred)
+
+
+class SensitivityScoreTest(unittest.TestCase):
+    """
+    Tests for gen_model.sensitivity_score()
+
+    """
+
+    def test_perfect_binary_classifier(self):
+        """
+        Test a binary model that always predicts correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        sensitivity = gen_model.sensitivity_score(y_true, y_pred)
+        self.assertEqual(sensitivity, 1)
+
+    def test_useless_binary_classifier(self):
+        """
+        Test a binary model that always predicts incorrectly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0])
+        sensitivity = gen_model.sensitivity_score(y_true, y_pred)
+        self.assertEqual(sensitivity, 0)
+
+    def test_half_correct_binary_classifier(self):
+        """
+        Test a binary model that predicts 50% correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+        sensitivity = gen_model.sensitivity_score(y_true, y_pred)
+        self.assertAlmostEqual(sensitivity, 0.6)
+
+    def test_mostly_correct_binary_classifier(self):
+        """
+        Test a binary model that predicts 80% correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 0])
+        sensitivity = gen_model.sensitivity_score(y_true, y_pred)
+        self.assertAlmostEqual(sensitivity, 0.8)
+
+    def test_mostly_incorrect_binary_classifier(self):
+        """
+        Test a binary model that predicts 20% correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 1])
+        sensitivity = gen_model.sensitivity_score(y_true, y_pred)
+        self.assertAlmostEqual(sensitivity, 0.2)
+
+    def test_binary_classifier_with_no_false_positives(self):
+        """
+        Test a binary model that predicts with no false positives.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        sensitivity = gen_model.sensitivity_score(y_true, y_pred)
+        self.assertEqual(sensitivity, 0)
+
+    def test_binary_classifier_with_no_false_negatives(self):
+        """
+        Test a binary model that predicts with no false negatives.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+        sensitivity = gen_model.sensitivity_score(y_true, y_pred)
+        self.assertEqual(sensitivity, 1)
+
+    def test_multiclass_classifier_raises_value_error(self):
+        """
+        Test that multiclass models correctly raise ValueError.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 2])
+        y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 2])
+        with self.assertRaises(ValueError):
+            gen_model.sensitivity_score(y_true, y_pred)
+
+
+class SpecificityScoreTest(unittest.TestCase):
+    """
+    Tests for gen_model.specificity_score()
+
+    """
+
+    def test_perfect_binary_classifier(self):
+        """
+        Test a binary model that always predicts correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        specificity = gen_model.specificity_score(y_true, y_pred)
+        self.assertEqual(specificity, 1)
+
+    def test_useless_binary_classifier(self):
+        """
+        Test a binary model that always predicts incorrectly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0])
+        specificity = gen_model.specificity_score(y_true, y_pred)
+        self.assertEqual(specificity, 0)
+
+    def test_half_correct_binary_classifier(self):
+        """
+        Test a binary model that predicts 50% correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
+        specificity = gen_model.specificity_score(y_true, y_pred)
+        self.assertAlmostEqual(specificity, 0.6)
+
+    def test_mostly_correct_binary_classifier(self):
+        """
+        Test a binary model that predicts 80% correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 0])
+        specificity = gen_model.specificity_score(y_true, y_pred)
+        self.assertAlmostEqual(specificity, 0.8)
+
+    def test_mostly_incorrect_binary_classifier(self):
+        """
+        Test a binary model that predicts 20% correctly.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 1])
+        specificity = gen_model.specificity_score(y_true, y_pred)
+        self.assertAlmostEqual(specificity, 0.2)
+
+    def test_binary_classifier_with_no_false_positives(self):
+        """
+        Test a binary model that predicts with no false positives.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        specificity = gen_model.specificity_score(y_true, y_pred)
+        self.assertEqual(specificity, 1)
+
+    def test_binary_classifier_with_no_false_negatives(self):
+        """
+        Test a binary model that predicts with no false negatives.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+        y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+        specificity = gen_model.specificity_score(y_true, y_pred)
+        self.assertEqual(specificity, 0)
+
+    def test_multiclass_classifier_raises_value_error(self):
+        """
+        Test that multiclass models correctly raise ValueError.
+
+        """
+
+        y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 2])
+        y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 2])
+        with self.assertRaises(ValueError):
+            gen_model.specificity_score(y_true, y_pred)
+
+
 if __name__ == '__main__':
     unittest.main()
