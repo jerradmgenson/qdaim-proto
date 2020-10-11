@@ -7,12 +7,14 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 """
 
+import sys
 import subprocess
 from pathlib import Path
 
-from src import preprocess_stage1
-from src import preprocess_stage2
-from src import gen_model
+sys.path.append('src')
+import preprocess_stage1
+import preprocess_stage2
+import gen_model
 
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
 GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
