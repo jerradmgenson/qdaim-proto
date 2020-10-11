@@ -27,50 +27,20 @@ def scoring_methods():
     """
 
     return dict(
-        accuracy=sklearn.metrics.accuracy_score,
-        precision=precision,
-        sensitivity=sensitivity,
-        specificity=specificity,
-        informedness=informedness,
-        mcc=sklearn.metrics.matthews_corrcoef,
-        recall=recall,
-        f1_score=f1_score,
-        ami=sklearn.metrics.adjusted_mutual_info_score,
-        dor=diagnostic_odds_ratio,
-        lr_plus=positive_likelihood_ratio,
-        lr_minus=negative_likelihood_ratio,
-        roc_auc=sklearn.metrics.roc_auc_score,
+        accuracy=sklearn.metrics.make_scorer(sklearn.metrics.accuracy_score),
+        precision=sklearn.metrics.make_scorer(precision),
+        sensitivity=sklearn.metrics.make_scorer(sensitivity),
+        specificity=sklearn.metrics.make_scorer(specificity),
+        informedness=sklearn.metrics.make_scorer(informedness),
+        mcc=sklearn.metrics.make_scorer(sklearn.metrics.matthews_corrcoef),
+        recall=sklearn.metrics.make_scorer(recall),
+        f1_score=sklearn.metrics.make_scorer(f1_score),
+        ami=sklearn.metrics.make_scorer(sklearn.metrics.adjusted_mutual_info_score),
+        dor=sklearn.metrics.make_scorer(diagnostic_odds_ratio),
+        lr_plus=sklearn.metrics.make_scorer(positive_likelihood_ratio),
+        lr_minus=sklearn.metrics.make_scorer(lambda y_true, y_pred: 1 / negative_likelihood_ratio(y_true, y_pred)),
+        roc_auc=sklearn.metrics.make_scorer(sklearn.metrics.roc_auc_score),
     )
-
-
-def create_scorer(scoring):
-    """
-    Create a scoring function for hyperparameter tuning.
-
-    Args
-      scoring: The scoring method that the function should use. Possible
-               values are enumerated by `scoring_methods()`.
-
-    Returns
-      A function that can be passed to the `scoring` parameter of
-      `sklearn.model_selection.GridSearchCV`.
-
-    """
-
-    if scoring not in scoring_methods():
-        raise ValueError(f'`{scoring}` is not a valid scoring method.')
-
-    def scorer(model, inputs, targets):
-        model_scores = score_model(model, inputs, targets)
-        try:
-            score = model_scores[scoring]
-
-        except KeyError:
-            raise ValueError(f'`{scoring}` can not be used with this type of classification.')
-
-        return score
-
-    return scorer
 
 
 def score_model(model, input_data, target_data):

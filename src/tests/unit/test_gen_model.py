@@ -73,7 +73,7 @@ class TrainModelTest(unittest.TestCase):
                            [0, 0], [0, 1], [1, 0], [1, 1]])
 
         targets = np.array([-1, 1, 1, -1, -1, 1, 1, -1, -1, 1, 1, -1])
-        score = scoring.create_scorer('informedness')
+        score = scoring.scoring_methods()['informedness']
         model = gen_model.train_model(sklearn.svm.SVC,
                                       inputs,
                                       targets,
@@ -95,7 +95,7 @@ class TrainModelTest(unittest.TestCase):
 
         inputs = np.array([[-4], [-3], [-2], [-1], [1], [2], [3], [4]])
         targets = np.array([-1, -1, -1, -1, 1, 1, 1, 1])
-        score = scoring.create_scorer('accuracy')
+        score = scoring.scoring_methods()['accuracy']
         model = gen_model.train_model(sklearn.discriminant_analysis.QuadraticDiscriminantAnalysis,
                                       inputs,
                                       targets,
@@ -115,7 +115,7 @@ class TrainModelTest(unittest.TestCase):
 
         inputs = np.array([[-4], [-3], [-2], [-1], [1], [2], [3], [4]])
         targets = np.array([-1, -1, -1, -1, 1, 1, 1, 1])
-        score = scoring.create_scorer('precision')
+        score = scoring.scoring_methods()['precision']
         model = gen_model.train_model(sklearn.linear_model.SGDClassifier,
                                       inputs,
                                       targets,

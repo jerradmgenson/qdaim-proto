@@ -17,66 +17,6 @@ import numpy as np
 import scoring
 
 
-class CreateScorerTests(unittest.TestCase):
-    """
-    Tests for scoring.create_scorer
-
-    """
-
-    def test_informedness_metric(self):
-        """
-        Test create_scorer() with informedness scoring metric.
-
-        """
-
-        inputs = np.array([0, 0, 0, 0])
-        targets = np.array([0, 1, 0, 1])
-        model = Mock()
-        model.predict = Mock(return_value=np.array([0, 1, 1, 0]))
-        scorer = scoring.create_scorer('informedness')
-        score = scorer(model, inputs, targets)
-        self.assertEqual(score, 0.0)
-
-    def test_accuracy_metric(self):
-        """
-        Test create_scorer() with accuracy scoring metric.
-
-        """
-
-        inputs = np.array([0, 0, 0, 0])
-        targets = np.array([0, 1, 0, 1])
-        model = Mock()
-        model.predict = Mock(return_value=np.array([0, 1, 1, 0]))
-        scorer = scoring.create_scorer('accuracy')
-        score = scorer(model, inputs, targets)
-        self.assertEqual(score, 0.5)
-
-    def test_scorer_with_invalid_metric1(self):
-        """
-        Test create_scorer() with a scoring metric that is invalid for
-        the given type of classification.
-
-        """
-
-        inputs = np.array([1, 2, 3, 4])
-        targets = np.array([1, 2, 3, 4])
-        model = Mock()
-        model.predict = Mock(return_value=np.array([1, 2, 3, 4]))
-        scorer = scoring.create_scorer('sensitivity')
-        with self.assertRaises(ValueError):
-            scorer(model, inputs, targets)
-
-    def test_scorer_with_invalid_metric2(self):
-        """
-        Test create_scorer() with a scoring metric that is invalid for
-        any type of classification.
-
-        """
-
-        with self.assertRaises(ValueError):
-            scoring.create_scorer('invalid')
-
-
 class InformednessTests(unittest.TestCase):
     """
     Tests for scoring.calculate_informedness

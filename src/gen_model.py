@@ -140,7 +140,7 @@ def main(argv):
     print(f'Preprocessing methods: {config.preprocessing_methods}')
     print(f'Training samples:      {len(datasets.training.inputs)}')
     print(f'Validation samples:    {len(datasets.validation.inputs)}')
-    score_function = scoring.create_scorer(config.scoring)
+    score_function = scoring.scoring_methods()[config.scoring]
     print('Generating model...')
     model = train_model(config.algorithm.class_,
                         datasets.training.inputs,
