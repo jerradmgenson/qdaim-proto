@@ -79,15 +79,18 @@ import subprocess
 import sys
 import platform
 import datetime
+import math
 
 import numpy as np
 import scipy as sp
-from scipy.stats import median_abs_deviation
+from scipy.spatial import distance
+from scipy.stats import median_abs_deviation, chi2
 import pandas as pd
 import joblib
 import threadpoolctl
 import sklearn
 from sklearn.pipeline import Pipeline
+from sklearn import cluster
 
 import util
 import scoring
@@ -157,18 +160,23 @@ def main(argv):
                                        datasets.validation.inputs,
                                        datasets.validation.targets)
 
+    cross_validation_scores = None
     if command_line_arguments.cross_validate:
         median_scores, mad_scores = cross_validate(model,
                                                    datasets,
                                                    command_line_arguments.cross_validate)
 
-        bind_model_metadata(model, model_scores,
-                            cross_validation_scores=(median_scores,
-                                                     mad_scores,
-                                                     command_line_arguments.cross_validate))
+        cross_validation_scores = (median_scores,
+                                   mad_scores,
+                                   command_line_arguments.cross_validate)
 
-    else:
-        bind_model_metadata(model, model_scores)
+    outlier_scores = None
+    if command_line_arguments.outlier_scores:
+        outlier_scores = score_outliers(model, datasets)
+
+    bind_model_metadata(model, model_scores,
+                        cross_validation_scores=cross_validation_scores,
+                        outlier_scores=outlier_scores)
 
     predictions = model.predict(datasets.validation.inputs)
     validation_dataset = create_validation_dataset(datasets.validation.inputs,
@@ -218,7 +226,9 @@ def create_validation_dataset(input_data, target_data, prediction_data, columns)
     return validation_dataset
 
 
-def bind_model_metadata(model, scores, cross_validation_scores=None):
+def bind_model_metadata(model, scores,
+                        cross_validation_scores=None,
+                        outlier_scores=None):
     """
     Generate metadata and bind it to the model. The following attributes
     will be assigned to `model`:
@@ -242,6 +252,7 @@ def bind_model_metadata(model, scores, cross_validation_scores=None):
       scores: A scores dict returned by `score_model`.
       cross_validation_scores: (Default=None) A 3-tuple of cross-validation scores
                                consisting of (median_scores, mad_scores, n_splits).
+      outlier_scores: (Default=None) A scores dict returned by `score_model`.
 
     Returns
       None
@@ -260,6 +271,19 @@ def bind_model_metadata(model, scores, cross_validation_scores=None):
 
     assert len(dir(model)) - model_attributes == score_count
     model_attributes = len(dir(model))
+
+    if outlier_scores:
+        print('\nOutlier scores:')
+        score_count = 0
+        for metric, score in outlier_scores.items():
+            if score:
+                score_count += 1
+                setattr(model, 'outlier_' + metric, score)
+                msg = '{metric:13} {score:.4}'.format(metric=metric + ':', score=score)
+                print(msg)
+
+        assert len(dir(model)) - model_attributes == score_count
+        model_attributes = len(dir(model))
 
     if cross_validation_scores:
         median_scores = cross_validation_scores[0]
@@ -439,6 +463,50 @@ def cross_validate(model, datasets, n_splits):
         mad_scores[metric] = median_abs_deviation(score_list)
 
     return median_scores, mad_scores
+
+
+def score_outliers(model, datasets):
+    if hasattr(model, 'steps') and len(model.steps) >= 2:
+        # Assume that `model` is a pipeline and the first step is preprocessing.
+        outliers = find_anomalies(datasets.training.inputs,
+                                  datasets.validation.inputs,
+                                  preprocessor=model.steps[0][1])
+
+    else:
+        outliers = find_anomalies(datasets.training.inputs,
+                                  datasets.validation.inputs)
+
+    return scoring.score_model(model,
+                               datasets.validation.inputs[outliers],
+                               datasets.validation.targets[outliers])
+
+
+def find_anomalies(x_train, x_test, preprocessor=None):
+    pipeline_steps = []
+    if preprocessor:
+        pipeline_steps.append(('preprocessor', preprocessor))
+
+    pipeline_steps.append(('model', cluster.DBSCAN()))
+    pipeline = Pipeline(steps=pipeline_steps)
+    parameter_grid = dict(
+        model__eps=[0.05, 0.1, 0.5, 1, 5],
+        model__min_samples=list(range(2, int(math.sqrt(len(x_train)))))
+    )
+
+    grid_estimator = sklearn.model_selection.GridSearchCV(pipeline,
+                                                          parameter_grid,
+                                                          scoring=scoring.mean_silhouette_coefficient)
+
+    grid_estimator.fit(x_train)
+    core_samples = grid_estimator.best_estimator_.steps[-1][1].components_
+    if preprocessor:
+        x_test = preprocessor.transform(x_test)
+
+    distances = distance.cdist(x_test, core_samples)
+    min_distances = distances.min(axis=1)
+    p_values = 1 - chi2.cdf(min_distances, len(x_test[0]) - 1)
+
+    return p_values < .001
 
 
 if __name__ == '__main__':  # pragma: no cover

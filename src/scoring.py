@@ -38,7 +38,7 @@ def scoring_methods():
         ami=sklearn.metrics.make_scorer(sklearn.metrics.adjusted_mutual_info_score),
         dor=sklearn.metrics.make_scorer(diagnostic_odds_ratio),
         lr_plus=sklearn.metrics.make_scorer(positive_likelihood_ratio),
-        lr_minus=sklearn.metrics.make_scorer(lambda y_true, y_pred: 1 / negative_likelihood_ratio(y_true, y_pred)),
+        lr_minus=sklearn.metrics.make_scorer(negative_likelihood_ratio, greater_is_better=False),
         roc_auc=sklearn.metrics.make_scorer(sklearn.metrics.roc_auc_score),
     )
 
@@ -378,3 +378,32 @@ def f1_score(y_true, y_pred):
         return sklearn.metrics.f1_score(y_true, y_pred)
 
     return sklearn.metrics.f1_score(y_true, y_pred, average='weighted')
+
+
+def mean_silhouette_coefficient(model, x_test, *_):
+    """
+    Compute the mean silhouette coefficient.
+
+    Note that mean_silhouette_coefficient takes different arguments compared to
+    most other scoring functions. This is because, unlike most other scoring
+    functions, it is used to evaluate the performance of unsupervised clustering
+    algorithms.
+
+    Args:
+      model: A fitted cluster model with a `labels_` attribute.
+      x_test: Testing inputs to a classifier.
+      _: not used.
+
+    Returns:
+      The mean silhouette coefficient.
+
+    """
+
+    labels = model.fit_predict(x_test)
+    try:
+        return sklearn.metrics.silhouette_score(x_test, labels)
+
+    except ValueError as value_error:
+        logger = logging.getLogger(__name__)
+        logger.warning(str(value_error))
+        return -1
