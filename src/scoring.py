@@ -12,18 +12,35 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
 
 import logging
+import functools
 
 import numpy as np
 import sklearn
 
-# Possible scoring methods that may be used for hyperparameter tuning.
-SCORING_METHODS = ('accuracy',
-                   'precision',
-                   'hmean_precision',
-                   'hmean_recall',
-                   'sensitivity',
-                   'specificity',
-                   'informedness')
+
+@functools.lru_cache(maxsize=1)
+def scoring_methods():
+    """
+    All possible scoring methods that may be used for model training and
+    hyperparameter tuning.
+
+    """
+
+    return dict(
+        accuracy=sklearn.metrics.accuracy_score,
+        precision=precision,
+        sensitivity=sensitivity,
+        specificity=specificity,
+        informedness=informedness,
+        mcc=sklearn.metrics.matthews_corrcoef,
+        recall=recall,
+        f1_score=f1_score,
+        ami=sklearn.metrics.adjusted_mutual_info_score,
+        dor=diagnostic_odds_ratio,
+        lr_plus=positive_likelihood_ratio,
+        lr_minus=negative_likelihood_ratio,
+        roc_auc=sklearn.metrics.roc_auc_score,
+    )
 
 
 def create_scorer(scoring):
@@ -32,7 +49,7 @@ def create_scorer(scoring):
 
     Args
       scoring: The scoring method that the function should use. Possible
-               values are enumerated by `SCORING_METHODS`.
+               values are enumerated by `scoring_methods()`.
 
     Returns
       A function that can be passed to the `scoring` parameter of
@@ -40,7 +57,7 @@ def create_scorer(scoring):
 
     """
 
-    if scoring not in SCORING_METHODS:
+    if scoring not in scoring_methods():
         raise ValueError(f'`{scoring}` is not a valid scoring method.')
 
     def scorer(model, inputs, targets):

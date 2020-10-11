@@ -279,8 +279,8 @@ def is_valid_config(config):
         logger.debug(value_error)
         raise InvalidConfigError('`random_seed` not an integer.')
 
-    if config['scoring'] not in scoring.SCORING_METHODS:
-        raise InvalidConfigError(f'`scoring` must be one of `{scoring.SCORING_METHODS}`.')
+    if config['scoring'] not in scoring.scoring_methods():
+        raise InvalidConfigError(f'`scoring` must be one of `{scoring.scoring_methods()}`.')
 
     try:
         if not set(config['preprocessing_methods']) <= set(PREPROCESSING_METHODS):
