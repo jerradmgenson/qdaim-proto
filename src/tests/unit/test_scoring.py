@@ -77,7 +77,7 @@ class CreateScorerTests(unittest.TestCase):
             scoring.create_scorer('invalid')
 
 
-class CalculateInformednessTests(unittest.TestCase):
+class InformednessTests(unittest.TestCase):
     """
     Tests for scoring.calculate_informedness
 
@@ -91,7 +91,7 @@ class CalculateInformednessTests(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
-        informedness = scoring.informedness_score(y_true, y_pred)
+        informedness = scoring.informedness(y_true, y_pred)
         self.assertEqual(informedness, 1.0)
 
     def test_50_percent_correct_binary_classification(self):
@@ -102,7 +102,7 @@ class CalculateInformednessTests(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        informedness = scoring.informedness_score(y_true, y_pred)
+        informedness = scoring.informedness(y_true, y_pred)
         self.assertEqual(informedness, 0)
 
     def test_random_binary_classifications(self):
@@ -113,7 +113,7 @@ class CalculateInformednessTests(unittest.TestCase):
 
         y_true = np.array([1, 0, 1, 1, 1, 1, 0, 0, 1, 0])
         y_pred = np.array([0, 1, 1, 1, 1, 1, 0, 1, 0, 1])
-        informedness = scoring.informedness_score(y_true, y_pred)
+        informedness = scoring.informedness(y_true, y_pred)
         self.assertAlmostEqual(informedness, -0.08333333333333337)
 
     def test_100_percent_correct_ternary_classification(self):
@@ -124,7 +124,7 @@ class CalculateInformednessTests(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2])
         y_pred = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2])
-        informedness = scoring.informedness_score(y_true, y_pred)
+        informedness = scoring.informedness(y_true, y_pred)
         self.assertEqual(informedness, 1.0)
 
     def test_50_percent_correct_ternary_classification(self):
@@ -135,7 +135,7 @@ class CalculateInformednessTests(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 1, 1, 1, 2, 2, 2, 2])
         y_pred = np.array([0, 0, 0, 1, 1, 0, 0, 0, 0, 0])
-        informedness = scoring.informedness_score(y_true, y_pred)
+        informedness = scoring.informedness(y_true, y_pred)
         self.assertEqual(informedness, 0.3333333333333332)
 
     def test_random_ternary_classifications(self):
@@ -146,7 +146,7 @@ class CalculateInformednessTests(unittest.TestCase):
 
         y_true = np.array([2, 0, 1, 2, 0, 0, 0, 1, 0, 1])
         y_pred = np.array([0, 1, 0, 0, 2, 2, 0, 2, 1, 1])
-        informedness = scoring.informedness_score(y_true, y_pred)
+        informedness = scoring.informedness(y_true, y_pred)
         self.assertAlmostEqual(informedness, -0.23333333333333328)
 
     def test_100_percent_correct_quaternary_classification(self):
@@ -157,7 +157,7 @@ class CalculateInformednessTests(unittest.TestCase):
 
         y_true = np.array([0, 0, 1, 1, 2, 2, 3, 3, 3, 3])
         y_pred = np.array([0, 0, 1, 1, 2, 2, 3, 3, 3, 3])
-        informedness = scoring.informedness_score(y_true, y_pred)
+        informedness = scoring.informedness(y_true, y_pred)
         self.assertEqual(informedness, 1.0)
 
     def test_50_percent_correct_quaternary_classification(self):
@@ -168,7 +168,7 @@ class CalculateInformednessTests(unittest.TestCase):
 
         y_true = np.array([0, 0, 1, 1, 2, 2, 3, 3, 3, 3])
         y_pred = np.array([0, 0, 1, 1, 2, 0, 0, 0, 0, 0])
-        informedness = scoring.informedness_score(y_true, y_pred)
+        informedness = scoring.informedness(y_true, y_pred)
         self.assertEqual(informedness, 0.5)
 
     def test_random_quaternary_classifications(self):
@@ -179,7 +179,7 @@ class CalculateInformednessTests(unittest.TestCase):
 
         y_true = np.array([3, 2, 3, 0, 1, 3, 1, 1, 4, 4])
         y_pred = np.array([0, 3, 4, 2, 0, 0, 2, 3, 0, 3])
-        informedness = scoring.informedness_score(y_true, y_pred)
+        informedness = scoring.informedness(y_true, y_pred)
         self.assertAlmostEqual(informedness, -0.25)
 
     def test_100_percent_correct_quinary_classification(self):
@@ -190,7 +190,7 @@ class CalculateInformednessTests(unittest.TestCase):
 
         y_true = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4])
         y_pred = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4])
-        informedness = scoring.informedness_score(y_true, y_pred)
+        informedness = scoring.informedness(y_true, y_pred)
         self.assertEqual(informedness, 1.0)
 
     def test_50_percent_correct_quinary_classification(self):
@@ -201,7 +201,7 @@ class CalculateInformednessTests(unittest.TestCase):
 
         y_true = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4])
         y_pred = np.array([0, 1, 1, 0, 2, 0, 3, 0, 4, 0])
-        informedness = scoring.informedness_score(y_true, y_pred)
+        informedness = scoring.informedness(y_true, y_pred)
         self.assertEqual(informedness, 0.37499999999999994)
 
     def test_random_quinary_classifications(self):
@@ -212,7 +212,7 @@ class CalculateInformednessTests(unittest.TestCase):
 
         y_true = np.array([4, 2, 0, 5, 4, 0, 2, 0, 3, 1])
         y_pred = np.array([5, 1, 1, 1, 2, 0, 3, 4, 5, 1])
-        informedness = scoring.informedness_score(y_true, y_pred)
+        informedness = scoring.informedness(y_true, y_pred)
         self.assertAlmostEqual(informedness, 0.06666666666666667)
 
 
@@ -381,9 +381,9 @@ class ScoreModelTests(unittest.TestCase):
             scoring.score_model(model, input_data, target_data)
 
 
-class DiagnosticOddsRatioScoreTest(unittest.TestCase):
+class DiagnosticOddsRatioTest(unittest.TestCase):
     """
-    Tests for scoring.diagnostic_odds_ratio_score()
+    Tests for scoring.diagnostic_odds_ratio()
 
     """
 
@@ -395,7 +395,7 @@ class DiagnosticOddsRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
-        dor = scoring.diagnostic_odds_ratio_score(y_true, y_pred)
+        dor = scoring.diagnostic_odds_ratio(y_true, y_pred)
         self.assertEqual(dor, np.inf)
 
     def test_useless_binary_classifier(self):
@@ -406,7 +406,7 @@ class DiagnosticOddsRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0])
-        dor = scoring.diagnostic_odds_ratio_score(y_true, y_pred)
+        dor = scoring.diagnostic_odds_ratio(y_true, y_pred)
         self.assertEqual(dor, 0)
 
     def test_half_correct_binary_classifier(self):
@@ -417,7 +417,7 @@ class DiagnosticOddsRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
-        dor = scoring.diagnostic_odds_ratio_score(y_true, y_pred)
+        dor = scoring.diagnostic_odds_ratio(y_true, y_pred)
         self.assertAlmostEqual(dor, 2.25)
 
     def test_mostly_correct_binary_classifier(self):
@@ -428,7 +428,7 @@ class DiagnosticOddsRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 0])
-        dor = scoring.diagnostic_odds_ratio_score(y_true, y_pred)
+        dor = scoring.diagnostic_odds_ratio(y_true, y_pred)
         self.assertAlmostEqual(dor, 16)
 
     def test_mostly_incorrect_binary_classifier(self):
@@ -439,7 +439,7 @@ class DiagnosticOddsRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 1])
-        dor = scoring.diagnostic_odds_ratio_score(y_true, y_pred)
+        dor = scoring.diagnostic_odds_ratio(y_true, y_pred)
         self.assertAlmostEqual(dor, 0.0625)
 
     def test_binary_classifier_with_no_false_negatives(self):
@@ -450,7 +450,7 @@ class DiagnosticOddsRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        dor = scoring.diagnostic_odds_ratio_score(y_true, y_pred)
+        dor = scoring.diagnostic_odds_ratio(y_true, y_pred)
         self.assertTrue(np.isnan(dor))
 
     def test_binary_classifier_with_no_false_positives(self):
@@ -461,7 +461,7 @@ class DiagnosticOddsRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
-        dor = scoring.diagnostic_odds_ratio_score(y_true, y_pred)
+        dor = scoring.diagnostic_odds_ratio(y_true, y_pred)
         self.assertTrue(np.isnan(dor))
 
     def test_multiclass_classifier_raises_value_error(self):
@@ -473,12 +473,12 @@ class DiagnosticOddsRatioScoreTest(unittest.TestCase):
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 2])
         y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 2])
         with self.assertRaises(ValueError):
-            scoring.diagnostic_odds_ratio_score(y_true, y_pred)
+            scoring.diagnostic_odds_ratio(y_true, y_pred)
 
 
-class PositiveLikelihoodRatioScoreTest(unittest.TestCase):
+class PositiveLikelihoodRatioTest(unittest.TestCase):
     """
-    Tests for scoring.positive_likelihood_ratio_score()
+    Tests for scoring.positive_likelihood_ratio()
 
     """
 
@@ -490,8 +490,8 @@ class PositiveLikelihoodRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
-        lr_plus = scoring.positive_likelihood_ratio_score(y_true, y_pred,
-                                                          warn=True)
+        lr_plus = scoring.positive_likelihood_ratio(y_true, y_pred,
+                                                    warn=True)
 
         self.assertEqual(lr_plus, np.inf)
 
@@ -504,8 +504,8 @@ class PositiveLikelihoodRatioScoreTest(unittest.TestCase):
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         with self.assertRaises(ValueError):
-            scoring.positive_likelihood_ratio_score(y_true, y_pred,
-                                                    warn=False)
+            scoring.positive_likelihood_ratio(y_true, y_pred,
+                                              warn=False)
 
     def test_useless_binary_classifier(self):
         """
@@ -515,7 +515,7 @@ class PositiveLikelihoodRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0])
-        lr_plus = scoring.positive_likelihood_ratio_score(y_true, y_pred)
+        lr_plus = scoring.positive_likelihood_ratio(y_true, y_pred)
         self.assertEqual(lr_plus, 0)
 
     def test_half_correct_binary_classifier(self):
@@ -526,7 +526,7 @@ class PositiveLikelihoodRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
-        lr_plus = scoring.positive_likelihood_ratio_score(y_true, y_pred)
+        lr_plus = scoring.positive_likelihood_ratio(y_true, y_pred)
         self.assertAlmostEqual(lr_plus, 1.4999999999999998)
 
     def test_mostly_correct_binary_classifier(self):
@@ -537,7 +537,7 @@ class PositiveLikelihoodRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 0])
-        lr_plus = scoring.positive_likelihood_ratio_score(y_true, y_pred)
+        lr_plus = scoring.positive_likelihood_ratio(y_true, y_pred)
         self.assertAlmostEqual(lr_plus, 4)
 
     def test_mostly_incorrect_binary_classifier(self):
@@ -548,7 +548,7 @@ class PositiveLikelihoodRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 1])
-        lr_plus = scoring.positive_likelihood_ratio_score(y_true, y_pred)
+        lr_plus = scoring.positive_likelihood_ratio(y_true, y_pred)
         self.assertAlmostEqual(lr_plus, 0.25)
 
     def test_binary_classifier_with_no_false_positives(self):
@@ -559,7 +559,7 @@ class PositiveLikelihoodRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        lr_plus = scoring.positive_likelihood_ratio_score(y_true, y_pred)
+        lr_plus = scoring.positive_likelihood_ratio(y_true, y_pred)
         self.assertEqual(lr_plus, np.inf)
 
     def test_binary_classifier_with_no_false_negatives(self):
@@ -570,7 +570,7 @@ class PositiveLikelihoodRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
-        lr_plus = scoring.positive_likelihood_ratio_score(y_true, y_pred)
+        lr_plus = scoring.positive_likelihood_ratio(y_true, y_pred)
         self.assertEqual(lr_plus, 1)
 
     def test_multiclass_classifier_raises_value_error(self):
@@ -582,12 +582,12 @@ class PositiveLikelihoodRatioScoreTest(unittest.TestCase):
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 2])
         y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 2])
         with self.assertRaises(ValueError):
-            scoring.positive_likelihood_ratio_score(y_true, y_pred)
+            scoring.positive_likelihood_ratio(y_true, y_pred)
 
 
-class NegativeLikelihoodRatioScoreTest(unittest.TestCase):
+class NegativeLikelihoodRatioTest(unittest.TestCase):
     """
-    Tests for scoring.negative_likelihood_ratio_score()
+    Tests for scoring.negative_likelihood_ratio()
 
     """
 
@@ -599,7 +599,7 @@ class NegativeLikelihoodRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
-        lr_minus = scoring.negative_likelihood_ratio_score(y_true, y_pred)
+        lr_minus = scoring.negative_likelihood_ratio(y_true, y_pred)
         self.assertEqual(lr_minus, 0)
 
     def test_useless_binary_classifier(self):
@@ -610,7 +610,7 @@ class NegativeLikelihoodRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0])
-        lr_minus = scoring.negative_likelihood_ratio_score(y_true, y_pred)
+        lr_minus = scoring.negative_likelihood_ratio(y_true, y_pred)
         self.assertEqual(lr_minus, np.inf)
 
     def test_half_correct_binary_classifier(self):
@@ -621,7 +621,7 @@ class NegativeLikelihoodRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
-        lr_minus = scoring.negative_likelihood_ratio_score(y_true, y_pred)
+        lr_minus = scoring.negative_likelihood_ratio(y_true, y_pred)
         self.assertAlmostEqual(lr_minus, 0.6666666666666667)
 
     def test_mostly_correct_binary_classifier(self):
@@ -632,7 +632,7 @@ class NegativeLikelihoodRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 0])
-        lr_minus = scoring.negative_likelihood_ratio_score(y_true, y_pred)
+        lr_minus = scoring.negative_likelihood_ratio(y_true, y_pred)
         self.assertAlmostEqual(lr_minus, 0.24999999999999994)
 
     def test_mostly_incorrect_binary_classifier(self):
@@ -643,7 +643,7 @@ class NegativeLikelihoodRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 1])
-        lr_minus = scoring.negative_likelihood_ratio_score(y_true, y_pred)
+        lr_minus = scoring.negative_likelihood_ratio(y_true, y_pred)
         self.assertAlmostEqual(lr_minus, 4.0)
 
     def test_binary_classifier_with_no_false_positives(self):
@@ -654,7 +654,7 @@ class NegativeLikelihoodRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        lr_minus = scoring.negative_likelihood_ratio_score(y_true, y_pred)
+        lr_minus = scoring.negative_likelihood_ratio(y_true, y_pred)
         self.assertEqual(lr_minus, 1)
 
     def test_binary_classifier_with_no_false_negatives_with_warnings(self):
@@ -665,8 +665,8 @@ class NegativeLikelihoodRatioScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
-        lr_minus = scoring.negative_likelihood_ratio_score(y_true, y_pred,
-                                                           warn=True)
+        lr_minus = scoring.negative_likelihood_ratio(y_true, y_pred,
+                                                     warn=True)
 
         self.assertEqual(lr_minus, np.inf)
 
@@ -679,8 +679,8 @@ class NegativeLikelihoodRatioScoreTest(unittest.TestCase):
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
         with self.assertRaises(ValueError):
-            scoring.negative_likelihood_ratio_score(y_true, y_pred,
-                                                    warn=False)
+            scoring.negative_likelihood_ratio(y_true, y_pred,
+                                              warn=False)
 
     def test_multiclass_classifier_raises_value_error(self):
         """
@@ -691,12 +691,12 @@ class NegativeLikelihoodRatioScoreTest(unittest.TestCase):
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 2])
         y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 2])
         with self.assertRaises(ValueError):
-            scoring.negative_likelihood_ratio_score(y_true, y_pred)
+            scoring.negative_likelihood_ratio(y_true, y_pred)
 
 
-class SensitivityScoreTest(unittest.TestCase):
+class SensitivityTest(unittest.TestCase):
     """
-    Tests for scoring.sensitivity_score()
+    Tests for scoring.sensitivity()
 
     """
 
@@ -708,7 +708,7 @@ class SensitivityScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
-        sensitivity = scoring.sensitivity_score(y_true, y_pred)
+        sensitivity = scoring.sensitivity(y_true, y_pred)
         self.assertEqual(sensitivity, 1)
 
     def test_useless_binary_classifier(self):
@@ -719,7 +719,7 @@ class SensitivityScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0])
-        sensitivity = scoring.sensitivity_score(y_true, y_pred)
+        sensitivity = scoring.sensitivity(y_true, y_pred)
         self.assertEqual(sensitivity, 0)
 
     def test_half_correct_binary_classifier(self):
@@ -730,7 +730,7 @@ class SensitivityScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
-        sensitivity = scoring.sensitivity_score(y_true, y_pred)
+        sensitivity = scoring.sensitivity(y_true, y_pred)
         self.assertAlmostEqual(sensitivity, 0.6)
 
     def test_mostly_correct_binary_classifier(self):
@@ -741,7 +741,7 @@ class SensitivityScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 0])
-        sensitivity = scoring.sensitivity_score(y_true, y_pred)
+        sensitivity = scoring.sensitivity(y_true, y_pred)
         self.assertAlmostEqual(sensitivity, 0.8)
 
     def test_mostly_incorrect_binary_classifier(self):
@@ -752,7 +752,7 @@ class SensitivityScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 1])
-        sensitivity = scoring.sensitivity_score(y_true, y_pred)
+        sensitivity = scoring.sensitivity(y_true, y_pred)
         self.assertAlmostEqual(sensitivity, 0.2)
 
     def test_binary_classifier_with_no_false_positives(self):
@@ -763,7 +763,7 @@ class SensitivityScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        sensitivity = scoring.sensitivity_score(y_true, y_pred)
+        sensitivity = scoring.sensitivity(y_true, y_pred)
         self.assertEqual(sensitivity, 0)
 
     def test_binary_classifier_with_no_false_negatives(self):
@@ -774,7 +774,7 @@ class SensitivityScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
-        sensitivity = scoring.sensitivity_score(y_true, y_pred)
+        sensitivity = scoring.sensitivity(y_true, y_pred)
         self.assertEqual(sensitivity, 1)
 
     def test_multiclass_classifier_raises_value_error(self):
@@ -786,12 +786,12 @@ class SensitivityScoreTest(unittest.TestCase):
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 2])
         y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 2])
         with self.assertRaises(ValueError):
-            scoring.sensitivity_score(y_true, y_pred)
+            scoring.sensitivity(y_true, y_pred)
 
 
-class SpecificityScoreTest(unittest.TestCase):
+class SpecificityTest(unittest.TestCase):
     """
-    Tests for scoring.specificity_score()
+    Tests for scoring.specificity()
 
     """
 
@@ -803,7 +803,7 @@ class SpecificityScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
-        specificity = scoring.specificity_score(y_true, y_pred)
+        specificity = scoring.specificity(y_true, y_pred)
         self.assertEqual(specificity, 1)
 
     def test_useless_binary_classifier(self):
@@ -814,7 +814,7 @@ class SpecificityScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([1, 1, 1, 1, 1, 0, 0, 0, 0, 0])
-        specificity = scoring.specificity_score(y_true, y_pred)
+        specificity = scoring.specificity(y_true, y_pred)
         self.assertEqual(specificity, 0)
 
     def test_half_correct_binary_classifier(self):
@@ -825,7 +825,7 @@ class SpecificityScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
-        specificity = scoring.specificity_score(y_true, y_pred)
+        specificity = scoring.specificity(y_true, y_pred)
         self.assertAlmostEqual(specificity, 0.6)
 
     def test_mostly_correct_binary_classifier(self):
@@ -836,7 +836,7 @@ class SpecificityScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 0, 0, 0, 1, 1, 1, 1, 1, 0])
-        specificity = scoring.specificity_score(y_true, y_pred)
+        specificity = scoring.specificity(y_true, y_pred)
         self.assertAlmostEqual(specificity, 0.8)
 
     def test_mostly_incorrect_binary_classifier(self):
@@ -847,7 +847,7 @@ class SpecificityScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 1])
-        specificity = scoring.specificity_score(y_true, y_pred)
+        specificity = scoring.specificity(y_true, y_pred)
         self.assertAlmostEqual(specificity, 0.2)
 
     def test_binary_classifier_with_no_false_positives(self):
@@ -858,7 +858,7 @@ class SpecificityScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
-        specificity = scoring.specificity_score(y_true, y_pred)
+        specificity = scoring.specificity(y_true, y_pred)
         self.assertEqual(specificity, 1)
 
     def test_binary_classifier_with_no_false_negatives(self):
@@ -869,7 +869,7 @@ class SpecificityScoreTest(unittest.TestCase):
 
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
-        specificity = scoring.specificity_score(y_true, y_pred)
+        specificity = scoring.specificity(y_true, y_pred)
         self.assertEqual(specificity, 0)
 
     def test_multiclass_classifier_raises_value_error(self):
@@ -881,7 +881,7 @@ class SpecificityScoreTest(unittest.TestCase):
         y_true = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 2])
         y_pred = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 2])
         with self.assertRaises(ValueError):
-            scoring.specificity_score(y_true, y_pred)
+            scoring.specificity(y_true, y_pred)
 
 
 if __name__ == '__main__':

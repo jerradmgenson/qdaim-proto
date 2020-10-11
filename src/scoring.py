@@ -90,20 +90,20 @@ def score_model(model, input_data, target_data):
 
     scores = dict()
     scores['accuracy'] = sklearn.metrics.accuracy_score(target_data, predictions)
-    scores['informedness'] = informedness_score(target_data, predictions)
+    scores['informedness'] = informedness(target_data, predictions)
     scores['mcc'] = sklearn.metrics.matthews_corrcoef(target_data, predictions)
-    scores['precision'] = precision_score(target_data, predictions)
-    scores['recall'] = recall_score(target_data, predictions)
+    scores['precision'] = precision(target_data, predictions)
+    scores['recall'] = recall(target_data, predictions)
     scores['f1_score'] = f1_score(target_data, predictions)
     scores['ami'] = sklearn.metrics.adjusted_mutual_info_score(target_data, predictions)
 
     classes = np.unique(np.concatenate([target_data, predictions]))
     if len(classes) == 2:
-        scores['sensitivity'] = sensitivity_score(target_data, predictions)
-        scores['specificity'] = specificity_score(target_data, predictions)
-        scores['dor'] = diagnostic_odds_ratio_score(target_data, predictions)
-        scores['lr_plus'] = positive_likelihood_ratio_score(target_data, predictions)
-        scores['lr_minus'] = negative_likelihood_ratio_score(target_data, predictions)
+        scores['sensitivity'] = sensitivity(target_data, predictions)
+        scores['specificity'] = specificity(target_data, predictions)
+        scores['dor'] = diagnostic_odds_ratio(target_data, predictions)
+        scores['lr_plus'] = positive_likelihood_ratio(target_data, predictions)
+        scores['lr_minus'] = negative_likelihood_ratio(target_data, predictions)
         try:
             scores['roc_auc'] = sklearn.metrics.roc_auc_score(target_data, predictions)
 
@@ -114,7 +114,7 @@ def score_model(model, input_data, target_data):
     return scores
 
 
-def diagnostic_odds_ratio_score(y_true, y_pred):
+def diagnostic_odds_ratio(y_true, y_pred):
     """
     Compute the diagnostic odds ratio given by the formula:
 
@@ -159,7 +159,7 @@ def diagnostic_odds_ratio_score(y_true, y_pred):
     return tp * tn / (fp * fn)
 
 
-def positive_likelihood_ratio_score(y_true, y_pred, warn=True):
+def positive_likelihood_ratio(y_true, y_pred, warn=True):
     """
     Compute the likelihood ratio for positive test results given by the
     formula:
@@ -187,14 +187,14 @@ def positive_likelihood_ratio_score(y_true, y_pred, warn=True):
 
     logger = logging.getLogger(__name__)
     try:
-        sensitivity = sensitivity_score(y_true, y_pred)
-        specificity = specificity_score(y_true, y_pred)
+        sensitivity_score = sensitivity(y_true, y_pred)
+        specificity_score = specificity(y_true, y_pred)
 
     except ValueError:
         msg = 'likelihood ratio is undefined for the multiclass situation.'
         raise ValueError(msg)
 
-    if specificity == 1:
+    if specificity_score == 1:
         msg = 'positive likelihood ratio is undefined when specificity is 1.'
         if warn:
             logger.warning(msg)
@@ -202,10 +202,10 @@ def positive_likelihood_ratio_score(y_true, y_pred, warn=True):
 
         raise ValueError(msg)
 
-    return sensitivity / (1 - specificity)
+    return sensitivity_score / (1 - specificity_score)
 
 
-def negative_likelihood_ratio_score(y_true, y_pred, warn=True):
+def negative_likelihood_ratio(y_true, y_pred, warn=True):
     """
     Compute the likelihood ratio for negative test results given by the
     formula:
@@ -233,14 +233,14 @@ def negative_likelihood_ratio_score(y_true, y_pred, warn=True):
 
     logger = logging.getLogger(__name__)
     try:
-        sensitivity = sensitivity_score(y_true, y_pred)
-        specificity = specificity_score(y_true, y_pred)
+        sensitivity_score = sensitivity(y_true, y_pred)
+        specificity_score = specificity(y_true, y_pred)
 
     except ValueError:
         msg = 'likelihood ratio is undefined for the multiclass situation.'
         raise ValueError(msg)
 
-    if specificity == 0:
+    if specificity_score == 0:
         msg = 'negative likelihood ratio is undefined when specificity is 0.'
         if warn:
             logger.warning(msg)
@@ -248,10 +248,10 @@ def negative_likelihood_ratio_score(y_true, y_pred, warn=True):
 
         raise ValueError(msg)
 
-    return (1 - sensitivity) / specificity
+    return (1 - sensitivity_score) / specificity_score
 
 
-def sensitivity_score(y_true, y_pred):
+def sensitivity(y_true, y_pred):
     """
     Compute the sensitivity, i.e. recall of the positive class.
 
@@ -279,7 +279,7 @@ def sensitivity_score(y_true, y_pred):
     return sklearn.metrics.recall_score(y_true, y_pred, pos_label=positive_class)
 
 
-def specificity_score(y_true, y_pred):
+def specificity(y_true, y_pred):
     """
     Compute the specificity, i.e. recall of the negative class.
 
@@ -307,7 +307,7 @@ def specificity_score(y_true, y_pred):
     return sklearn.metrics.recall_score(y_true, y_pred, pos_label=negative_class)
 
 
-def informedness_score(y_true, y_pred):
+def informedness(y_true, y_pred):
     """
     Compute the informedness, also known as Youden's J statistic.
 
@@ -321,12 +321,12 @@ def informedness_score(y_true, y_pred):
     """
 
     if len(np.unique(np.concatenate([y_true, y_pred]))) == 2:
-        return sensitivity_score(y_true, y_pred) + specificity_score(y_true, y_pred) - 1
+        return sensitivity(y_true, y_pred) + specificity(y_true, y_pred) - 1
 
     return sklearn.metrics.balanced_accuracy_score(y_true, y_pred, adjusted=True)
 
 
-def precision_score(y_true, y_pred):
+def precision(y_true, y_pred):
     """
     Compute the precision. For the multiclass situation, use the weighted
     average across all classes.
@@ -349,7 +349,7 @@ def precision_score(y_true, y_pred):
     return sklearn.metrics.precision_score(y_true, y_pred, average='weighted')
 
 
-def recall_score(y_true, y_pred):
+def recall(y_true, y_pred):
     """
     Compute the recall. For the multiclass situation, use the weighted
     average across all classes.
