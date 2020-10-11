@@ -21,6 +21,7 @@ import pandas as pd
 import sklearn
 from sklearn.datasets import load_iris
 
+import util
 import gen_model
 import preprocess_stage2
 from tests.integration import test_preprocess_stage1
@@ -499,7 +500,7 @@ class ConfigFileTestCase(GenModelTestCase):
         with config_path.open() as config_fp:
             config = json.load(config_fp)
 
-        self.assertTrue(gen_model.is_valid_config(config))
+        self.assertTrue(util.is_valid_config(config))
 
 
 class CrossValidationTestCase(GenModelTestCase):
