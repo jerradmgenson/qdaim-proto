@@ -1,6 +1,8 @@
 """
 A collection of various utility functions that are not related to the core
-model generation algorithms or another, more specific library.
+model generation algorithms or another, more specific library. This includes
+functions for reading/writing files, executing commands, parsing the command
+line, and configuring logging.
 
 Copyright 2020 Jerrad M. Genson
 

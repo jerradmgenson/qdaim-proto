@@ -1,5 +1,7 @@
 """
-A library of functions for scoring models.
+A library of functions for scoring models. This includes functions for
+calculating individual scoring metrics and generating reports that aggregate
+all applicable model scores.
 
 Copyright 2020 Jerrad M. Genson
 
