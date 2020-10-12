@@ -79,6 +79,7 @@ import subprocess
 import sys
 import platform
 import datetime
+import logging
 
 import numpy as np
 import scipy as sp
@@ -118,7 +119,8 @@ def main(argv):
     logfile_path = command_line_arguments.target.with_name(
         command_line_arguments.target.stem + '.log')
 
-    logger = util.configure_logging(command_line_arguments.log_level, logfile_path)
+    util.configure_logging(command_line_arguments.log_level, logfile_path)
+    logger = logging.getLogger(__name__)
     print('Reading configuration file...')
     try:
         config = util.read_config_file(command_line_arguments.config)
@@ -188,7 +190,6 @@ def main(argv):
     util.save_model(model, command_line_arguments.target)
     print(f'Saved model to {command_line_arguments.target}')
     runtime = f'Runtime: {time.time() - start_time:.2} seconds'
-    logger.debug(runtime)
 
     return ExitCode.SUCCESS
 

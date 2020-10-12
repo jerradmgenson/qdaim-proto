@@ -396,13 +396,10 @@ def configure_logging(log_level, logfile_path):
     """
     Configure the logger for the current module.
 
-    Returns
-      A Logger object for the current module.
-
     """
 
     log_level_number = getattr(logging, log_level.upper())
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
 
     console_handler = logging.StreamHandler()
@@ -416,8 +413,6 @@ def configure_logging(log_level, logfile_path):
     file_formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s')
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)
-
-    return logger
 
 
 def save_model(model, output_path):

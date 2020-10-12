@@ -23,36 +23,41 @@ def score(model, datasets):
 
     """
 
-    """
+    outliers = mahalanobis_distance(datasets.training.inputs,
+                                    datasets.validation.inputs)
+
+    outlier_count = np.sum(outliers)
+    if outlier_count > 0:
+        scores = scoring.score_model(model,
+                                     datasets.validation.inputs[outliers],
+                                     datasets.validation.targets[outliers])
+
+        return scores, outlier_count, None
+
     if hasattr(model, 'steps') and len(model.steps) >= 2:
         # Assume that `model` is a pipeline and the first step is preprocessing.
-        outliers, outlier_model = spacial_clustering(datasets.training.inputs,
+        outliers, outlier_model = spatial_clustering(datasets.training.inputs,
                                                      datasets.validation.inputs,
                                                      preprocessor=model.steps[0][1])
 
     else:
-        outliers, outlier_model = spacial_clustering(datasets.training.inputs,
+        outliers, outlier_model = spatial_clustering(datasets.training.inputs,
                                                      datasets.validation.inputs)
-    """
-
-    outliers = mahalanobis_distance(datasets.training.inputs,
-                                    datasets.validation.inputs)
 
     outlier_count = np.sum(outliers)
     scores = scoring.score_model(model,
                                  datasets.validation.inputs[outliers],
                                  datasets.validation.targets[outliers])
 
-    #return scores, outlier_count, outlier_model
-    return scores, outlier_count, outliers
+    return scores, outlier_count, outlier_model
 
 
-def spacial_clustering(a1, a2=None, preprocessor=None):
+def spatial_clustering(a1, a2=None, preprocessor=None):
     """
-    Find outliers in a multivariate system using spacial clustering.
+    Find outliers in a multivariate system using spatial clustering.
 
-    Finds outliers using a spacial clustering approach. First, it uses
-    density-based spacial clustering of applications with noise (DBSCAN) to find
+    Finds outliers using a spatial clustering approach. First, it uses
+    density-based spatial clustering of applications with noise (DBSCAN) to find
     core samples in a1. Then it calculates the Euclidean distance from each
     sample in a2 to the nearest core sample in a1 and checks if the distance is
     greater than the eps parameter chosen for the DBSCAN model. It considers any
@@ -138,7 +143,14 @@ def mahalanobis_distance(a1, a2=None, p=.003):
     if a2 is None:
         a2 = a1
 
-    distances = distance.cdist(a2, a1, metric='mahalanobis').diagonal()
+    try:
+        distances = distance.cdist(a2, a1, metric='mahalanobis').diagonal()
+
+    except np.linalg.LinAlgError as linalg_error:
+        logger = logging.getLogger(__name__)
+        logger.warning(str(linalg_error)
+        return np.array([])
+
     p_values = chi2.cdf(distances, len(a2[0]) - 1)
 
     return p_values < p
