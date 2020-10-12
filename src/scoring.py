@@ -380,11 +380,11 @@ def f1_score(y_true, y_pred):
     return sklearn.metrics.f1_score(y_true, y_pred, average='weighted')
 
 
-def mean_silhouette_coefficient(model, x_test, *_):
+def silhouette_coefficient(model, x_test, *_):
     """
     Compute the mean silhouette coefficient.
 
-    Note that mean_silhouette_coefficient takes different arguments compared to
+    Note that silhouette_coefficient takes different arguments compared to
     most other scoring functions. This is because, unlike most other scoring
     functions, it is used to evaluate the performance of unsupervised clustering
     algorithms.

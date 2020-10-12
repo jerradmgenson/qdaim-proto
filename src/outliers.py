@@ -35,13 +35,15 @@ def score(model, datasets):
 
         return scores, outlier_count, None
 
-    outliers, outlier_model = spatial_clustering(datasets.training.inputs,
-                                                 datasets.validation.inputs)
+    outliers, outlier_model, score = spatial_clustering(datasets.training.inputs,
+                                                        datasets.validation.inputs)
 
     outlier_count = np.sum(outliers)
     scores = scoring.score_model(model,
                                  datasets.validation.inputs[outliers],
                                  datasets.validation.targets[outliers])
+
+    scores['silhouette'] = score
 
     return scores, outlier_count, outlier_model
 
@@ -69,9 +71,10 @@ def spatial_clustering(a1, a2=None):
       a2: k x m array of samples to test for outliers. (Default=a1)
 
     Returns:
-      A 2-tuple of
+      A 3-tuple of
       (k x 1 boolean array where True elements correspond to outliers in a2,
-       DBSCAN model that was used to produce core samples)
+       DBSCAN model that was used to produce core samples,
+       mean silhouette coefficient of the DBSCAN model)
 
     """
 
@@ -98,7 +101,7 @@ def spatial_clustering(a1, a2=None):
 
     grid_estimator = sklearn.model_selection.GridSearchCV(cluster.DBSCAN(eps=eps),
                                                           parameter_grid,
-                                                          scoring=scoring.mean_silhouette_coefficient)
+                                                          scoring=scoring.silhouette_coefficient)
 
     grid_estimator.fit(a1)
     model = grid_estimator.best_estimator_
@@ -106,7 +109,7 @@ def spatial_clustering(a1, a2=None):
     distances = distance.cdist(a2, core_samples)
     min_distances = distances.min(axis=1)
 
-    return min_distances > eps, model
+    return min_distances > eps, model, grid_estimator.best_score_
 
 
 def mahalanobis_distance(a1, a2=None, p=.003):
