@@ -35,15 +35,8 @@ def score(model, datasets):
 
         return scores, outlier_count, None
 
-    if hasattr(model, 'steps') and len(model.steps) >= 2:
-        # Assume that `model` is a pipeline and the first step is preprocessing.
-        outliers, outlier_model = spatial_clustering(datasets.training.inputs,
-                                                     datasets.validation.inputs,
-                                                     preprocessor=model.steps[0][1])
-
-    else:
-        outliers, outlier_model = spatial_clustering(datasets.training.inputs,
-                                                     datasets.validation.inputs)
+    outliers, outlier_model = spatial_clustering(datasets.training.inputs,
+                                                 datasets.validation.inputs)
 
     outlier_count = np.sum(outliers)
     scores = scoring.score_model(model,
@@ -53,7 +46,7 @@ def score(model, datasets):
     return scores, outlier_count, outlier_model
 
 
-def spatial_clustering(a1, a2=None, preprocessor=None):
+def spatial_clustering(a1, a2=None):
     """
     Find outliers in a multivariate system using spatial clustering.
 
@@ -74,8 +67,6 @@ def spatial_clustering(a1, a2=None, preprocessor=None):
     Args:
       a1: n x m array to use as the basis for the core samples.
       a2: k x m array of samples to test for outliers. (Default=a1)
-      preprocessor: A scikit-learn Transformer object to use in a pipeline when
-                    constructing the DBSCAN model. (Default=None)
 
     Returns:
       A 2-tuple of
@@ -87,6 +78,9 @@ def spatial_clustering(a1, a2=None, preprocessor=None):
     if a2 is None:
         a2 = a1
 
+    robust_scaler = sklearn.preprocessing.RobustScaler().fit(a1)
+    a1 = robust_scaler.transform(a1)
+    a2 = robust_scaler.transform(a2)
     nearest_neighbors = sklearn.neighbors.NearestNeighbors(n_neighbors=2)
     a1_distances, _ = nearest_neighbors.fit(a1).kneighbors(a1)
     a1_distances = np.sort(a1_distances, axis=0)
@@ -98,30 +92,21 @@ def spatial_clustering(a1, a2=None, preprocessor=None):
                                 direction='increasing')
 
     eps = kneedle.knee_y
-    pipeline_steps = []
-    if preprocessor:
-        pipeline_steps.append(('preprocessor', preprocessor))
-
-    pipeline_steps.append(('model', cluster.DBSCAN(eps=eps)))
-    pipeline = Pipeline(steps=pipeline_steps)
     parameter_grid = dict(
-        model__min_samples=range(a1.shape[1] + 1, 2 * a1.shape[1] + 1)
+        min_samples=range(a1.shape[1] + 1, 2 * a1.shape[1] + 1)
     )
 
-    grid_estimator = sklearn.model_selection.GridSearchCV(pipeline,
+    grid_estimator = sklearn.model_selection.GridSearchCV(cluster.DBSCAN(eps=eps),
                                                           parameter_grid,
                                                           scoring=scoring.mean_silhouette_coefficient)
 
     grid_estimator.fit(a1)
-    model = grid_estimator.best_estimator_.steps[-1][1]
+    model = grid_estimator.best_estimator_
     core_samples = model.components_
-    if preprocessor:
-        a2 = grid_estimator.best_estimator_.steps[0][1].transform(a2)
-
     distances = distance.cdist(a2, core_samples)
     min_distances = distances.min(axis=1)
 
-    return min_distances > eps, grid_estimator.best_estimator_
+    return min_distances > eps, model
 
 
 def mahalanobis_distance(a1, a2=None, p=.003):
