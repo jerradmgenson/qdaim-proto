@@ -79,7 +79,7 @@ def spatial_clustering(a1, a2=None):
     """
 
     if a2 is None:
-        a2 = a1
+        a2 = np.copy(a1)
 
     robust_scaler = sklearn.preprocessing.RobustScaler().fit(a1)
     a1 = robust_scaler.transform(a1)
@@ -140,7 +140,11 @@ def mahalanobis_distance(a1, a2=None, p=.003):
     """
 
     if a2 is None:
-        a2 = a1
+        a2 = np.copy(a1)
+
+    robust_scaler = sklearn.preprocessing.RobustScaler().fit(a1)
+    a1 = robust_scaler.transform(a1)
+    a2 = robust_scaler.transform(a2)
 
     try:
         distances = distance.cdist(a2, a1, metric='mahalanobis').diagonal()
