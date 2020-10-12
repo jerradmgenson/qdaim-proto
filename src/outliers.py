@@ -19,7 +19,7 @@ from scipy.spatial import distance
 import scoring
 
 
-def score(model, datasets, p=.003):
+def score(model, datasets, p=.003):  # pylint: disable=C0103
     """
     Score model on only the outliers in a dataset.
 
@@ -54,44 +54,41 @@ def score(model, datasets, p=.003):
     return scores
 
 
-def mahalanobis_distance(a1, a2=None, p=.003):
+def mahalanobis_distance(x1, x2, p=.003):  # pylint: disable=C0103
     """
     Find outliers in a multivariate system using the Mahalanobis distance.
 
-    Calculates the Mahalanobis distance from each sample in a2 to a1, then
-    performs a Chi-Squared test on each distance to determine the p-value.
+    Calculates the Mahalanobis distance from each sample in x2 to x1,
+    then performs a Chi-Squared test on each distance to determine the p-value.
     It considers any samples with a p-value less than the given significance
     level to be outliers.
 
     This is a fast and statistically rigorous method of finding outliers in a
     multivariate system where the features may be correlated. However, it
     requires that the data conform to an elliptical distribution and that the
-    inverse covariance matrix is defined for a1. Otherwise, it will fail to find
+    inverse covariance matrix is defined for x1. Otherwise, it will fail to find
     the outliers.
 
     Args:
-      a1: n x m array to use as the distribution for calculating the
+      x1: n x m array to use as the distribution for calculating the
           Mahalanobis distance.
-      a2: k x m array of samples to test for outliers. (Default=a1)
+      x2: k x m array of samples to test for outliers. (Default=a1)
       p: Significance level to use for determining if a sample is an outlier.
          (Default=.003)
 
     Returns:
-      k x 1 boolean array where True elements correspond to outliers in a2.
+      k x 1 boolean array where True elements correspond to outliers in x2.
 
     """
 
-    if a2 is None:
-        a2 = np.copy(a1)
-
     try:
-        distances = distance.cdist(a2, a1, metric='mahalanobis').diagonal()
+        distances = distance.cdist(x2, x1, metric='mahalanobis').diagonal()
 
     except np.linalg.LinAlgError as linalg_error:
         logger = logging.getLogger(__name__)
         logger.warning(str(linalg_error))
         return np.array([])
 
-    p_values = chi2.cdf(distances, len(a2[0]) - 1)
+    p_values = chi2.cdf(distances, len(x2[0]) - 1)
 
     return p_values < p
