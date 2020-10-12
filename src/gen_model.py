@@ -172,12 +172,12 @@ def main(argv):
 
     outlier_scores = None
     if command_line_arguments.outlier_scores:
-        outlier_scores, outlier_count, outlier_model = outliers.score(model, datasets)
-        model.outlier_model = outlier_model
+        outlier_scores = outliers.score(model, datasets,
+                                        p=command_line_arguments.outlier_scores)
 
     bind_model_metadata(model, model_scores,
                         cross_validation_scores=cross_validation_scores,
-                        outlier_scores=(outlier_scores, outlier_count))
+                        outlier_scores=outlier_scores)
 
     predictions = model.predict(datasets.validation.inputs)
     validation_dataset = create_validation_dataset(datasets.validation.inputs,
@@ -274,9 +274,8 @@ def bind_model_metadata(model, scores,
 
     if outlier_scores:
         print('\nOutlier scores:')
-        print(f'Outliers:  {outlier_scores[1]}')
         score_count = 0
-        for metric, score in outlier_scores[0].items():
+        for metric, score in outlier_scores.items():
             if score:
                 score_count += 1
                 setattr(model, 'outlier_' + metric, score)

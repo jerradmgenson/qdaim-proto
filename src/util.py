@@ -386,8 +386,11 @@ def parse_command_line(argv):
                         help='Cross-validate the model using the specified number of folds.')
 
     parser.add_argument('--outlier-scores',
-                        action='store_true',
-                        help='Score the model on outliers.')
+                        type=float,
+                        nargs='?',
+                        default=None,
+                        const=.003,
+                        help='Score the model on outliers. A significance level may optionally be given.')
 
     return parser.parse_args(argv)
 
