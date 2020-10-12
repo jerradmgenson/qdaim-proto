@@ -79,7 +79,6 @@ import subprocess
 import sys
 import platform
 import datetime
-import math
 
 import numpy as np
 import scipy as sp
@@ -171,7 +170,7 @@ def main(argv):
 
     outlier_scores = None
     if command_line_arguments.outlier_scores:
-        outlier_scores, outlier_count, outlier_model = outliers.score_outliers(model, datasets)
+        outlier_scores, outlier_count, outlier_model = outliers.score(model, datasets)
         model.outlier_model = outlier_model
 
     bind_model_metadata(model, model_scores,
