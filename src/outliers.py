@@ -6,6 +6,7 @@ from scipy.stats import chi2
 import sklearn
 from sklearn.pipeline import Pipeline
 from sklearn import cluster
+import kneed
 
 import scoring
 
@@ -86,15 +87,25 @@ def spatial_clustering(a1, a2=None, preprocessor=None):
     if a2 is None:
         a2 = a1
 
+    nearest_neighbors = sklearn.neighbors.NearestNeighbors(n_neighbors=2)
+    a1_distances, _ = nearest_neighbors.fit(a1).kneighbors(a1)
+    a1_distances = np.sort(a1_distances, axis=0)
+    a1_distances = a1_distances[:,1]
+    kneedle = kneed.KneeLocator(range(len(a1_distances)),
+                                a1_distances,
+                                S=1.0,
+                                curve='convex',
+                                direction='increasing')
+
+    eps = kneedle.knee_y
     pipeline_steps = []
     if preprocessor:
         pipeline_steps.append(('preprocessor', preprocessor))
 
-    pipeline_steps.append(('model', cluster.DBSCAN()))
+    pipeline_steps.append(('model', cluster.DBSCAN(eps=eps)))
     pipeline = Pipeline(steps=pipeline_steps)
     parameter_grid = dict(
-        model__eps=[0.05, 0.1, 0.5, 1, 5, 10, 15],
-        model__min_samples=list(range(2, int(math.sqrt(len(a1))), 2))
+        model__min_samples=range(a1.shape[1] + 1, 2 * a1.shape[1] + 1)
     )
 
     grid_estimator = sklearn.model_selection.GridSearchCV(pipeline,
@@ -110,7 +121,7 @@ def spatial_clustering(a1, a2=None, preprocessor=None):
     distances = distance.cdist(a2, core_samples)
     min_distances = distances.min(axis=1)
 
-    return min_distances > model.eps, grid_estimator.best_estimator_
+    return min_distances > eps, grid_estimator.best_estimator_
 
 
 def mahalanobis_distance(a1, a2=None, p=.003):
@@ -148,7 +159,7 @@ def mahalanobis_distance(a1, a2=None, p=.003):
 
     except np.linalg.LinAlgError as linalg_error:
         logger = logging.getLogger(__name__)
-        logger.warning(str(linalg_error)
+        logger.warning(str(linalg_error))
         return np.array([])
 
     p_values = chi2.cdf(distances, len(a2[0]) - 1)
