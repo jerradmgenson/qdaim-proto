@@ -40,7 +40,7 @@ preprocess_stage2_builder = Builder(action=build_preprocess_stage2,
 def build_gen_model(target, source, env):
     return gen_model.main([str(target[0]), str(source[0]),
                            '--cross-validate', str(N_SPLITS),
-                           '--outlier-scores', '.05'])
+                           '--outlier-scores', '.32'])
 
 gen_model_builder = Builder(action=build_gen_model,
                             suffix='.dat',
