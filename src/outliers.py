@@ -89,6 +89,6 @@ def mahalanobis_distance(x1, x2, p=.003):  # pylint: disable=C0103
         logger.warning(str(linalg_error))
         return np.array([])
 
-    p_values = chi2.cdf(distances, len(x2[0]) - 1)
+    p_values = 1 - chi2.cdf(distances, len(x2[0]) - 1)
 
     return p_values < p
