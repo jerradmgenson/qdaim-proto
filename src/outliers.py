@@ -14,11 +14,13 @@ import math
 import logging
 
 import numpy as np
-from scipy.stats import chi2
+from scipy import stats
 from scipy.spatial import distance
+import pandas as pd
 import sklearn
 from sklearn import cluster
 import kneed
+import rrcf
 
 import scoring
 
@@ -42,18 +44,15 @@ def score(model, datasets, p=.003):  # pylint: disable=C0103
                                     datasets.validation.inputs,
                                     p=p)
 
-    outliers_count = np.sum(outliers)
-    silhouette = None
-    if outliers_count == 0:
-        outliers, silhouette = spatial_clustering(datasets.training.inputs,
-                                                  datasets.validation.inputs)
+    outliers = np.logical_or(outliers,
+                             random_cut_forest(datasets.training.inputs,
+                                               datasets.validation.inputs))
 
-        import pdb; pdb.set_trace()
-        outliers_count = np.sum(outliers)
-        if outliers_count == 0:
-            logger = logging.getLogger(__name__)
-            logger.warning('No outliers found.')
-            return dict()
+    outliers_count = np.sum(outliers)
+    if outliers_count == 0:
+        logger = logging.getLogger(__name__)
+        logger.warning('No outliers found.')
+        return dict()
 
     scores = scoring.score_model(model,
                                  datasets.validation.inputs[outliers],
@@ -61,8 +60,6 @@ def score(model, datasets, p=.003):  # pylint: disable=C0103
 
     scores['outliers'] = float(outliers_count)
     scores['p'] = p
-    if silhouette:
-        scores['silhouette'] = silhouette
 
     return scores
 
@@ -102,7 +99,7 @@ def mahalanobis_distance(x1, x2, p=.003):  # pylint: disable=C0103
         logger.warning(str(linalg_error))
         return np.array([])
 
-    p_values = 1 - chi2.cdf(distances, len(x2[0]) - 1)
+    p_values = 1 - stats.chi2.cdf(distances, len(x2[0]) - 1)
 
     return p_values < p
 
@@ -165,7 +162,7 @@ def estimate_eps(x, min_samples):  # pylint: disable=C0103
     """
     Estimate the optimal eps value for DBSCAN using the Kneedle algorithm.
 
-    Source: https://ieeexplore.ieee.org/document/5961514
+    Reference: https://ieeexplore.ieee.org/document/5961514
 
     Args:
       x: 2-dimensional array used to fit the DBSCAN model.
@@ -186,3 +183,57 @@ def estimate_eps(x, min_samples):  # pylint: disable=C0103
                                 direction='increasing')
 
     return kneedle.knee_y
+
+
+def random_cut_forest(x1, x2, n_trees=100, tree_size=256):  # pylint: disable=C0103
+    """
+    Find outliers in a multivariate system using Robust Random Cut Forest.
+
+    First construct a forest of random cut trees from x1 and calculate the
+    mean codisp for each sample in x1 for each tree that it is in. Then insert
+    each sample from x2 into each tree one by one and calculate the mean codisp
+    for each sample. Samples with codisp greater than the 75th percentile of
+    mean x1 codisps + IQR * 1.5 are considered to be outliers.
+
+    Reference: http://proceedings.mlr.press/v48/guha16.pdf
+
+    Args:
+      x1: n x m array to use as the basis for the forest..
+      x2: k x m array of samples to test for outliers.
+
+    Returns:
+      k x 1 boolean array where True elements correspond to outliers in x2
+
+    """
+
+    forest = []
+    while len(forest) < n_trees:
+        ixs = np.random.choice(x1.shape[0], size=(x1.shape[0] // tree_size, tree_size),
+                               replace=False)
+
+        trees = [rrcf.RCTree(x1[ix], index_labels=ix) for ix in ixs]
+        forest.extend(trees)
+
+    x1_mean_codisp = pd.Series(0.0, index=np.arange(x1.shape[0]))
+    index = np.zeros(x1.shape[0])
+    for tree in forest:
+        codisp = pd.Series({leaf: tree.codisp(leaf) for leaf in tree.leaves})
+        x1_mean_codisp[codisp.index] += codisp
+        np.add.at(index, codisp.index.values, 1)
+
+    x1_mean_codisp /= index
+    x2_mean_codisp = np.zeros(x2.shape[0])
+    for sample_index, sample in enumerate(x2):
+        sample_mean_codisp = 0
+        for tree in forest:
+            tree.insert_point(sample, index='sample')
+            sample_mean_codisp += tree.codisp('sample')
+            tree.forget_point('sample')
+
+        sample_mean_codisp /= len(forest)
+        x2_mean_codisp[sample_index] = sample_mean_codisp
+
+    iqr = stats.iqr(x1_mean_codisp)
+    outliers = x2_mean_codisp > np.quantile(x1_mean_codisp, 0.75) + 1.5 * iqr
+
+    return outliers
