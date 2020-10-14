@@ -21,6 +21,7 @@ import sklearn
 from sklearn import cluster
 import kneed
 import rrcf
+from statsmodels.stats.stattools import medcouple
 
 import scoring
 
@@ -40,21 +41,13 @@ def score(model, datasets, alpha=.003, method='mahalanobis'):  # pylint: disable
 
     """
 
-    outliers = []
-    z = stats.norm.ppf(1 - alpha / 2)
-    univariate_outliers = np.full(datasets.validation.inputs.shape, False)
-    p_values = (stats.shapiro(x)[1] for x in datasets.training.inputs.T)
-    for feature, p_value in enumerate(p_values):
-        if p_value < .05:
-            feature_outliers = iqr(datasets.training.inputs[:,feature],
-                                   datasets.validation.inputs[:,feature])
+    univariate_outliers = adjusted_boxplot(datasets.training.inputs,
+                                           datasets.validation.inputs)
 
-        else:
-            feature_outliers = z_score(datasets.training.inputs[:,feature],
-                                       datasets.validation.inputs[:,feature],
-                                       z=z)
-
-        univariate_outliers[:,feature] = feature_outliers
+    # TODO: Replace this with a better test before using it with another project.
+    numerical_features = [len(np.unique(x)) > 2 for x in datasets.training.inputs.T]
+    univariate_outliers = np.logical_and(univariate_outliers,
+                                         np.tile(numerical_features, (univariate_outliers.shape[0], 1)))
 
     outliers = np.any(univariate_outliers, axis=1)
     if method == 'mahalanobis':
@@ -89,34 +82,35 @@ def score(model, datasets, alpha=.003, method='mahalanobis'):  # pylint: disable
     return scores
 
 
-def z_score(x1, x2, z=3):
+def adjusted_boxplot(x1, x2):
     """
-    Find outliers in array x2 based on mean and standard deviation of array x1.
-    This is a univariate method to locate outliers.
-
-    Args:
-      x1: n x m array to used to calculate the mean and standard deviation.
-      x2: k x m array of samples to test for outliers.
-      z: Z-score threshold used for identifying outliers. (Default=3)
-
-    Returns:
-      k x m array boolean array where True values indicate an outlier.
+    Reference: https://d-scholarship.pitt.edu/7948/1/Seo.pdf
 
     """
 
-    x1_mean = np.mean(x1)
-    x1_sigma = np.std(x1)
-    x2_z_scores = np.absolute(x2 - x1_mean) / x1_sigma
+    q1 = np.quantile(x1, .25, axis=0)
+    q3 = np.quantile(x1, .75, axis=0)
+    iqr = q3 - q1
+    mc = medcouple(x1, axis=0)
+    lower_fence = np.zeros(mc.shape)
+    upper_fence = np.zeros(mc.shape)
+    np.copyto(lower_fence,
+              q1 - 1.5 * np.exp(-3.5 * mc) * iqr,
+              where=mc >= 0)
 
-    return x2_z_scores > z
+    np.copyto(lower_fence,
+              q1 - 1.5 * np.exp(-4 * mc) * iqr,
+              where=mc < 0)
 
+    np.copyto(upper_fence,
+              q3 + 1.5 * np.exp(4 * mc) * iqr,
+              where=mc >= 0)
 
-def iqr(x1, x2):
-    x1_median = np.median(x1)
-    x1_iqr = stats.iqr(x1)
-    x2_distance = np.absolute(x2 - x1_median)
+    np.copyto(upper_fence,
+              q3 + 1.5 * np.exp(3.5 * mc) * iqr,
+              where=mc < 0)
 
-    return x2_distance > x1_iqr * 1.5
+    return (x2 < lower_fence) + (x2 > upper_fence)
 
 
 def mahalanobis_distance(x1, x2, alpha=.003):  # pylint: disable=C0103

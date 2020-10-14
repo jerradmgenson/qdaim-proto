@@ -173,7 +173,8 @@ def main(argv):
     outlier_scores = None
     if command_line_arguments.outlier_scores:
         outlier_scores = outliers.score(model, datasets,
-                                        alpha=command_line_arguments.outlier_scores)
+                                        alpha=command_line_arguments.outlier_scores,
+                                        method='random_forest')
 
     bind_model_metadata(model, model_scores,
                         cross_validation_scores=cross_validation_scores,
