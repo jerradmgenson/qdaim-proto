@@ -25,31 +25,56 @@ import rrcf
 import scoring
 
 
-def score(model, datasets, p=.003):  # pylint: disable=C0103
+def score(model, datasets, alpha=.003, method='mahalanobis'):  # pylint: disable=C0103
     """
     Score model on only the outliers in a dataset.
 
     Args:
       model: A trained instance of a scikit-learn estimator.
       datasets: An instance of Datasets.
-      p: Significance level to use for determining if a sample is an outlier.
-         (Default=.003)
+      alpha: Significance level to use for identifying an outlier.
+             (Default=.003)
 
     Returns:
       A scores dict returned by `score_model`.
 
     """
 
-    outliers = mahalanobis_distance(datasets.training.inputs,
-                                    datasets.validation.inputs,
-                                    p=p)
+    outliers = []
+    z = stats.norm.ppf(1 - alpha / 2)
+    univariate_outliers = np.full(datasets.validation.inputs.shape, False)
+    p_values = (stats.shapiro(x)[1] for x in datasets.training.inputs.T)
+    for feature, p_value in enumerate(p_values):
+        if p_value < .05:
+            feature_outliers = iqr(datasets.training.inputs[:,feature],
+                                   datasets.validation.inputs[:,feature])
 
-    outliers = np.logical_or(outliers,
-                             random_cut_forest(datasets.training.inputs,
-                                               datasets.validation.inputs))
+        else:
+            feature_outliers = z_score(datasets.training.inputs[:,feature],
+                                       datasets.validation.inputs[:,feature],
+                                       z=z)
 
-    outliers_count = np.sum(outliers)
-    if outliers_count == 0:
+        univariate_outliers[:,feature] = feature_outliers
+
+    outliers = np.any(univariate_outliers, axis=1)
+    if method == 'mahalanobis':
+        outliers += mahalanobis_distance(datasets.training.inputs,
+                                         datasets.validation.inputs,
+                                         alpha=alpha)
+
+    elif method == 'random_forest':
+        outliers += random_cut_forest(datasets.training.inputs,
+                                      datasets.validation.inputs)
+
+    elif method == 'clustering':
+        outliers += spatial_clustering(datasets.training.inputs,
+                                       datasets.validation.inputs)
+
+    else:
+        raise ValueError(f'`{method}` not a recognized method.')
+
+    outlier_count = np.sum(outliers)
+    if outlier_count == 0:
         logger = logging.getLogger(__name__)
         logger.warning('No outliers found.')
         return dict()
@@ -58,13 +83,43 @@ def score(model, datasets, p=.003):  # pylint: disable=C0103
                                  datasets.validation.inputs[outliers],
                                  datasets.validation.targets[outliers])
 
-    scores['outliers'] = float(outliers_count)
-    scores['p'] = p
+    scores['outliers'] = float(outlier_count)
+    scores['alpha'] = alpha
 
     return scores
 
 
-def mahalanobis_distance(x1, x2, p=.003):  # pylint: disable=C0103
+def z_score(x1, x2, z=3):
+    """
+    Find outliers in array x2 based on mean and standard deviation of array x1.
+    This is a univariate method to locate outliers.
+
+    Args:
+      x1: n x m array to used to calculate the mean and standard deviation.
+      x2: k x m array of samples to test for outliers.
+      z: Z-score threshold used for identifying outliers. (Default=3)
+
+    Returns:
+      k x m array boolean array where True values indicate an outlier.
+
+    """
+
+    x1_mean = np.mean(x1)
+    x1_sigma = np.std(x1)
+    x2_z_scores = np.absolute(x2 - x1_mean) / x1_sigma
+
+    return x2_z_scores > z
+
+
+def iqr(x1, x2):
+    x1_median = np.median(x1)
+    x1_iqr = stats.iqr(x1)
+    x2_distance = np.absolute(x2 - x1_median)
+
+    return x2_distance > x1_iqr * 1.5
+
+
+def mahalanobis_distance(x1, x2, alpha=.003):  # pylint: disable=C0103
     """
     Find outliers in a multivariate system using the Mahalanobis distance.
 
@@ -83,8 +138,8 @@ def mahalanobis_distance(x1, x2, p=.003):  # pylint: disable=C0103
       x1: n x m array to use as the distribution for calculating the
           Mahalanobis distance.
       x2: k x m array of samples to test for outliers. (Default=a1)
-      p: Significance level to use for determining if a sample is an outlier.
-         (Default=.003)
+      alpha: Significance level to use for identifying an outlier.
+             (Default=.003)
 
     Returns:
       k x 1 boolean array where True elements correspond to outliers in x2.
@@ -101,7 +156,7 @@ def mahalanobis_distance(x1, x2, p=.003):  # pylint: disable=C0103
 
     p_values = 1 - stats.chi2.cdf(distances, len(x2[0]) - 1)
 
-    return p_values < p
+    return p_values < alpha
 
 
 def spatial_clustering(x1, x2=None):  # pylint: disable=C0103
