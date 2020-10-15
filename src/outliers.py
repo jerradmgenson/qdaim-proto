@@ -26,7 +26,7 @@ from statsmodels.stats.stattools import medcouple
 import scoring
 
 
-def score(model, datasets, alpha=.003, method='mahalanobis'):  # pylint: disable=C0103
+def score(model, datasets, alpha=.003, method='random_forest'):  # pylint: disable=C0103
     """
     Score model on only the outliers in a dataset.
 
@@ -41,11 +41,15 @@ def score(model, datasets, alpha=.003, method='mahalanobis'):  # pylint: disable
 
     """
 
+    combined_datasets = np.concatenate([datasets.training.inputs,
+                                        datasets.validation.inputs])
+
+    numerical_features = np.any(combined_datasets.T != combined_datasets.T.astype(np.int), axis=1)
+    max_categories = combined_datasets.shape[0] * .05
+    numerical_features += np.array([len(np.unique(x)) > max_categories for x in combined_datasets.T])
     univariate_outliers = adjusted_boxplot(datasets.training.inputs,
                                            datasets.validation.inputs)
 
-    # TODO: Replace this with a better test before using it with another project.
-    numerical_features = [len(np.unique(x)) > 2 for x in datasets.training.inputs.T]
     univariate_outliers = np.logical_and(univariate_outliers,
                                          np.tile(numerical_features, (univariate_outliers.shape[0], 1)))
 
