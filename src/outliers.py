@@ -1,6 +1,6 @@
 """
-A library for locating outliers in multivariate systems with correlated
-features and scoring models based on their performance on outliers.
+A library for locating and scoring outliers in univariate and multivariate
+systems with unknown distributions and highly correlated features.
 
 Copyright 2020 Jerrad M. Genson
 
@@ -19,32 +19,26 @@ from scipy.spatial import distance
 import pandas as pd
 import sklearn
 from sklearn import cluster
-import kneed
 import rrcf
 from statsmodels.stats.stattools import medcouple
 
 import scoring
 
 
-def score(model, datasets, alpha=.003, method='random_forest'):  # pylint: disable=C0103
+def score(model, datasets):  # pylint: disable=C0103
     """
     Score model on only the outliers in a dataset.
 
     Args:
       model: A trained instance of a scikit-learn estimator.
       datasets: An instance of Datasets.
-      alpha: Significance level to use for identifying an outlier.
-             (Default=.003)
 
     Returns:
       A scores dict returned by `score_model`.
 
     """
 
-    outliers = locate(datasets.training.inputs, datasets.validation.inputs,
-                      method=method,
-                      alpha=alpha)
-
+    outliers = locate(datasets.training.inputs, datasets.validation.inputs)
     outlier_count = np.sum(outliers)
     if outlier_count == 0:
         logger = logging.getLogger(__name__)
@@ -55,46 +49,90 @@ def score(model, datasets, alpha=.003, method='random_forest'):  # pylint: disab
                                  datasets.validation.inputs[outliers],
                                  datasets.validation.targets[outliers])
 
+    # All values in `scores` need to be a float so that the string formatter in
+    # gen_model.bind_model_metadata() can handle them correctly.
     scores['outliers'] = float(outlier_count)
-    scores['alpha'] = alpha
 
     return scores
 
 
-def locate(x1, x2, method='random_forest', alpha=.003):
+def locate(x1, x2):
+    """
+    Locate outlier rows in array x2 with respect to array x1 using univariate
+    and multivariate methods for outlier detection.
+
+    Args:
+      x1: n x m array to use as the basis for identifying outlier rows.
+      x2: k x m array to test for outlier rows.
+
+    Returns:
+      k x 1 boolean array where True elements indicate outlier rows in x2.
+
+    """
+
     combined_datasets = np.concatenate([x1, x2])
     numeric_columns = is_numeric(combined_datasets)
     univariate_outliers = adjusted_boxplot(x1, x2)
+
+    # Only consider univariate outliers in numeric columns.
     univariate_outliers = np.logical_and(univariate_outliers,
                                          np.tile(numeric_columns, (univariate_outliers.shape[0], 1)))
 
+    # If any column in a row is an outlier, consider the entire row an outlier.
     outliers = np.any(univariate_outliers, axis=1)
-    if method == 'mahalanobis':
-        outliers += mahalanobis_distance(x1, x2, alpha=alpha)
-
-    elif method == 'random_forest':
-        outliers += random_cut_forest(x1, x2)
-
-    elif method == 'clustering':
-        outliers += spatial_clustering(x1, x2)
-
-    else:
-        raise ValueError(f'`{method}` not a recognized method.')
+    outliers += random_cut_forest(x1, x2)
 
     return outliers
 
 
 def is_numeric(x, frac=.05):
+    """
+    Test if the columns in array x are numeric using the following heuristic:
+    - A column is numeric if it contains real numbers.
+    - A column is numeric if it has more unique values than len(col) * frac.
+    - Otherwise, the column is non-numeric.
+
+    Args:
+      x: n x m array to check for numeric columns.
+      frac: Value to use for frac in the numeric test. (Default=.05)
+
+    Returns:
+      k x 1 boolean array where True elements indicate numeric columns.
+
+    """
+
+    # For each column, test if the column contains real numbers.
     numeric_columns = np.any(x.T != x.T.astype(np.int), axis=1)
+
+    # For each column, test if the column has more unique values than
+    # len(col) * frac.
     max_categories = x.shape[0] * frac
     numeric_columns += np.array([len(np.unique(x)) > max_categories for x in x.T])
 
     return numeric_columns
 
 
-def adjusted_boxplot(x1, x2):
+def adjusted_boxplot(x1, x2):  # pylint: disable=C0103
     """
-    Reference: https://d-scholarship.pitt.edu/7948/1/Seo.pdf
+    Locate outliers in a univariate system using the adjusted boxplot method.
+
+    Tests each column of each row for outliers.
+
+    This method is non-parametric and robust with respect to outliers
+    (i.e. extreme outliers do not mask less extreme outliers) and the
+    distribution of the data (i.e. it does not fail on skewed and non-Gaussian
+    distributions).
+
+    Args:
+      x1: n x m array to use as the basis for identifying outliers.
+      x2: k x m array to test for outliers.
+
+    Returns:
+      k x m boolean array where True elements indicate outliers.
+
+    References:
+      https://www.researchgate.net/profile/Mia_Hubert/publication/4749681_An_Adjusted_Boxplot_for_Skewed_Distributions/links/59e35504458515393d5b8743/An-Adjusted-Boxplot-for-Skewed-Distributions.pdf
+      https://d-scholarship.pitt.edu/7948/1/Seo.pdf
 
     """
 
@@ -123,148 +161,34 @@ def adjusted_boxplot(x1, x2):
     return (x2 < lower_fence) + (x2 > upper_fence)
 
 
-def mahalanobis_distance(x1, x2, alpha=.003):  # pylint: disable=C0103
-    """
-    Find outliers in a multivariate system using the Mahalanobis distance.
-
-    Calculates the Mahalanobis distance from each sample in x2 to x1,
-    then performs a Chi-Squared test on each distance to determine the p-value.
-    It considers any samples with a p-value less than the given significance
-    level to be outliers.
-
-    This is a fast and statistically rigorous method of finding outliers in a
-    multivariate system where the features may be correlated. However, it
-    requires that the data conform to an elliptical distribution and that the
-    inverse covariance matrix is defined for x1. Otherwise, it will fail to find
-    the outliers.
-
-    Args:
-      x1: n x m array to use as the distribution for calculating the
-          Mahalanobis distance.
-      x2: k x m array of samples to test for outliers. (Default=a1)
-      alpha: Significance level to use for identifying an outlier.
-             (Default=.003)
-
-    Returns:
-      k x 1 boolean array where True elements correspond to outliers in x2.
-
-    """
-
-    try:
-        distances = distance.cdist(x2, x1, metric='mahalanobis').diagonal()
-
-    except np.linalg.LinAlgError as linalg_error:
-        logger = logging.getLogger(__name__)
-        logger.warning(str(linalg_error))
-        return np.array([])
-
-    p_values = 1 - stats.chi2.cdf(distances, len(x2[0]) - 1)
-
-    return p_values < alpha
-
-
-def spatial_clustering(x1, x2=None):  # pylint: disable=C0103
-    """
-    Find outliers in a multivariate system using spatial clustering.
-
-    Finds outliers using a spatial clustering approach. First, it uses
-    density-based spatial clustering of applications with noise (DBSCAN) to find
-    core samples in x1. Then it calculates the Euclidean distance from each
-    sample in x2 to the nearest core sample in x1 and checks if the distance is
-    greater than the eps parameter chosen for the DBSCAN model. It considers any
-    such samples to be outliers.
-
-    This is a robust method of locating outliers - it does not require that the
-    data conform to any particular distribution, it does not require that the
-    inverse covariance matrix be defined, and it is insensitive to noise.
-    However, as a heuristical method, it is less statistically rigorous than
-    other methods and is also comparatively expensive in terms of space and time
-    complexity.
-
-    Args:
-      x1: n x m array to use as the basis for the core samples.
-      x2: k x m array of samples to test for outliers. (Default=x1)
-
-    Returns:
-      A 2-tuple of
-      (k x 1 boolean array where True elements correspond to outliers in x2,
-       mean silhouette coefficient of the DBSCAN model)
-
-    """
-
-    if x2 is None:
-        x2 = np.copy(x1)
-
-    robust_scaler = sklearn.preprocessing.RobustScaler().fit(x1)
-    x1 = robust_scaler.transform(x1)
-    x2 = robust_scaler.transform(x2)
-    min_samples_range = range(3, 2 * x1.shape[1] + 1)
-    parameter_grid = []
-    for min_samples in min_samples_range:
-        parameter_grid.append(dict(min_samples=[min_samples],
-                                   eps=[estimate_eps(x1, min_samples)]))
-
-    grid_estimator = sklearn.model_selection.GridSearchCV(cluster.DBSCAN(),
-                                                          parameter_grid,
-                                                          scoring=scoring.silhouette_coefficient)
-
-    grid_estimator.fit(x1)
-    model = grid_estimator.best_estimator_
-    core_samples = model.components_
-    distances = distance.cdist(x2, core_samples)
-    min_distances = distances.min(axis=1)
-
-    return min_distances > model.eps, grid_estimator.best_score_
-
-
-def estimate_eps(x, min_samples):  # pylint: disable=C0103
-    """
-    Estimate the optimal eps value for DBSCAN using the Kneedle algorithm.
-
-    Reference: https://ieeexplore.ieee.org/document/5961514
-
-    Args:
-      x: 2-dimensional array used to fit the DBSCAN model.
-      min_samples: value for the min_samples parameter of the DBSCAN model.
-
-    Returns:
-      Estimated optimal value for eps as a float.
-
-    """
-
-    nearest_neighbors = sklearn.neighbors.NearestNeighbors(n_neighbors=min_samples+1)
-    distances, _ = nearest_neighbors.fit(x).kneighbors(x)
-    distances = np.sort(distances[:,min_samples], axis=0)
-    kneedle = kneed.KneeLocator(np.arange(distances.shape[0]),
-                                distances,
-                                S=1.0,
-                                curve='convex',
-                                direction='increasing')
-
-    return kneedle.knee_y
-
-
 def random_cut_forest(x1, x2, n_trees=100, tree_size=256):  # pylint: disable=C0103
     """
     Find outliers in a multivariate system using Robust Random Cut Forest.
 
-    First construct a forest of random cut trees from x1 and calculate the
-    mean codisp for each sample in x1 for each tree that it is in. Then insert
-    each sample from x2 into each tree one by one and calculate the mean codisp
-    for each sample. Samples with codisp greater than the 75th percentile of
-    mean x1 codisps + IQR * 1.5 are considered to be outliers.
+    This method, like adjusted_boxplot, is robust with respect to outliers and
+    the data distribution. Although it is parametric, it is not very sensitive
+    to the values of the parameters, and the default values should work in most
+    cases. However, it is very inefficient, and will likely be too slow to be
+    practical for large datasets.
 
-    Reference: http://proceedings.mlr.press/v48/guha16.pdf
+    Unlike adjusted_boxplot, it tests rows as a whole to check if they are
+    outliers, not individual columns.
 
     Args:
-      x1: n x m array to use as the basis for the forest..
+      x1: n x m array to use as the basis for the forest.
       x2: k x m array of samples to test for outliers.
 
     Returns:
-      k x 1 boolean array where True elements correspond to outliers in x2
+      k x 1 boolean array where True elements correspond to outliers in x2.
+
+    References:
+      http://proceedings.mlr.press/v48/guha16.pdf
+      https://joss.theoj.org/papers/10.21105/joss.01336
 
     """
 
+    # Construct a forest of random cut trees from x1 and calculate the mean
+    # codisp for each row in x1 for each tree that it is in.
     forest = []
     while len(forest) < n_trees:
         ixs = np.random.choice(x1.shape[0], size=(x1.shape[0] // tree_size, tree_size),
@@ -281,6 +205,9 @@ def random_cut_forest(x1, x2, n_trees=100, tree_size=256):  # pylint: disable=C0
         np.add.at(index, codisp.index.values, 1)
 
     x1_mean_codisp /= index
+
+    # Insert each row from x2 into each tree one by one and calculate
+    # the mean codisp for each row.
     x2_mean_codisp = np.zeros(x2.shape[0])
     for sample_index, sample in enumerate(x2):
         sample_mean_codisp = 0
@@ -292,6 +219,8 @@ def random_cut_forest(x1, x2, n_trees=100, tree_size=256):  # pylint: disable=C0
         sample_mean_codisp /= len(forest)
         x2_mean_codisp[sample_index] = sample_mean_codisp
 
+    # Rows with codisp greater than the 75th percentile of
+    # mean x1 codisps + IQR * 1.5 are considered to be outliers.
     iqr = stats.iqr(x1_mean_codisp)
     outliers = x2_mean_codisp > np.quantile(x1_mean_codisp, 0.75) + 1.5 * iqr
 
