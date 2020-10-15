@@ -41,34 +41,9 @@ def score(model, datasets, alpha=.003, method='random_forest'):  # pylint: disab
 
     """
 
-    combined_datasets = np.concatenate([datasets.training.inputs,
-                                        datasets.validation.inputs])
-
-    numerical_features = np.any(combined_datasets.T != combined_datasets.T.astype(np.int), axis=1)
-    max_categories = combined_datasets.shape[0] * .05
-    numerical_features += np.array([len(np.unique(x)) > max_categories for x in combined_datasets.T])
-    univariate_outliers = adjusted_boxplot(datasets.training.inputs,
-                                           datasets.validation.inputs)
-
-    univariate_outliers = np.logical_and(univariate_outliers,
-                                         np.tile(numerical_features, (univariate_outliers.shape[0], 1)))
-
-    outliers = np.any(univariate_outliers, axis=1)
-    if method == 'mahalanobis':
-        outliers += mahalanobis_distance(datasets.training.inputs,
-                                         datasets.validation.inputs,
-                                         alpha=alpha)
-
-    elif method == 'random_forest':
-        outliers += random_cut_forest(datasets.training.inputs,
-                                      datasets.validation.inputs)
-
-    elif method == 'clustering':
-        outliers += spatial_clustering(datasets.training.inputs,
-                                       datasets.validation.inputs)
-
-    else:
-        raise ValueError(f'`{method}` not a recognized method.')
+    outliers = locate(datasets.training.inputs, datasets.validation.inputs,
+                      method=method,
+                      alpha=alpha)
 
     outlier_count = np.sum(outliers)
     if outlier_count == 0:
@@ -84,6 +59,31 @@ def score(model, datasets, alpha=.003, method='random_forest'):  # pylint: disab
     scores['alpha'] = alpha
 
     return scores
+
+
+def locate(x1, x2, method='random_forest', alpha=.003):
+    combined_datasets = np.concatenate([x1, x2])
+    numerical_features = np.any(combined_datasets.T != combined_datasets.T.astype(np.int), axis=1)
+    max_categories = combined_datasets.shape[0] * .05
+    numerical_features += np.array([len(np.unique(x)) > max_categories for x in combined_datasets.T])
+    univariate_outliers = adjusted_boxplot(x1, x2)
+    univariate_outliers = np.logical_and(univariate_outliers,
+                                         np.tile(numerical_features, (univariate_outliers.shape[0], 1)))
+
+    outliers = np.any(univariate_outliers, axis=1)
+    if method == 'mahalanobis':
+        outliers += mahalanobis_distance(x1, x2, alpha=alpha)
+
+    elif method == 'random_forest':
+        outliers += random_cut_forest(x1, x2)
+
+    elif method == 'clustering':
+        outliers += spatial_clustering(x1, x2)
+
+    else:
+        raise ValueError(f'`{method}` not a recognized method.')
+
+    return outliers
 
 
 def adjusted_boxplot(x1, x2):
