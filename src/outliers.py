@@ -63,12 +63,10 @@ def score(model, datasets, alpha=.003, method='random_forest'):  # pylint: disab
 
 def locate(x1, x2, method='random_forest', alpha=.003):
     combined_datasets = np.concatenate([x1, x2])
-    numerical_features = np.any(combined_datasets.T != combined_datasets.T.astype(np.int), axis=1)
-    max_categories = combined_datasets.shape[0] * .05
-    numerical_features += np.array([len(np.unique(x)) > max_categories for x in combined_datasets.T])
+    numeric_columns = is_numeric(combined_datasets)
     univariate_outliers = adjusted_boxplot(x1, x2)
     univariate_outliers = np.logical_and(univariate_outliers,
-                                         np.tile(numerical_features, (univariate_outliers.shape[0], 1)))
+                                         np.tile(numeric_columns, (univariate_outliers.shape[0], 1)))
 
     outliers = np.any(univariate_outliers, axis=1)
     if method == 'mahalanobis':
@@ -84,6 +82,14 @@ def locate(x1, x2, method='random_forest', alpha=.003):
         raise ValueError(f'`{method}` not a recognized method.')
 
     return outliers
+
+
+def is_numeric(x, frac=.05):
+    numeric_columns = np.any(x.T != x.T.astype(np.int), axis=1)
+    max_categories = x.shape[0] * frac
+    numeric_columns += np.array([len(np.unique(x)) > max_categories for x in x.T])
+
+    return numeric_columns
 
 
 def adjusted_boxplot(x1, x2):
