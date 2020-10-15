@@ -38,7 +38,9 @@ def score(model, datasets):  # pylint: disable=C0103
 
     """
 
-    outliers = locate(datasets.training.inputs, datasets.validation.inputs)
+    train = np.column_stack([datasets.training.inputs, datasets.training.targets])
+    test = np.column_stack([datasets.validation.inputs, datasets.validation.targets])
+    outliers = locate(train, test)
     outlier_count = np.sum(outliers)
     if outlier_count == 0:
         logger = logging.getLogger(__name__)
