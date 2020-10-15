@@ -39,7 +39,11 @@ def score(model, datasets):  # pylint: disable=C0103
     """
 
     train = np.column_stack([datasets.training.inputs, datasets.training.targets])
+    assert train.shape[0] == datasets.training.inputs.shape[0]
+    assert train.shape[1] == datasets.training.inputs.shape[1] + 1
     test = np.column_stack([datasets.validation.inputs, datasets.validation.targets])
+    assert test.shape[0] == datasets.validation.inputs.shape[0]
+    assert test.shape[1] == datasets.validation.inputs.shape[1] + 1
     outliers = locate(train, test)
     outlier_count = np.sum(outliers)
     if outlier_count == 0:
@@ -82,7 +86,11 @@ def locate(x1, x2):
 
     # If any column in a row is an outlier, consider the entire row an outlier.
     outliers = np.any(univariate_outliers, axis=1)
+    assert len(outliers.shape) == 1
+    assert outliers.shape[0] == x2.shape[0]
     outliers += random_cut_forest(x1, x2)
+    assert len(outliers.shape) == 1
+    assert outliers.shape[0] == x2.shape[0]
 
     return outliers
 
@@ -105,11 +113,15 @@ def is_numeric(x, frac=.05):
 
     # For each column, test if the column contains real numbers.
     numeric_columns = np.any(x.T != x.T.astype(np.int), axis=1)
+    assert len(numeric_columns.shape) == 1
+    assert numeric_columns.shape[0] == x.shape[1]
 
     # For each column, test if the column has more unique values than
     # len(col) * frac.
     max_categories = x.shape[0] * frac
     numeric_columns += np.array([len(np.unique(x)) > max_categories for x in x.T])
+    assert len(numeric_columns.shape) == 1
+    assert numeric_columns.shape[0] == x.shape[1]
 
     return numeric_columns
 
@@ -141,7 +153,9 @@ def adjusted_boxplot(x1, x2):  # pylint: disable=C0103
     q1 = np.quantile(x1, .25, axis=0)
     q3 = np.quantile(x1, .75, axis=0)
     iqr = q3 - q1
+    assert iqr.shape[0] == x1.shape[1]
     mc = medcouple(x1, axis=0)
+    assert mc.shape[0] == x1.shape[1]
     lower_fence = np.zeros(mc.shape)
     upper_fence = np.zeros(mc.shape)
     np.copyto(lower_fence,
@@ -160,7 +174,11 @@ def adjusted_boxplot(x1, x2):  # pylint: disable=C0103
               q3 + 1.5 * np.exp(3.5 * mc) * iqr,
               where=mc < 0)
 
-    return (x2 < lower_fence) + (x2 > upper_fence)
+    assert lower_fence.shape[0] == x1.shape[1]
+    outliers = (x2 < lower_fence) + (x2 > upper_fence)
+    assert outliers.shape == x2.shape
+
+    return outliers
 
 
 def random_cut_forest(x1, x2, n_trees=100, tree_size=256):  # pylint: disable=C0103
@@ -199,6 +217,7 @@ def random_cut_forest(x1, x2, n_trees=100, tree_size=256):  # pylint: disable=C0
         trees = [rrcf.RCTree(x1[ix], index_labels=ix) for ix in ixs]
         forest.extend(trees)
 
+    assert len(forest) == n_trees
     x1_mean_codisp = pd.Series(0.0, index=np.arange(x1.shape[0]))
     index = np.zeros(x1.shape[0])
     for tree in forest:
@@ -207,6 +226,7 @@ def random_cut_forest(x1, x2, n_trees=100, tree_size=256):  # pylint: disable=C0
         np.add.at(index, codisp.index.values, 1)
 
     x1_mean_codisp /= index
+    assert len(x1_mean_codisp) == x1.shape[0]
 
     # Insert each row from x2 into each tree one by one and calculate
     # the mean codisp for each row.
@@ -221,9 +241,12 @@ def random_cut_forest(x1, x2, n_trees=100, tree_size=256):  # pylint: disable=C0
         sample_mean_codisp /= len(forest)
         x2_mean_codisp[sample_index] = sample_mean_codisp
 
+    assert x2_mean_codisp.shape[0] == x2.shape[0]
+
     # Rows with codisp greater than the 75th percentile of
     # mean x1 codisps + IQR * 1.5 are considered to be outliers.
     iqr = stats.iqr(x1_mean_codisp)
     outliers = x2_mean_codisp > np.quantile(x1_mean_codisp, 0.75) + 1.5 * iqr
+    assert outliers.shape[0] == x2.shape[0]
 
     return outliers
