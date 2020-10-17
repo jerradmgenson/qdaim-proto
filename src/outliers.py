@@ -10,15 +10,11 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 """
 
-import math
 import logging
 
 import numpy as np
 from scipy import stats
-from scipy.spatial import distance
 import pandas as pd
-import sklearn
-from sklearn import cluster
 import rrcf
 from statsmodels.stats.stattools import medcouple
 
@@ -62,7 +58,7 @@ def score(model, datasets):  # pylint: disable=C0103
     return scores
 
 
-def locate(x1, x2):
+def locate(x1, x2):  # pylint: disable=C0103
     """
     Locate outlier rows in array x2 with respect to array x1 using univariate
     and multivariate methods for outlier detection.
@@ -95,7 +91,7 @@ def locate(x1, x2):
     return outliers
 
 
-def is_numeric(x, frac=.05):
+def is_numeric(x, frac=.05):  # pylint: disable=C0103
     """
     Test if the columns in array x are numeric using the following heuristic:
     - A column is numeric if it contains real numbers.
@@ -150,12 +146,18 @@ def adjusted_boxplot(x1, x2):  # pylint: disable=C0103
 
     """
 
+    x1 = np.array(x1)
+    x2 = np.array(x2)
+    if x1.ndim > 2:
+        raise ValueError('adjusted_boxplot called with x1.ndim > 2')
+
+    if x1.ndim != x2.ndim:
+        raise ValueError('x1.ndim must equal x2.ndim')
+
     q1 = np.quantile(x1, .25, axis=0)
     q3 = np.quantile(x1, .75, axis=0)
     iqr = q3 - q1
-    assert iqr.shape[0] == x1.shape[1]
     mc = medcouple(x1, axis=0)
-    assert mc.shape[0] == x1.shape[1]
     lower_fence = np.zeros(mc.shape)
     upper_fence = np.zeros(mc.shape)
     np.copyto(lower_fence,
@@ -174,7 +176,6 @@ def adjusted_boxplot(x1, x2):  # pylint: disable=C0103
               q3 + 1.5 * np.exp(3.5 * mc) * iqr,
               where=mc < 0)
 
-    assert lower_fence.shape[0] == x1.shape[1]
     outliers = (x2 < lower_fence) + (x2 > upper_fence)
     assert outliers.shape == x2.shape
 
@@ -188,7 +189,7 @@ def random_cut_forest(x1, x2, n_trees=100, tree_size=256):  # pylint: disable=C0
     This method, like adjusted_boxplot, is robust with respect to outliers and
     the data distribution. Although it is parametric, it is not very sensitive
     to the values of the parameters, and the default values should work in most
-    cases. However, it is very inefficient, and will likely be too slow to be
+    cases. However, it is not very efficient, and will likely be too slow to be
     practical for large datasets.
 
     Unlike adjusted_boxplot, it tests rows as a whole to check if they are
