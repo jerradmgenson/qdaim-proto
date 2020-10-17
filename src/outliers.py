@@ -107,6 +107,16 @@ def is_numeric(x, frac=.05):  # pylint: disable=C0103
 
     """
 
+    if not 0 <= frac <= 1:
+        raise ValueError('frac is not a real number between 0 and 1.')
+
+    x = np.array(x)
+    if x.size == 0:
+        raise ValueError('is_numeric called with empty array.')
+
+    if x.ndim != 2:
+        raise ValueError('is_numeric must be called with a 2D array.')
+
     # For each column, test if the column contains real numbers.
     numeric_columns = np.any(x.T != x.T.astype(np.int), axis=1)
     assert len(numeric_columns.shape) == 1

@@ -257,5 +257,111 @@ class RandomCutTestCase(unittest.TestCase):
                                        np.array([13, 36, 50, 57, 66, 70, 83, 84, 91, 99])))
 
 
+class IsNumericTestCase(unittest.TestCase):
+    """
+    Tests for outliers.is_numeric
+
+    """
+
+    def test_empty_array_raises_value_error(self):
+        """
+        Test that is_numeric raises ValueError when called with
+        an empty array.
+
+        """
+
+        with self.assertRaises(ValueError):
+            outliers.is_numeric([[]])
+
+    def test_1d_array_raises_value_error(self):
+        """
+        Test that is_numeric raises ValueError when called with
+        a 1D array.
+
+        """
+
+        with self.assertRaises(ValueError):
+            outliers.is_numeric([1, 2, 3, 4])
+
+    def test_3d_array_raises_value_error(self):
+        """
+        Test that is_numeric raises ValueError when called with
+        a 3D array.
+
+        """
+
+        with self.assertRaises(ValueError):
+            outliers.is_numeric([[[1, 2], [3, 4]], [[5, 6], [7, 8]]])
+
+    def test_frac_less_than_0_raises_value_error(self):
+        """
+        Test that is_numeric raises ValueError when called with
+        frac < 0.
+
+        """
+
+        with self.assertRaises(ValueError):
+            outliers.is_numeric([[1, 2]], frac=-1)
+
+    def test_frac_greater_than_1_raises_value_error(self):
+        """
+        Test that is_numeric raises ValueError when called with
+        frac > 1.
+
+        """
+
+        with self.assertRaises(ValueError):
+            outliers.is_numeric([[1, 2]], frac=1.1)
+
+    def test_default_parameters_correct_classification(self):
+        """
+        Test that is_numeric correctly classifies columns in a 2D array
+        with default parameters.
+
+        """
+
+        x = np.array([[0, .23, 1, 1],
+                      [1, .04, 1, 2],
+                      [1, .89, 1, 3],
+                      [0, .15, 0, 4],
+                      [1, .23, 0, 5],
+                      [1, .76, 0, 6],
+                      [1, .12, 1, 7],
+                      [0, .09, 1, 8],
+                      [1, .13, 1, 9],
+                      [1, .44, 0, 0]])
+
+        x_numeric = outliers.is_numeric(x)
+        self.assertEqual(x_numeric.ndim, 1)
+        self.assertEqual(x_numeric.shape[0], x.shape[1])
+        self.assertTrue(np.array_equal(x_numeric,
+                                       np.array([True, True, True, True])))
+
+
+    def test_frac_20_correct_classification(self):
+        """
+        Test that is_numeric correctly classifies columns in a 2D array
+        with frac=.2
+
+        """
+
+        x = np.array([[0, .23, 1, 1],
+                      [1, .04, 1, 2],
+                      [1, .89, 1, 3],
+                      [0, .15, 0, 4],
+                      [1, .23, 0, 5],
+                      [1, .76, 0, 6],
+                      [1, .12, 1, 7],
+                      [0, .09, 1, 8],
+                      [1, .13, 1, 9],
+                      [1, .44, 0, 0]])
+
+        x_numeric = outliers.is_numeric(x, frac=.2)
+        self.assertEqual(x_numeric.ndim, 1)
+        self.assertEqual(x_numeric.shape[0], x.shape[1])
+        self.assertTrue(np.array_equal(x_numeric,
+                                       np.array([False, True, False, True])))
+
+
 if __name__ == '__main__':
     unittest.main()
