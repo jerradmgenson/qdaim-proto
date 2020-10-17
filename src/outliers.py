@@ -84,7 +84,7 @@ def locate(x1, x2):  # pylint: disable=C0103
     outliers = np.any(univariate_outliers, axis=1)
     assert len(outliers.shape) == 1
     assert outliers.shape[0] == x2.shape[0]
-    outliers += random_cut_forest(x1, x2)
+    outliers += random_cut(x1, x2)
     assert len(outliers.shape) == 1
     assert outliers.shape[0] == x2.shape[0]
 
@@ -152,7 +152,7 @@ def adjusted_boxplot(x1, x2):  # pylint: disable=C0103
         raise ValueError('adjusted_boxplot called with x1.ndim > 2')
 
     if x1.ndim != x2.ndim:
-        raise ValueError('x1.ndim must equal x2.ndim')
+        raise ValueError('x1.ndim does not equal x2.ndim')
 
     q1 = np.quantile(x1, .25, axis=0)
     q3 = np.quantile(x1, .75, axis=0)
@@ -182,7 +182,7 @@ def adjusted_boxplot(x1, x2):  # pylint: disable=C0103
     return outliers
 
 
-def random_cut_forest(x1, x2, n_trees=100, tree_size=256):  # pylint: disable=C0103
+def random_cut(x1, x2, n_trees=100, tree_size=256):  # pylint: disable=C0103
     """
     Find outliers in a multivariate system using Robust Random Cut Forest.
 
@@ -208,6 +208,14 @@ def random_cut_forest(x1, x2, n_trees=100, tree_size=256):  # pylint: disable=C0
 
     """
 
+    x1 = np.array(x1)
+    x2 = np.array(x2)
+    if x1.ndim != 2:
+        raise ValueError('x1.ndim does not equal 2.')
+
+    if x1.ndim != x2.ndim:
+        raise ValueError('x1.ndim does not equal x2.ndim')
+
     # Construct a forest of random cut trees from x1 and calculate the mean
     # codisp for each row in x1 for each tree that it is in.
     forest = []
@@ -218,7 +226,7 @@ def random_cut_forest(x1, x2, n_trees=100, tree_size=256):  # pylint: disable=C0
         trees = [rrcf.RCTree(x1[ix], index_labels=ix) for ix in ixs]
         forest.extend(trees)
 
-    assert len(forest) == n_trees
+    assert len(forest) >= n_trees
     x1_mean_codisp = pd.Series(0.0, index=np.arange(x1.shape[0]))
     index = np.zeros(x1.shape[0])
     for tree in forest:
