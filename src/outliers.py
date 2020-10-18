@@ -21,6 +21,10 @@ from statsmodels.stats.stattools import medcouple
 import scoring
 
 
+# Default tree_size to use for random_cut().
+DEFAULT_TREE_SIZE = 256
+
+
 def score(model, datasets):  # pylint: disable=C0103
     """
     Score model on only the outliers in a dataset.
@@ -87,7 +91,8 @@ def locate(x1, x2):  # pylint: disable=C0103
     outliers = np.any(univariate_outliers, axis=1)
     assert len(outliers.shape) == 1
     assert outliers.shape[0] == x2.shape[0]
-    outliers += random_cut(x1, x2)
+    tree_size = min(DEFAULT_TREE_SIZE, x1.shape[0] // 2)
+    outliers += random_cut(x1, x2, tree_size=tree_size)
     assert len(outliers.shape) == 1
     assert outliers.shape[0] == x2.shape[0]
 
@@ -198,7 +203,7 @@ def adjusted_boxplot(x1, x2):  # pylint: disable=C0103
     return outliers
 
 
-def random_cut(x1, x2, n_trees=100, tree_size=256, k=1.5):  # pylint: disable=C0103
+def random_cut(x1, x2, n_trees=100, tree_size=DEFAULT_TREE_SIZE, k=1.5):  # pylint: disable=C0103
     """
     Find outliers in a multivariate system using Robust Random Cut Forest.
 
@@ -216,7 +221,7 @@ def random_cut(x1, x2, n_trees=100, tree_size=256, k=1.5):  # pylint: disable=C0
       x2: k x m array of samples to test for outliers.
       n_trees: Number of trees in the forest. (Default=100)
       tree_size: Number of samples to include in a single tree.
-                 (Default=256)
+                 (Default=DEFAULT_TREE_SIZE)
       k: Value of k to use for Tukey's fences. (Default=1.5)
 
     Returns:
@@ -244,6 +249,9 @@ def random_cut(x1, x2, n_trees=100, tree_size=256, k=1.5):  # pylint: disable=C0
 
     if x1.shape[1] != x2.shape[1]:
         raise ValueError('x1 and x2 must have same number of columns.')
+
+    if tree_size > x1.shape[0]:
+        raise ValueError('tree_size must be less than len(x1)')
 
     # Construct a forest of random cut trees from x1 and calculate the mean
     # codisp for each row in x1 for each tree that it is in.

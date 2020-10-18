@@ -378,32 +378,3 @@ def f1_score(y_true, y_pred):
         return sklearn.metrics.f1_score(y_true, y_pred)
 
     return sklearn.metrics.f1_score(y_true, y_pred, average='weighted')
-
-
-def silhouette_coefficient(model, x_test, *_):
-    """
-    Compute the mean silhouette coefficient.
-
-    Note that silhouette_coefficient takes different arguments compared to
-    most other scoring functions. This is because, unlike most other scoring
-    functions, it is used to evaluate the performance of unsupervised clustering
-    algorithms.
-
-    Args:
-      model: A fitted cluster model with a `labels_` attribute.
-      x_test: Testing inputs to a classifier.
-      _: not used.
-
-    Returns:
-      The mean silhouette coefficient.
-
-    """
-
-    labels = model.fit_predict(x_test)
-    try:
-        return sklearn.metrics.silhouette_score(x_test, labels)
-
-    except ValueError as value_error:
-        logger = logging.getLogger(__name__)
-        logger.warning(str(value_error))
-        return -1

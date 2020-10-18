@@ -264,6 +264,17 @@ class RandomCutTestCase(unittest.TestCase):
         with self.assertRaises(ValueError):
             outliers.random_cut(x1, x2, tree_size=256.1)
 
+    def test_tree_size_greater_than_x1_rows_raises_value_error(self):
+        """
+        Test that ValueError is raised when tree_size > len(x1).
+
+        """
+
+        x1 = [[1, 2], [3, 4]]
+        x2 = x1
+        with self.assertRaises(ValueError):
+            outliers.random_cut(x1, x2, tree_size=256)
+
     def test_k_less_than_or_equal_0_raises_value_error(self):
         """
         Test that ValueError is raised when k is less than or equal to 0.

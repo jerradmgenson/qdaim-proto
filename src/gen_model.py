@@ -189,6 +189,7 @@ def main(argv):
     util.save_model(model, command_line_arguments.target)
     print(f'Saved model to {command_line_arguments.target}')
     runtime = f'Runtime: {time.time() - start_time:.2} seconds'
+    print(runtime)
 
     return ExitCode.SUCCESS
 
