@@ -72,6 +72,9 @@ def locate(x1, x2):  # pylint: disable=C0103
 
     """
 
+    x1 = np.array(x1)
+    x2 = np.array(x2)
+
     combined_datasets = np.concatenate([x1, x2])
     numeric_columns = is_numeric(combined_datasets)
     univariate_outliers = adjusted_boxplot(x1, x2)
@@ -159,10 +162,13 @@ def adjusted_boxplot(x1, x2):  # pylint: disable=C0103
     x1 = np.array(x1)
     x2 = np.array(x2)
     if x1.ndim > 2:
-        raise ValueError('adjusted_boxplot called with x1.ndim > 2')
+        raise ValueError('adjusted_boxplot called with x1.ndim > 2.')
 
     if x1.ndim != x2.ndim:
-        raise ValueError('x1.ndim does not equal x2.ndim')
+        raise ValueError('x1.ndim does not equal x2.ndim.')
+
+    if x1.ndim == 2 and x1.shape[1] != x2.shape[1]:
+        raise ValueError('x1 and x2 must have same number of columns.')
 
     q1 = np.quantile(x1, .25, axis=0)
     q3 = np.quantile(x1, .75, axis=0)
@@ -192,7 +198,7 @@ def adjusted_boxplot(x1, x2):  # pylint: disable=C0103
     return outliers
 
 
-def random_cut(x1, x2, n_trees=100, tree_size=256):  # pylint: disable=C0103
+def random_cut(x1, x2, n_trees=100, tree_size=256, k=1.5):  # pylint: disable=C0103
     """
     Find outliers in a multivariate system using Robust Random Cut Forest.
 
@@ -202,12 +208,16 @@ def random_cut(x1, x2, n_trees=100, tree_size=256):  # pylint: disable=C0103
     cases. However, it is not very efficient, and will likely be too slow to be
     practical for large datasets.
 
-    Unlike adjusted_boxplot, it tests rows as a whole to check if they are
+    Unlike adjusted_boxplot, it tests rows as a whole to see if they are
     outliers, not individual columns.
 
     Args:
       x1: n x m array to use as the basis for the forest.
       x2: k x m array of samples to test for outliers.
+      n_trees: Number of trees in the forest. (Default=100)
+      tree_size: Number of samples to include in a single tree.
+                 (Default=256)
+      k: Value of k to use for Tukey's fences. (Default=1.5)
 
     Returns:
       k x 1 boolean array where True elements correspond to outliers in x2.
@@ -218,13 +228,22 @@ def random_cut(x1, x2, n_trees=100, tree_size=256):  # pylint: disable=C0103
 
     """
 
+    if n_trees < 1 or int(n_trees) != n_trees:
+        raise ValueError('n_trees must be an int greater than 0.')
+
+    if tree_size < 1 or int(tree_size) != tree_size:
+        raise ValueError('tree_size must be an int greater than 0.')
+
+    if k <= 0:
+        raise ValueError('k must be greater than 0.')
+
     x1 = np.array(x1)
     x2 = np.array(x2)
-    if x1.ndim != 2:
-        raise ValueError('x1.ndim does not equal 2.')
+    if x1.ndim != 2 or x2.ndim != 2:
+        raise ValueError('x1.ndim and x2.ndim must equal 2.')
 
-    if x1.ndim != x2.ndim:
-        raise ValueError('x1.ndim does not equal x2.ndim')
+    if x1.shape[1] != x2.shape[1]:
+        raise ValueError('x1 and x2 must have same number of columns.')
 
     # Construct a forest of random cut trees from x1 and calculate the mean
     # codisp for each row in x1 for each tree that it is in.
@@ -265,7 +284,7 @@ def random_cut(x1, x2, n_trees=100, tree_size=256):  # pylint: disable=C0103
     # Rows with codisp greater than the 75th percentile of
     # mean x1 codisps + IQR * 1.5 are considered to be outliers.
     iqr = stats.iqr(x1_mean_codisp)
-    outliers = x2_mean_codisp > np.quantile(x1_mean_codisp, 0.75) + 1.5 * iqr
+    outliers = x2_mean_codisp > np.quantile(x1_mean_codisp, 0.75) + k * iqr
     assert outliers.shape[0] == x2.shape[0]
 
     return outliers

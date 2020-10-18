@@ -180,6 +180,10 @@ def run_test(test_case):
             sys.stdout = prev_stdout
             sys.stderr = prev_stderr
 
+    if test_result is None:
+        print('skipped')
+        return Verdict.SKIPPED
+
     assert test_result.testsRun == 1
     if test_result.failures:
         print('failure\n')
@@ -190,10 +194,6 @@ def run_test(test_case):
         print('error\n')
         print(test_result.errors[0][1], file=sys.stderr)
         return Verdict.ERROR
-
-    elif test_result.skipped:
-        print('skipped')
-        return Verdict.SKIPPED
 
     elif test_result.expectedFailures:
         print('expected failure')
