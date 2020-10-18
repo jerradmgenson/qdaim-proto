@@ -79,6 +79,7 @@ import subprocess
 import sys
 import platform
 import datetime
+import logging
 
 import numpy as np
 import scipy as sp
@@ -91,6 +92,7 @@ from sklearn.pipeline import Pipeline
 
 import util
 import scoring
+import outliers
 
 # URL for the repository on Github.
 GITHUB_URL = 'https://github.com/jerradmgenson/cardiac'
@@ -117,7 +119,8 @@ def main(argv):
     logfile_path = command_line_arguments.target.with_name(
         command_line_arguments.target.stem + '.log')
 
-    logger = util.configure_logging(command_line_arguments.log_level, logfile_path)
+    util.configure_logging(command_line_arguments.log_level, logfile_path)
+    logger = logging.getLogger(__name__)
     print('Reading configuration file...')
     try:
         config = util.read_config_file(command_line_arguments.config)
@@ -157,18 +160,23 @@ def main(argv):
                                        datasets.validation.inputs,
                                        datasets.validation.targets)
 
+    cross_validation_scores = None
     if command_line_arguments.cross_validate:
         median_scores, mad_scores = cross_validate(model,
                                                    datasets,
                                                    command_line_arguments.cross_validate)
 
-        bind_model_metadata(model, model_scores,
-                            cross_validation_scores=(median_scores,
-                                                     mad_scores,
-                                                     command_line_arguments.cross_validate))
+        cross_validation_scores = (median_scores,
+                                   mad_scores,
+                                   command_line_arguments.cross_validate)
 
-    else:
-        bind_model_metadata(model, model_scores)
+    outlier_scores = None
+    if command_line_arguments.outlier_scores:
+        outlier_scores = outliers.score(model, datasets)
+
+    bind_model_metadata(model, model_scores,
+                        cross_validation_scores=cross_validation_scores,
+                        outlier_scores=outlier_scores)
 
     predictions = model.predict(datasets.validation.inputs)
     validation_dataset = create_validation_dataset(datasets.validation.inputs,
@@ -181,7 +189,7 @@ def main(argv):
     util.save_model(model, command_line_arguments.target)
     print(f'Saved model to {command_line_arguments.target}')
     runtime = f'Runtime: {time.time() - start_time:.2} seconds'
-    logger.debug(runtime)
+    print(runtime)
 
     return ExitCode.SUCCESS
 
@@ -218,7 +226,9 @@ def create_validation_dataset(input_data, target_data, prediction_data, columns)
     return validation_dataset
 
 
-def bind_model_metadata(model, scores, cross_validation_scores=None):
+def bind_model_metadata(model, scores,
+                        cross_validation_scores=None,
+                        outlier_scores=None):
     """
     Generate metadata and bind it to the model. The following attributes
     will be assigned to `model`:
@@ -242,6 +252,7 @@ def bind_model_metadata(model, scores, cross_validation_scores=None):
       scores: A scores dict returned by `score_model`.
       cross_validation_scores: (Default=None) A 3-tuple of cross-validation scores
                                consisting of (median_scores, mad_scores, n_splits).
+      outlier_scores: (Default=None) A 2-tuple of (scores dict, outlier count).
 
     Returns
       None
@@ -260,6 +271,19 @@ def bind_model_metadata(model, scores, cross_validation_scores=None):
 
     assert len(dir(model)) - model_attributes == score_count
     model_attributes = len(dir(model))
+
+    if outlier_scores:
+        print('\nOutlier scores:')
+        score_count = 0
+        for metric, score in outlier_scores.items():
+            if score:
+                score_count += 1
+                setattr(model, 'outlier_' + metric, score)
+                msg = '{metric:13} {score:.4}'.format(metric=metric + ':', score=score)
+                print(msg)
+
+        assert len(dir(model)) - model_attributes == score_count
+        model_attributes = len(dir(model))
 
     if cross_validation_scores:
         median_scores = cross_validation_scores[0]
@@ -391,7 +415,7 @@ def cross_validate(model, datasets, n_splits):
     sets numerous times and calculating summary statistics for the model scores.
 
     Args:
-      model: An trained instance of a scikit-learn estimator.
+      model: A trained instance of a scikit-learn estimator.
       datasets: An instance of Datasets.
       n_splits: Number of splits (or folds) to use in cross-validation.
 

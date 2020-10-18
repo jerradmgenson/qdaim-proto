@@ -541,3 +541,29 @@ class CrossValidationTestCase(GenModelTestCase):
 
         with self.assertRaises(AttributeError):
             model.mad_specificity
+
+
+class OutliersTestCase(GenModelTestCase):
+    """
+    Test that gen_model.py integrates correctly with outliers.py
+
+    """
+
+    def test_main_outliers_score(self):
+        """
+        Test that gen_model.main() calls outliers.score() correctly.
+
+        """
+
+        exit_code = gen_model.main([str(self.output_path),
+                                    str(self.QDA_PCA_CONFIG),
+                                    '--outlier-scores'])
+
+        self.assertEqual(exit_code, 0)
+        with open(self.output_path, 'rb') as output_fp:
+            model = pickle.load(output_fp)
+
+        self.assertAlmostEqual(model.outlier_accuracy, 1.0)
+        self.assertAlmostEqual(model.outlier_precision, 1.0)
+        self.assertAlmostEqual(model.outlier_recall, 1.0)
+        self.assertAlmostEqual(model.outlier_informedness, 1.0)

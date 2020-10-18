@@ -38,7 +38,7 @@ def scoring_methods():
         ami=sklearn.metrics.make_scorer(sklearn.metrics.adjusted_mutual_info_score),
         dor=sklearn.metrics.make_scorer(diagnostic_odds_ratio),
         lr_plus=sklearn.metrics.make_scorer(positive_likelihood_ratio),
-        lr_minus=sklearn.metrics.make_scorer(lambda y_true, y_pred: 1 / negative_likelihood_ratio(y_true, y_pred)),
+        lr_minus=sklearn.metrics.make_scorer(negative_likelihood_ratio, greater_is_better=False),
         roc_auc=sklearn.metrics.make_scorer(sklearn.metrics.roc_auc_score),
     )
 
