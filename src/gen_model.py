@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 """
 Generate a machine learning model to classify subjects as positive or
 negative for ischemic heart disease. Full reproducibility is provided by
