@@ -7,11 +7,9 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 """
 
-import sys
 import subprocess
 from pathlib import Path
 
-sys.path.append('src')
 import preprocess_stage1
 import preprocess_stage2
 import gen_model

@@ -5,5 +5,6 @@ RUN apt update
 RUN apt install git -y
 RUN apt install python3-pip -y
 RUN pip3 install -r requirements.txt
+ENV PYTHONPATH=/src
 
 ENTRYPOINT ["scons"]
