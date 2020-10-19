@@ -3,9 +3,7 @@
     "validation_dataset": "src/tests/data/iris_dataset.csv",
     "random_seed": 3307259,
     "scoring": "accuracy",
-    "preprocessing_methods": ["quantile transformer"],
-    "pca_components": 3,
-    "pca_whiten": false,
+    "preprocessing_method": "quantile transformer",
     "algorithm": "rrc",
     "algorithm_parameters":
     [

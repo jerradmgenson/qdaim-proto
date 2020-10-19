@@ -3,9 +3,7 @@
     "validation_dataset": "src/tests/data/iris_dataset.csv",
     "random_seed": 3307259,
     "scoring": "accuracy",
-    "preprocessing_methods": ["standard scaling"],
-    "pca_components": 8,
-    "pca_whiten": false,
+    "preprocessing_method": "standard scaling",
     "algorithm": "lda",
     "algorithm_parameters": []
 }
