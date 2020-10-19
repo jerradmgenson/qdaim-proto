@@ -3,7 +3,7 @@
     "validation_dataset": "build/validation.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "preprocessing_methods": ["standard scaling"],
+    "preprocessing_methods": ["robust scaling"],
     "pca_components": 8,
     "pca_whiten": false,
     "algorithm": "rfc",
