@@ -5,10 +5,10 @@
     "scoring": "accuracy",
     "preprocessing_method": "quantile transformer",
     "algorithm": "rrc",
-    "algorithm_parameters":
+    "parameter_grid":
     [
 	{
-	    "solver": ["saga"]
+	    "model__solver": ["saga"]
 	}
     ]
 }

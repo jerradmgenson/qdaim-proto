@@ -4,6 +4,5 @@
     "random_seed": 3307259,
     "scoring": "accuracy",
     "preprocessing_method": "standard scaling",
-    "algorithm": "lda",
-    "algorithm_parameters": []
+    "algorithm": "lda"
 }

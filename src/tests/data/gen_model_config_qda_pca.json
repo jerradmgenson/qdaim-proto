@@ -5,12 +5,11 @@
     "scoring": "accuracy",
     "preprocessing_method": "pca",
     "algorithm": "qda",
-    "algorithm_parameters": [],
-    "preprocessing_parameters":
+    "parameter_grid":
     [
 	{
-	    "n_components": [4],
-	    "whiten": [false]
+	    "preprocessing__n_components": [4],
+	    "preprocessing__whiten": [false]
 	}
     ]
 }

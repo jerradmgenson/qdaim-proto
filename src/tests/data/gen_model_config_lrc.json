@@ -4,6 +4,5 @@
     "random_seed": 3307259,
     "scoring": "accuracy",
     "preprocessing_method": "power transformer",
-    "algorithm": "lrc",
-    "algorithm_parameters": []
+    "algorithm": "lrc"
 }

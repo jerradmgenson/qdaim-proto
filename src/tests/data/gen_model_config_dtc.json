@@ -4,6 +4,5 @@
     "random_seed": 3307259,
     "scoring": "accuracy",
     "preprocessing_method": "robust scaling",
-    "algorithm": "dtc",
-    "algorithm_parameters": []
+    "algorithm": "dtc"
 }

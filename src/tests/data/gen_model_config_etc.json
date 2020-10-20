@@ -5,11 +5,11 @@
     "scoring": "accuracy",
     "preprocessing_method": "normalize",
     "algorithm": "etc",
-    "algorithm_parameters":
+    "parameter_grid":
     [
 	{
-	    "n_estimators": [10],
-	    "max_features": ["sqrt"]
+	    "model__n_estimators": [10],
+	    "model__max_features": ["sqrt"]
 	}
     ]
 }

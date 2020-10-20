@@ -202,26 +202,11 @@ def read_config_file(path):
 
     config_json['algorithm'] = SUPPORTED_ALGORITHMS[config_json['algorithm']]
 
-    if 'algorithm_parameters' not in config_json:
-        config_json['algorithm_parameters'] = []
+    if 'preprocessing_method' not in config_json:
+        config_json['preprocessing_method'] = None
 
-    if 'preprocessing_parameters' not in config_json:
-        config_json['preprocessing_parameters'] = []
-
-    # Prepend algorithm parameters with `model__` so they can be fed to
-    # scikit-learn Pipeline without raising a ValueError.
-    parameter_grid = []
-    for parameter_set in config_json['algorithm_parameters']:
-        modified_parameter_set = {'model__' + key: value for key, value in parameter_set.items()}
-        parameter_grid.append(modified_parameter_set)
-
-    config_json.pop('algorithm_parameters')
-    for parameter_set in config_json['preprocessing_parameters']:
-        modified_parameter_set = {'preprocessing__' + key: value for key, value in parameter_set.items()}
-        parameter_grid.append(modified_parameter_set)
-
-    config_json.pop('preprocessing_parameters')
-    config_json['parameter_grid'] = parameter_grid
+    if 'parameter_grid' not in config_json:
+        config_json['parameter_grid'] = []
 
     return Config(**config_json)
 

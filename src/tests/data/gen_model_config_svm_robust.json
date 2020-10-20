@@ -5,16 +5,16 @@
     "scoring": "accuracy",
     "preprocessing_method": "robust scaling",
     "algorithm": "svm",
-    "algorithm_parameters":
+    "parameter_grid":
     [
 	{
-	    "C": [0.01, 0.1, 1, 10],
-	    "kernel": ["rbf", "linear", "sigmoid"]
+	    "model__C": [0.01, 0.1, 1, 10],
+	    "model__kernel": ["rbf", "linear", "sigmoid"]
 	},
 	{
-	    "C": [0.01, 0.1, 1, 10],
-	    "kernel": ["poly"],
-	    "degree": [2, 3, 4]
+	    "model__C": [0.01, 0.1, 1, 10],
+	    "model__kernel": ["poly"],
+	    "model__degree": [2, 3, 4]
 	}
     ]
 }
