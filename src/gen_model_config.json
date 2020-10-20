@@ -3,8 +3,14 @@
     "validation_dataset": "build/validation.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "preprocessing_methods": ["pca"],
-    "pca_components": 8,
-    "pca_whiten": false,
-    "algorithm": "qda"
+    "preprocessing_method": "pca",
+    "algorithm": "qda",
+    "parameter_grid":
+    [
+	{
+	    "preprocessing__n_components": [2, 3, 4, 5, 6, 7, 8, 9, 10],
+	    "preprocessing__whiten": [false, true],
+	    "model__store_covariance": [false, true]
+	}
+    ]
 }

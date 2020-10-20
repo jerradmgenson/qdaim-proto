@@ -123,13 +123,7 @@ def main(argv):
     util.configure_logging(command_line_arguments.log_level, logfile_path)
     logger = logging.getLogger(__name__)
     print('Reading configuration file...')
-    try:
-        config = util.read_config_file(command_line_arguments.config)
-
-    except util.InvalidConfigError as invalid_config_error:
-        logger.error(invalid_config_error)
-        return ExitCode.INVALID_CONFIG
-
+    config = util.read_config_file(command_line_arguments.config)
     random.seed(config.random_seed)
     np.random.seed(config.random_seed)
     print('Loading datasets...')
@@ -141,7 +135,7 @@ def main(argv):
     print(f'Random number seed:    {config.random_seed}')
     print(f'Scoring method:        {config.scoring}')
     print(f'Algorithm:             {config.algorithm.name}')
-    print(f'Preprocessing methods: {config.preprocessing_methods}')
+    print(f'Preprocessing method:  {config.preprocessing_method}')
     print(f'Training samples:      {len(datasets.training.inputs)}')
     print(f'Validation samples:    {len(datasets.validation.inputs)}')
     score_function = scoring.scoring_methods()[config.scoring]
@@ -150,11 +144,9 @@ def main(argv):
                         datasets.training.inputs,
                         datasets.training.targets,
                         score_function,
-                        config.preprocessing_methods,
-                        n_components=config.pca_components,
-                        whiten=config.pca_whiten,
+                        preprocessing_method=config.preprocessing_method,
                         cpus=command_line_arguments.cpu,
-                        parameter_grid=config.algorithm_parameters)
+                        parameter_grid=config.parameter_grid)
 
     print('Scoring model...')
     model_scores = scoring.score_model(model,
@@ -338,9 +330,7 @@ def train_model(model_class,
                 input_data,
                 target_data,
                 score_function,
-                preprocessing_methods,
-                n_components=None,
-                whiten=False,
+                preprocessing_method=None,
                 cpus=1,
                 parameter_grid=None):
 
@@ -359,19 +349,13 @@ def train_model(model_class,
                       estimator, an array of input data, and an array
                       of target data, and returns a score as a float,
                       where higher numbers are better.
-      preprocessing_methods: A sequence of methods to use to preprocess the data
-                             before feeding it to the model. Must be a subset of
-                            'PREPROCESSING_METHODS'.
-      n_components: (Default=None) The number of components to keep when using
-                    principal component analysis. Ignored unless one of
-                    'preprocessing_methods' is 'pca' or 'lda'.
-      whiten: (Default=False) Whether to whiten the data when using principal
-              component analysis. Ignored unless 'pca' in 'processing_methods'.
-      cpus: (Default=1) Number of processes to use for training the model.
-      parameter_grid: (Default=None) A sequence of dicts with possible
-                      hyperparameter values. Used for tuning the
-                      hyperparameters. When present, grid search will be
-                      used to train the model.
+      preprocessing_method: Methods to use to preprocess the data before feeding
+                            it to the model. Must be a member of
+                            'PREPROCESSING_METHODS'. (Default=None)
+      cpus: Number of processes to use for training the model. (Default=1)
+      parameter_grid: A sequence of dicts with possible hyperparameter values.
+                      Used for tuning the hyperparameters. When present, grid
+                      search will be used to train the model. (Default=None)
 
     Returns
       A trained scikit-learn estimator object.
@@ -379,21 +363,12 @@ def train_model(model_class,
     """
 
     pipeline_steps = []
-    for preprocessing_method in preprocessing_methods:
-        if preprocessing_method == 'pca':
-            preprocessor_class = util.PREPROCESSING_METHODS[preprocessing_method]
-            preprocessor = preprocessor_class(n_components=n_components,
-                                              whiten=whiten)
-
-            pipeline_steps.append((preprocessing_method, preprocessor))
-
-        else:
-            preprocessor = util.PREPROCESSING_METHODS[preprocessing_method]()
-            pipeline_steps.append((preprocessing_method, preprocessor))
+    if preprocessing_method:
+        preprocessor = util.PREPROCESSING_METHODS[preprocessing_method]()
+        pipeline_steps.append(('preprocessing', preprocessor))
 
     pipeline_steps.append(('model', model_class()))
     pipeline = Pipeline(steps=pipeline_steps)
-    assert len(pipeline) == len(preprocessing_methods) + 1
     if parameter_grid:
         grid_estimator = sklearn.model_selection.GridSearchCV(pipeline,
                                                               parameter_grid,

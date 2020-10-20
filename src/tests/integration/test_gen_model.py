@@ -93,7 +93,7 @@ class ModelConfigTestCase(GenModelTestCase):
 
         self.assertIsInstance(model, sklearn.pipeline.Pipeline)
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'standard scaling')
+        self.assertEqual(model.steps[0][0], 'preprocessing')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.preprocessing.StandardScaler)
 
@@ -125,7 +125,7 @@ class ModelConfigTestCase(GenModelTestCase):
 
         self.assertIsInstance(model, sklearn.pipeline.Pipeline)
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'pca')
+        self.assertEqual(model.steps[0][0], 'preprocessing')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.decomposition.PCA)
 
@@ -157,7 +157,7 @@ class ModelConfigTestCase(GenModelTestCase):
 
         self.assertIsInstance(model, sklearn.pipeline.Pipeline)
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'robust scaling')
+        self.assertEqual(model.steps[0][0], 'preprocessing')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.preprocessing.RobustScaler)
 
@@ -214,7 +214,7 @@ class ModelConfigTestCase(GenModelTestCase):
 
         self.assertIsInstance(model, sklearn.pipeline.Pipeline)
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'quantile transformer')
+        self.assertEqual(model.steps[0][0], 'preprocessing')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.preprocessing.QuantileTransformer)
 
@@ -246,7 +246,7 @@ class ModelConfigTestCase(GenModelTestCase):
 
         self.assertIsInstance(model, sklearn.pipeline.Pipeline)
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'power transformer')
+        self.assertEqual(model.steps[0][0], 'preprocessing')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.preprocessing.PowerTransformer)
 
@@ -278,7 +278,7 @@ class ModelConfigTestCase(GenModelTestCase):
 
         self.assertIsInstance(model, sklearn.pipeline.Pipeline)
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'normalize')
+        self.assertEqual(model.steps[0][0], 'preprocessing')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.preprocessing.Normalizer)
 
@@ -310,7 +310,7 @@ class ModelConfigTestCase(GenModelTestCase):
 
         self.assertIsInstance(model, sklearn.pipeline.Pipeline)
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'standard scaling')
+        self.assertEqual(model.steps[0][0], 'preprocessing')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.preprocessing.StandardScaler)
 
@@ -342,7 +342,7 @@ class ModelConfigTestCase(GenModelTestCase):
 
         self.assertIsInstance(model, sklearn.pipeline.Pipeline)
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'robust scaling')
+        self.assertEqual(model.steps[0][0], 'preprocessing')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.preprocessing.RobustScaler)
 
@@ -397,7 +397,7 @@ class GenModelIntegrationTestCase(GenModelTestCase):
 
         self.assertIsInstance(model, sklearn.pipeline.Pipeline)
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'robust scaling')
+        self.assertEqual(model.steps[0][0], 'preprocessing')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.preprocessing.RobustScaler)
 
@@ -475,34 +475,6 @@ class ValidationCSVTestCase(GenModelTestCase):
         self.assertTrue((set(predictions) == set(validation['prediction'])))
 
 
-class ConfigFileTestCase(GenModelTestCase):
-    """
-    Testcase that gen_model_config.json contains invalid json.
-
-    """
-
-    def test_invalid_config_json(self):
-        """
-        Test gen_model.py when config file is not valid json.
-
-        """
-
-        exit_code = gen_model.main([str(self.output_path), os.devnull])
-        self.assertEqual(exit_code, 1)
-
-    def test_gen_model_config_is_valid(self):
-        """
-        Test that gen_model_config.json describes a valid configuration.
-
-        """
-
-        config_path = GIT_ROOT / 'src/gen_model_config.json'
-        with config_path.open() as config_fp:
-            config = json.load(config_fp)
-
-        self.assertTrue(util.is_valid_config(config))
-
-
 class CrossValidationTestCase(GenModelTestCase):
     """
     Test gen_model.cross_validate() integration with other functions.
@@ -525,10 +497,10 @@ class CrossValidationTestCase(GenModelTestCase):
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
 
-        self.assertAlmostEqual(model.median_accuracy, 0.9833333333333333)
+        self.assertAlmostEqual(model.median_accuracy, 0.9666666666666667)
         self.assertAlmostEqual(model.mad_accuracy, 0.0)
-        self.assertAlmostEqual(model.median_informedness, 0.9666666666666668)
-        self.assertAlmostEqual(model.mad_informedness, 0.010606060606060508)
+        self.assertAlmostEqual(model.median_informedness, 0.9555335968379446)
+        self.assertAlmostEqual(model.mad_informedness, 0.006849386311628791)
 
         with self.assertRaises(AttributeError):
             model.median_sensitivity

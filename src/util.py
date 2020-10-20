@@ -29,8 +29,7 @@ import sklearn
 from sklearn import svm
 from sklearn import ensemble
 from sklearn import discriminant_analysis
-
-import scoring
+from sklearn import manifold
 
 # Path to the root of the git repository.
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
@@ -72,6 +71,7 @@ PREPROCESSING_METHODS = {
     'power transformer': sklearn.preprocessing.PowerTransformer,
     'normalize': sklearn.preprocessing.Normalizer,
     'pca': sklearn.decomposition.PCA,
+    'isomap': manifold.Isomap,
 }
 
 # Stores values from the configuration file.
@@ -81,10 +81,8 @@ Config = namedtuple('Config',
                      'random_seed',
                      'scoring',
                      'algorithm',
-                     'algorithm_parameters',
-                     'preprocessing_methods',
-                     'pca_whiten',
-                     'pca_components'))
+                     'preprocessing_method',
+                     'parameter_grid'))
 
 # Contains input data and target data for a single dataset.
 Dataset = namedtuple('Dataset', 'inputs targets')
@@ -193,16 +191,9 @@ def read_config_file(path):
 
     """
 
-    logger = logging.getLogger(__name__)
     with path.open() as config_fp:
-        try:
-            config_json = json.load(config_fp)
+        config_json = json.load(config_fp)
 
-        except json.decoder.JSONDecodeError as json_decode_error:
-            logger.debug(json_decode_error)
-            raise InvalidConfigError(f'{path} does not contain valid json.')
-
-    assert is_valid_config(config_json)
     config_json['training_dataset'] = os.path.join(str(GIT_ROOT),
                                                    config_json['training_dataset'])
 
@@ -210,119 +201,14 @@ def read_config_file(path):
                                                      config_json['validation_dataset'])
 
     config_json['algorithm'] = SUPPORTED_ALGORITHMS[config_json['algorithm']]
-    if 'algorithm_parameters' not in config_json:
-        config_json['algorithm_parameters'] = []
 
-    # Prepend algorithm parameters with `model__` so they can be fed to
-    # scikit-learn Pipeline without raising a ValueError.
-    modified_algorithm_parameters = []
-    for parameter_set in config_json['algorithm_parameters']:
-        modified_parameter_set = {'model__' + key: value for key, value in parameter_set.items()}
-        modified_algorithm_parameters.append(modified_parameter_set)
+    if 'preprocessing_method' not in config_json:
+        config_json['preprocessing_method'] = None
 
-    config_json['algorithm_parameters'] = modified_algorithm_parameters
+    if 'parameter_grid' not in config_json:
+        config_json['parameter_grid'] = []
 
     return Config(**config_json)
-
-
-def is_valid_config(config):
-    """
-    Check that loaded json config file contains only valid parameters.
-
-    Args
-      config: A dict corresponding to a json config file.
-
-    Returns
-      True if `config` is valid.
-
-    Raises
-      InvalidConfigError if `config` is invalid.
-
-    """
-
-    logger = logging.getLogger(__name__)
-    config_parameters = ('training_dataset',
-                         'validation_dataset',
-                         'random_seed',
-                         'scoring',
-                         'preprocessing_methods',
-                         'pca_components',
-                         'pca_whiten',
-                         'algorithm',
-                         'algorithm_parameters')
-
-    if not isinstance(config, dict):
-        raise InvalidConfigError('config must be a dict.')
-
-    if set(config) != set(config_parameters) and set(config) != set(config_parameters[:-1]):
-        raise InvalidConfigError('Config file contains invalid parameters.')
-
-    try:
-        GIT_ROOT / Path(config['training_dataset'])
-
-    except TypeError as type_error:
-        logger.debug(type_error)
-        raise InvalidConfigError('`training_dataset` must be a path.')
-
-    try:
-        GIT_ROOT / Path(config['validation_dataset'])
-
-    except TypeError as type_error:
-        logger.debug(type_error)
-        raise InvalidConfigError('`validation_dataset` must be a path.')
-
-    try:
-        if int(config['random_seed']) > 2**32 - 1 or int(config['random_seed']) < 0:
-            raise InvalidConfigError('`random_seed` must be between 0 and 2**32 - 1.')
-
-    except ValueError as value_error:
-        logger.debug(value_error)
-        raise InvalidConfigError('`random_seed` not an integer.')
-
-    if config['scoring'] not in scoring.scoring_methods():
-        raise InvalidConfigError(f'`scoring` must be one of `{scoring.scoring_methods()}`.')
-
-    try:
-        if not set(config['preprocessing_methods']) <= set(PREPROCESSING_METHODS):
-            err = f'`preprocessing_methods` must be in {set(PREPROCESSING_METHODS)}.'
-            raise InvalidConfigError(err)
-
-    except TypeError as type_error:
-        logger.debug(type_error)
-        raise InvalidConfigError('`preprocessing_methods` must be a list.')
-
-    try:
-        if int(config['pca_components']) <= 0:
-            raise InvalidConfigError('`pca_components` must be greater than 0.')
-
-    except TypeError as type_error:
-        logger.debug(type_error)
-        raise InvalidConfigError('`pca_components` must be an integer.')
-
-    if not isinstance(config['pca_whiten'], bool):
-        raise InvalidConfigError('`pca_whiten` must be a boolean.')
-
-    if config['algorithm'] not in SUPPORTED_ALGORITHMS:
-        raise InvalidConfigError(f'`algorithm` must be one of {list(SUPPORTED_ALGORITHMS)}.')
-
-    if 'algorithm_parameters' in config:
-        try:
-            parameter_grid = sklearn.model_selection.ParameterGrid(config['algorithm_parameters'])
-
-        except TypeError as type_error:
-            logger.debug(type_error)
-            raise InvalidConfigError('`algorithm_parameters` must be a dict or a list.')
-
-        try:
-            [SUPPORTED_ALGORITHMS[config['algorithm']].class_(**x) for x in parameter_grid]
-
-        except TypeError as type_error:
-            logger.debug(type_error)
-            invalid_parameter = re.search(r"keyword argument '(\w+)'", str(type_error)).group(1)
-            err = f'`{invalid_parameter}` is not a valid parameter for `{config["algorithm"]}`.'
-            raise InvalidConfigError(err)
-
-    return True
 
 
 def get_commit_hash():
@@ -430,10 +316,3 @@ def save_model(model, output_path):
 
     with output_path.open('wb') as output_file:
         pickle.dump(model, output_file)
-
-
-class InvalidConfigError(Exception):
-    """
-    Raised when the config file is not valid.
-
-    """

@@ -3,9 +3,6 @@
     "validation_dataset": "src/tests/data/iris_dataset.csv",
     "random_seed": 3307259,
     "scoring": "accuracy",
-    "preprocessing_methods": ["robust scaling"],
-    "pca_components": 3,
-    "pca_whiten": false,
-    "algorithm": "dtc",
-    "algorithm_parameters": []
+    "preprocessing_method": "robust scaling",
+    "algorithm": "dtc"
 }
