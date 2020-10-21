@@ -3,7 +3,6 @@
     "validation_dataset": "build/validation.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "preprocessing_method": "robust scaling",
     "algorithm": "rfc",
     "parameter_grid":
     [
