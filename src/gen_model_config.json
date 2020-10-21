@@ -3,7 +3,7 @@
     "validation_dataset": "build/validation.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "preprocessing_method": "standard scaling",
+    "preprocessing_method": "isomap",
     "algorithm": "rfc",
     "parameter_grid":
     [
@@ -12,11 +12,12 @@
 	    "model__criterion": ["gini", "entropy"],
 	    "model__min_samples_split": [2, 4, 8, 16],
 	    "model__min_samples_leaf": [1, 2, 4, 8],
-	    "model__min_weight_fraction_leaf": [0, 0.05, 0.1, 0.2],
 	    "model__max_features": ["sqrt", "log2"],
 	    "model__max_leaf_nodes": [5, 10, 20, 40, 80],
-	    "model__min_impurity_decrease": [0, 0.05, 0.1, 0.2],
-	    "model__oob_score": [false, true]
+	    "model__oob_score": [false, true],
+	    "preprocessing__n_neighbors": [3, 5, 10, 15, 20, 40, 80],
+	    "preprocessing__n_components": [3, 4, 5, 6, 7, 8, 9, 10],
+	    "preprocessing__p": [1, 2]
 	}
     ]
 }
