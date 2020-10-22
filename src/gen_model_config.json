@@ -4,7 +4,7 @@
     "random_seed": 3307259,
     "scoring": "informedness",
     "algorithm": "etc",
-    "preprocessing_method": "pca",
+    "preprocessing_method": "standard scaling",
     "parameter_grid":
     [
 	{
@@ -16,9 +16,7 @@
 	    "model__max_leaf_nodes": [5, 10, 20, 40, 80],
 	    "model__oob_score": [false, true],
 	    "model__class_weight": ["balanced"],
-	    "model__bootstrap": [true],
-	    "preprocessing__n_components": [2, 3, 4, 5, 6, 7, 8, 9, 10],
-	    "preprocessing__whiten": [false, true]
+	    "model__bootstrap": [true]
 	},
 	{
 	    "model__n_estimators": [150],
@@ -28,9 +26,7 @@
 	    "model__max_features": ["sqrt", "log2"],
 	    "model__max_leaf_nodes": [5, 10, 20, 40, 80],
 	    "model__class_weight": ["balanced"],
-	    "model__bootstrap": [false],
-	    "preprocessing__n_components": [2, 3, 4, 5, 6, 7, 8, 9, 10],
-	    "preprocessing__whiten": [false, true]
+	    "model__bootstrap": [false]
 	}
     ]
 }
