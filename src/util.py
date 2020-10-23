@@ -60,6 +60,8 @@ SUPPORTED_ALGORITHMS = {
                        discriminant_analysis.QuadraticDiscriminantAnalysis),
     'dtc': MLAlgorithm('decision tree',
                        sklearn.tree.DecisionTreeClassifier),
+    'knn': MLAlgorithm('k-nearest neighbors',
+                       sklearn.neighbors.KNeighborsClassifier),
 }
 
 # Possible preprocessing methods that can be used to prepare data for
