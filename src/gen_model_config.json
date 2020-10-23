@@ -4,7 +4,7 @@
     "random_seed": 3307259,
     "scoring": "informedness",
     "algorithm": "dtc",
-    "preprocessing_method": "robust scaling",
+    "preprocessing_method": "pca",
     "parameter_grid":
     [
 	{
@@ -13,7 +13,9 @@
 	    "model__max_leaf_nodes": [null, 5, 10, 20, 40, 80],
 	    "model__class_weight": ["balanced"],
 	    "model__ccp_alpha": [0, 0.05, 0.1, 0.2, 0.4],
-	    "model__min_impurity_decrease": [0, 0.05, 0.1, 0.2, 0.4]
+	    "model__min_impurity_decrease": [0, 0.05, 0.1, 0.2, 0.4],
+	    "preprocessing__n_components": [2, 3, 4, 5, 6, 7, 8, 9, 10],
+	    "preprocessing__whiten": [false, true]
 	}
     ]
 }
