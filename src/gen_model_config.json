@@ -4,7 +4,6 @@
     "random_seed": 3307259,
     "scoring": "informedness",
     "algorithm": "etc",
-    "preprocessing_method": "isomap",
     "parameter_grid":
     [
 	{
@@ -16,10 +15,7 @@
 	    "model__max_leaf_nodes": [5, 10, 20, 40, 80],
 	    "model__oob_score": [false, true],
 	    "model__class_weight": ["balanced"],
-	    "model__bootstrap": [true],
-            "preprocessing__n_neighbors": [3, 5, 10, 15, 20, 40, 80],
-            "preprocessing__n_components": [3, 4, 5, 6, 7, 8, 9, 10],
-            "preprocessing__p": [1, 2]
+	    "model__bootstrap": [true]
 	},
 	{
 	    "model__n_estimators": [150],
@@ -29,10 +25,7 @@
 	    "model__max_features": ["sqrt", "log2"],
 	    "model__max_leaf_nodes": [5, 10, 20, 40, 80],
 	    "model__class_weight": ["balanced"],
-	    "model__bootstrap": [false],
-            "preprocessing__n_neighbors": [3, 5, 10, 15, 20, 40, 80],
-            "preprocessing__n_components": [3, 4, 5, 6, 7, 8, 9, 10],
-            "preprocessing__p": [1, 2]
+	    "model__bootstrap": [false]
 	}
     ]
 }
