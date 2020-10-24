@@ -4,7 +4,7 @@
     "random_seed": 3307259,
     "scoring": "informedness",
     "algorithm": "rrc",
-    "preprocessing_method": "isomap",
+    "preprocessing_method": "pca",
     "parameter_grid":
     [
 	{
@@ -12,9 +12,8 @@
 	    "model__fit_intercept": [false],
 	    "model__class_weight": ["balanced"],
 	    "model__solver": ["svd", "cholesky", "lsqr", "sparse_cg", "sag", "saga"],
-            "preprocessing__n_neighbors": [3, 5, 10, 15, 20, 40, 80],
             "preprocessing__n_components": [3, 4, 5, 6, 7, 8, 9, 10],
-            "preprocessing__p": [1, 2]
+            "preprocessing__whiten": [false, true]
 	}
     ]
 }
