@@ -4,12 +4,11 @@
     "random_seed": 3307259,
     "scoring": "informedness",
     "algorithm": "lda",
-    "preprocessing_method": "pca",
+    "preprocessing_method": null,
     "parameter_grid":
     [
 	{
-	    "model__solver": ["svd", "lsqr", "eigen"],
-            "preprocessing__n_components": [3, 4, 5, 6, 7, 8, 9, 10]
+	    "model__solver": ["svd", "lsqr", "eigen"]
 	}
     ]
 }
