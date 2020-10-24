@@ -4,7 +4,7 @@
     "random_seed": 3307259,
     "scoring": "informedness",
     "algorithm": "lrc",
-    "preprocessing_method": "standard scaling",
+    "preprocessing_method": "robust scaling",
     "parameter_grid":
     [
 	{
