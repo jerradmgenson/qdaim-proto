@@ -4,13 +4,12 @@
     "random_seed": 3307259,
     "scoring": "informedness",
     "algorithm": "rrc",
-    "preprocessing_method": null,
+    "preprocessing_method": "standard scaling",
     "parameter_grid":
     [
 	{
 	    "model__alpha": [0.01, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0],
-	    "model__fit_intercept": [true],
-	    "model__normalize": [false, true],
+	    "model__fit_intercept": [false],
 	    "model__class_weight": ["balanced"],
 	    "model__solver": ["svd", "cholesky", "lsqr", "sparse_cg", "sag", "saga"]
 	}
