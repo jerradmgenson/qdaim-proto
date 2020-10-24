@@ -50,9 +50,9 @@ SUPPORTED_ALGORITHMS = {
                        ensemble.ExtraTreesClassifier),
     'sgd': MLAlgorithm('stochastic gradient descent',
                        sklearn.linear_model.SGDClassifier),
-    'rrc': MLAlgorithm('ridge regression classifier',
+    'rrc': MLAlgorithm('ridge regression',
                        sklearn.linear_model.RidgeClassifier),
-    'lrc': MLAlgorithm('logistic regression classifier',
+    'lrc': MLAlgorithm('logistic regression',
                        sklearn.linear_model.LogisticRegression),
     'lda': MLAlgorithm('linear discriminant analysis',
                        discriminant_analysis.LinearDiscriminantAnalysis),
@@ -62,6 +62,8 @@ SUPPORTED_ALGORITHMS = {
                        sklearn.tree.DecisionTreeClassifier),
     'knn': MLAlgorithm('k-nearest neighbors',
                        sklearn.neighbors.KNeighborsClassifier),
+    'rnc': MLAlgorithm('radius neighbors',
+                       sklearn.neighbors.RadiusNeighborsClassifier),
 }
 
 # Possible preprocessing methods that can be used to prepare data for

@@ -3,25 +3,18 @@
     "validation_dataset": "build/validation.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "algorithm": "sgd",
-    "preprocessing_method": "robust scaling",
+    "algorithm": "rnc",
+    "preprocessing_method": "isomap",
     "parameter_grid":
     [
 	{
-	    "model__loss": ["log", "modified_huber"],
-	    "model__penalty": ["l1", "l2", "elasticnet"],
-	    "model__alpha": [0.1, 0.01, 0.001, 0.0001, 0.00001, 0.000001],
-	    "model__max_iter": [4000],
-	    "model__learning_rate": ["constant", "invscaling", "adaptive"],
-	    "model__eta0": [0.0001, 0.001, 0.01, 0.1],
-	    "model__class_weight": ["balanced"]
-	},
-	{
-	    "model__loss": ["log", "modified_huber"],
-	    "model__penalty": ["l1", "l2", "elasticnet"],
-	    "model__alpha": [0.1, 0.01, 0.001, 0.0001, 0.00001, 0.000001],
-	    "model__max_iter": [4000],
-	    "model__class_weight": ["balanced"]
+	    "model__radius": [1, 2, 3, 4, 5, 10, 20, 40, 80],
+	    "model__weights": ["uniform", "distance"],
+	    "model__p": [1, 2],
+	    "model__outlier_label": [-1],
+            "preprocessing__n_neighbors": [3, 5, 10, 15, 20, 40, 80],
+            "preprocessing__n_components": [3, 4, 5, 6, 7, 8, 9, 10],
+            "preprocessing__p": [1, 2]
 	}
     ]
 }
