@@ -3,12 +3,11 @@
     "validation_dataset": "build/validation.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "algorithm": "lda",
+    "algorithm": "qda",
     "preprocessing_method": "ica",
     "parameter_grid":
     [
 	{
-	    "model__solver": ["svd", "lsqr", "eigen"],
             "preprocessing__n_components": [3, 4, 5, 6, 7, 8, 9, 10],
 	    "preprocessing__algorithm": ["parallel", "deflation"],
 	    "preprocessing__fun": ["logcosh", "exp", "cube"],
