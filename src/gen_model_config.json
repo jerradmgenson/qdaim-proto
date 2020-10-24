@@ -4,16 +4,15 @@
     "random_seed": 3307259,
     "scoring": "informedness",
     "algorithm": "rrc",
-    "preprocessing_method": "pca",
+    "preprocessing_method": null,
     "parameter_grid":
     [
 	{
 	    "model__alpha": [0.01, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0],
-	    "model__fit_intercept": [false],
+	    "model__fit_intercept": [true],
+	    "model__normalize": [false, true],
 	    "model__class_weight": ["balanced"],
-	    "model__solver": ["svd", "cholesky", "lsqr", "sparse_cg", "sag", "saga"],
-            "preprocessing__n_components": [3, 4, 5, 6, 7, 8, 9, 10],
-            "preprocessing__whiten": [false, true]
+	    "model__solver": ["svd", "cholesky", "lsqr", "sparse_cg", "sag", "saga"]
 	}
     ]
 }
