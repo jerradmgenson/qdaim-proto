@@ -4,14 +4,13 @@
     "random_seed": 3307259,
     "scoring": "informedness",
     "algorithm": "qda",
-    "preprocessing_method": "ica",
+    "preprocessing_method": "isomap",
     "parameter_grid":
     [
 	{
+            "preprocessing__n_neighbors": [3, 5, 10, 15, 20, 40, 80],
             "preprocessing__n_components": [3, 4, 5, 6, 7, 8, 9, 10],
-	    "preprocessing__algorithm": ["parallel", "deflation"],
-	    "preprocessing__fun": ["logcosh", "exp", "cube"],
-	    "preprocessing__max_iter": [600]
+            "preprocessing__p": [1, 2]
 	}
     ]
 }
