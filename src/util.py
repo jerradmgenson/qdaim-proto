@@ -30,6 +30,7 @@ from sklearn import svm
 from sklearn import ensemble
 from sklearn import discriminant_analysis
 from sklearn import manifold
+from sklearn import naive_bayes
 
 # Path to the root of the git repository.
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
@@ -54,6 +55,8 @@ SUPPORTED_ALGORITHMS = {
                        sklearn.linear_model.RidgeClassifier),
     'lrc': MLAlgorithm('logistic regression',
                        sklearn.linear_model.LogisticRegression),
+    'nbc': MLAlgorithm('naive bayes classifier',
+                       naive_bayes.GaussianNB),
     'lda': MLAlgorithm('linear discriminant analysis',
                        discriminant_analysis.LinearDiscriminantAnalysis),
     'qda': MLAlgorithm('quadratic discriminant analysis',
