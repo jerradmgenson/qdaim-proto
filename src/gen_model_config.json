@@ -4,7 +4,7 @@
     "random_seed": 3307259,
     "scoring": "informedness",
     "algorithm": "lda",
-    "preprocessing_method": null,
+    "preprocessing_method": "standard scaling",
     "parameter_grid":
     [
 	{
