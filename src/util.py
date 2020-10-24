@@ -30,6 +30,7 @@ from sklearn import svm
 from sklearn import ensemble
 from sklearn import discriminant_analysis
 from sklearn import manifold
+from sklearn import naive_bayes
 
 # Path to the root of the git repository.
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
@@ -50,16 +51,22 @@ SUPPORTED_ALGORITHMS = {
                        ensemble.ExtraTreesClassifier),
     'sgd': MLAlgorithm('stochastic gradient descent',
                        sklearn.linear_model.SGDClassifier),
-    'rrc': MLAlgorithm('ridge regression classifier',
+    'rrc': MLAlgorithm('ridge regression',
                        sklearn.linear_model.RidgeClassifier),
-    'lrc': MLAlgorithm('logistic regression classifier',
+    'lrc': MLAlgorithm('logistic regression',
                        sklearn.linear_model.LogisticRegression),
+    'nbc': MLAlgorithm('naive bayes classifier',
+                       naive_bayes.GaussianNB),
     'lda': MLAlgorithm('linear discriminant analysis',
                        discriminant_analysis.LinearDiscriminantAnalysis),
     'qda': MLAlgorithm('quadratic discriminant analysis',
                        discriminant_analysis.QuadraticDiscriminantAnalysis),
     'dtc': MLAlgorithm('decision tree',
                        sklearn.tree.DecisionTreeClassifier),
+    'knn': MLAlgorithm('k-nearest neighbors',
+                       sklearn.neighbors.KNeighborsClassifier),
+    'rnc': MLAlgorithm('radius neighbors',
+                       sklearn.neighbors.RadiusNeighborsClassifier),
 }
 
 # Possible preprocessing methods that can be used to prepare data for
@@ -71,6 +78,7 @@ PREPROCESSING_METHODS = {
     'power transformer': sklearn.preprocessing.PowerTransformer,
     'normalize': sklearn.preprocessing.Normalizer,
     'pca': sklearn.decomposition.PCA,
+    'ica': sklearn.decomposition.FastICA,
     'isomap': manifold.Isomap,
 }
 
