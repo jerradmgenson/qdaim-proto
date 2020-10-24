@@ -4,7 +4,7 @@
     "random_seed": 3307259,
     "scoring": "informedness",
     "algorithm": "rnc",
-    "preprocessing_method": "isomap",
+    "preprocessing_method": "pca",
     "parameter_grid":
     [
 	{
@@ -12,9 +12,8 @@
 	    "model__weights": ["uniform", "distance"],
 	    "model__p": [1, 2],
 	    "model__outlier_label": [-1],
-            "preprocessing__n_neighbors": [3, 5, 10, 15, 20, 40, 80],
             "preprocessing__n_components": [3, 4, 5, 6, 7, 8, 9, 10],
-            "preprocessing__p": [1, 2]
+            "preprocessing__whiten": [false, true]
 	}
     ]
 }
