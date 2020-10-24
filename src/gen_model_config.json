@@ -4,7 +4,7 @@
     "random_seed": 3307259,
     "scoring": "informedness",
     "algorithm": "lrc",
-    "preprocessing_method": "pca",
+    "preprocessing_method": null,
     "parameter_grid":
     [
 	{
@@ -13,9 +13,7 @@
 	    "model__fit_intercept": [false, true],
 	    "model__class_weight": ["balanced"],
 	    "model__solver": ["liblinear", "saga"],
-	    "model__max_iter": [300],
-            "preprocessing__n_components": [3, 4, 5, 6, 7, 8, 9, 10],
-            "preprocessing__whiten": [false, true]
+	    "model__max_iter": [300]
 	},
 	{
 	    "model__penalty": ["l2"],
@@ -23,18 +21,14 @@
 	    "model__fit_intercept": [false, true],
 	    "model__class_weight": ["balanced"],
 	    "model__solver": ["newton-cg", "lbfgs", "sag", "saga"],
-	    "model__max_iter": [300],
-            "preprocessing__n_components": [3, 4, 5, 6, 7, 8, 9, 10],
-            "preprocessing__whiten": [false, true]
+	    "model__max_iter": [300]
 	},
 	{
 	    "model__penalty": ["none"],
 	    "model__fit_intercept": [false, true],
 	    "model__class_weight": ["balanced"],
 	    "model__solver": ["newton-cg", "lbfgs", "sag", "saga"],
-	    "model__max_iter": [300],
-            "preprocessing__n_components": [3, 4, 5, 6, 7, 8, 9, 10],
-            "preprocessing__whiten": [false, true]
+	    "model__max_iter": [300]
 	},
 	{
 	    "model__penalty": ["elasticnet"],
@@ -43,9 +37,7 @@
 	    "model__class_weight": ["balanced"],
 	    "model__solver": ["saga"],
 	    "model__l1_ratio": [0.1, 0.25, 0.5, 0.75, 0.9],
-	    "model__max_iter": [300],
-            "preprocessing__n_components": [3, 4, 5, 6, 7, 8, 9, 10],
-            "preprocessing__whiten": [false, true]
+	    "model__max_iter": [300]
 	}
     ]
 }
