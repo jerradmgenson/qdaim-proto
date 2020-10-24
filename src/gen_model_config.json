@@ -4,11 +4,8 @@
     "random_seed": 3307259,
     "scoring": "informedness",
     "algorithm": "qda",
-    "preprocessing_method": "pca",
+    "preprocessing_method": null,
     "parameter_grid":
     [
-	{
-            "preprocessing__n_components": [3, 4, 5, 6, 7, 8, 9, 10]
-	}
     ]
 }
