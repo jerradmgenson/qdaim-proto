@@ -44,7 +44,7 @@ def main(argv):
     with multiprocessing.Pool(command_line_arguments.cpu) as pool:
         pylint_results = pool.map(run_pylint, pylint_files)
 
-    print('\nPylint scores')
+    print('Pylint scores')
     failure = False
     for pylint_result in pylint_results:
         if pylint_result.errors:
