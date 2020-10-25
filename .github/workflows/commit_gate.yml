@@ -5,20 +5,26 @@ jobs:
     runs-on: ubuntu-latest
     name: commit gate (tests)
     steps:
-      # To use this repository's private action,
-      # you must check out the repository
       - name: Checkout
         uses: actions/checkout@v2
       - name: Run testcases
         uses: ./.github/actions/run-tests
         id: run-tests
 
+  run_linters_job:
+    runs-on: ubuntu-latest
+    name: commit gate (linters)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Run linters
+        uses: ./.github/actions/run-linters
+        id: run-linters
+
   build_model_job:
     runs-on: ubuntu-latest
     name: commit gate (build)
     steps:
-      # To use this repository's private action,
-      # you must check out the repository
       - name: Checkout
         uses: actions/checkout@v2
       - name: Build model
