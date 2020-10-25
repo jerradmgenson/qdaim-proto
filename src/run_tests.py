@@ -24,7 +24,6 @@ from pathlib import Path
 from collections import namedtuple
 
 from coverage import Coverage
-from pylint import epylint as lint
 
 # Path to the root of the git repository.
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
@@ -33,9 +32,6 @@ SRC_PATH = GIT_ROOT / Path('src')
 TESTS_PATH = SRC_PATH / Path('tests')
 UNIT_PATH = TESTS_PATH / Path('unit')
 INTEGRATION_PATH = TESTS_PATH / Path('integration')
-
-# The minimum pylint score (/10) required for the pylint test to pass.
-MIN_PYLINT_SCORE = 9
 
 # The minimum coverage percentage required for the coverage test to pass.
 MIN_COVERAGE_PERCENT = 100
@@ -55,51 +51,19 @@ class Verdict(enum.Enum):
     UNEXPECTED_SUCCESS = enum.auto()
 
 
-class Testrunner(enum.Enum):
-    """
-    Enumerates possible testrunner names.
-
-    """
-
-    UNITTEST = enum.auto()
-    PYLINT = enum.auto()
-
-
 def main(argv):
     start_time = time.time()
     command_line_arguments = parse_command_line(argv)
-    complete_pylint = command_line_arguments.complete_pylint
-    complete_coverage = command_line_arguments.complete_coverage
-    try:
-        changed_files = get_changed_files()
+    coverage_files = get_python_files(SRC_PATH,
+                                      exclude=['tests',
+                                               'run_tests.py',
+                                               'run_linters.py'])
 
-    except subprocess.CalledProcessError:
-        changed_files = None
-        complete_pylint = True
-        complete_coverage = True
-
-    if complete_pylint:
-        pylint_files = get_python_files(SRC_PATH,
-                                        exclude=['unit', 'integration', '__init__.py'])
-
-    else:
-        pylint_files = (get_python_files(SRC_PATH, exclude=['unit', 'integration', '__init__.py'])
-                        & changed_files)
-
-    if complete_coverage:
-        coverage_files = get_python_files(SRC_PATH, exclude=['tests'])
-
-    else:
-        coverage_files = (get_python_files(SRC_PATH, exclude=['tests'])
-                          & changed_files)
-
-    pylint_jobs = [(run_pylint, p) for p in pylint_files]
-    unittest_jobs = [(run_unittest, coverage_files)]
+    jobs = [(run_unittest, coverage_files)]
     with multiprocessing.Pool(command_line_arguments.cpu) as pool:
-        test_results = pool.map(run_job, unittest_jobs + pylint_jobs)
+        test_results = pool.map(run_job, jobs)
 
-    pylint_results = [x[1] for x in test_results if x[0] == Testrunner.PYLINT]
-    unittest_results = [x for x in test_results if x[0] == Testrunner.UNITTEST][0][1]
+    unittest_results = test_results[0]
     verdicts = unittest_results.verdicts
     coverage_percentage = unittest_results.coverage_percentage
     total_tests = len(verdicts)
@@ -119,30 +83,10 @@ def main(argv):
     report += f'Unexpected successes:    {unexpected_successes}\n'
     print(report)
     print(unittest_results.coverage_report)
-
-    if pylint_results:
-        print('\nPylint scores')
-
-    pylint_failure = False
-    for pylint_result in pylint_results:
-        if pylint_result.errors:
-            print(f'{pylint_result.path}.... error')
-            pylint_failure = True
-
-        else:
-            print(f'{pylint_result.path}.... {pylint_result.score}/10')
-
-        if pylint_result.score < MIN_PYLINT_SCORE:
-            pylint_failure = True
-
-        if pylint_result.errors or pylint_result.score < MIN_PYLINT_SCORE:
-            print(pylint_result.report)
-
     failed = (failures
               or errors
               or unexpected_successes
-              or coverage_percentage < MIN_COVERAGE_PERCENT
-              or pylint_failure)
+              or coverage_percentage < MIN_COVERAGE_PERCENT)
 
     if failed:
         print('\nFinal status: FAIL')
@@ -229,44 +173,6 @@ def extract_tests(testsuite):
     return testcases
 
 
-PylintResult = namedtuple('PylintResult', 'path score errors report')
-
-
-def run_pylint(path):
-    """
-    Run pylint on the target file at `path` and return a PylintResult object.
-
-    """
-
-    try:
-        pylint_stdout, pylint_stderr = lint.py_run(path, return_std=True)
-        pylint_report = pylint_stdout.read()
-        pylint_error = pylint_stderr.read()
-
-    finally:
-        pylint_stdout.close()
-        pylint_stderr.close()
-
-    if pylint_error:
-        return PylintResult(path=path, score=0.0, errors=True)
-
-    errors = bool(re.search(r':\d+: error', pylint_report))
-    try:
-        score = float(re.search(r'Your code has been rated at (\d+\.\d+)',
-                                pylint_report).group(1))
-
-    except AttributeError:
-        score = 0
-        errors = True
-
-    pylint_result = PylintResult(path=path,
-                                 score=score,
-                                 errors=errors,
-                                 report=pylint_report)
-
-    return Testrunner.PYLINT, pylint_result
-
-
 UnittestResult = namedtuple('UnittestResult',
                             'verdicts coverage_percentage coverage_report')
 
@@ -316,7 +222,7 @@ def run_unittest(coverage_files):
                                      coverage_percentage=coverage_percentage,
                                      coverage_report=coverage_report)
 
-    return Testrunner.UNITTEST, unittest_result
+    return unittest_result
 
 
 def run_job(job):
@@ -359,14 +265,6 @@ def parse_command_line(argv):
 
     description = 'Test source code for QDAIM.'
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('--complete-coverage',
-                        action='store_true',
-                        help='Run code coverage on all source code files.')
-
-    parser.add_argument('--complete-pylint',
-                        action='store_true',
-                        help='Run pylint on all source code files.')
-
     parser.add_argument('--cpu',
                         type=int,
                         default=multiprocessing.cpu_count(),
