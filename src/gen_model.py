@@ -76,18 +76,12 @@ name as the model, with '.dat' replaced by '_validation.csv' (by default,
 
 import random
 import time
-import subprocess
 import sys
-import platform
 import datetime
-import logging
 
 import numpy as np
-import scipy as sp
 from scipy.stats import median_abs_deviation
 import pandas as pd
-import joblib
-import threadpoolctl
 import sklearn
 from sklearn.pipeline import Pipeline
 
@@ -97,16 +91,6 @@ import outliers
 
 # URL for the repository on Github.
 GITHUB_URL = 'https://github.com/jerradmgenson/cardiac'
-
-
-class ExitCode:
-    """
-    Enumerates possible exit codes.
-
-    """
-
-    SUCCESS = 0
-    INVALID_CONFIG = 1
 
 
 def main(argv):
@@ -121,7 +105,6 @@ def main(argv):
         command_line_arguments.target.stem + '.log')
 
     util.configure_logging(command_line_arguments.log_level, logfile_path)
-    logger = logging.getLogger(__name__)
     print('Reading configuration file...')
     config = util.read_config_file(command_line_arguments.config)
     random.seed(config.random_seed)
@@ -148,28 +131,48 @@ def main(argv):
                         cpus=command_line_arguments.cpu,
                         parameter_grid=config.parameter_grid)
 
+    model.validation = dict()
     print('Scoring model...')
     model_scores = scoring.score_model(model,
                                        datasets.validation.inputs,
                                        datasets.validation.targets)
 
-    cross_validation_scores = None
+    print('\nModel scores:')
+    for metric, score in model_scores.items():
+        if score:
+            msg = '{metric:13} {score:.4}'.format(metric=metric + ':', score=score)
+            print(msg)
+
+    model.validation['scores'] = model_scores
     if command_line_arguments.cross_validate:
         median_scores, mad_scores = cross_validate(model,
                                                    datasets,
                                                    command_line_arguments.cross_validate)
 
-        cross_validation_scores = (median_scores,
-                                   mad_scores,
-                                   command_line_arguments.cross_validate)
+        print(f'\n{command_line_arguments.cross_validate}-fold cross-validation scores:')
+        for metric, median_score, mad_score in zip(mad_scores, median_scores.values(), mad_scores.values()):
+            if median_score:
+                median_msg = '{metric:20} {score:.4}'.format(metric='median ' + metric + ':',
+                                                             score=median_score)
 
-    outlier_scores = None
+                mad_msg = '{metric:20} {score:.4}'.format(metric='mad ' + metric + ':',
+                                                          score=mad_score)
+
+                print(median_msg)
+                print(mad_msg)
+
+        model.validation['cross_validation_median'] = median_scores
+        model.validation['cross_validation_mad'] = mad_scores
+
     if command_line_arguments.outlier_scores:
         outlier_scores = outliers.score(model, datasets)
+        print('\nOutlier scores:')
+        for metric, score in outlier_scores.items():
+            if score:
+                msg = '{metric:13} {score:.4}'.format(metric=metric + ':', score=score)
+                print(msg)
 
-    bind_model_metadata(model, model_scores,
-                        cross_validation_scores=cross_validation_scores,
-                        outlier_scores=outlier_scores)
+        model.validation['outlier_scores'] = outlier_scores
 
     predictions = model.predict(datasets.validation.inputs)
     validation_dataset = create_validation_dataset(datasets.validation.inputs,
@@ -178,13 +181,16 @@ def main(argv):
                                                    datasets.columns[:-1])
 
     print('\nSaving model to disk...')
+    model.commit_hash = util.get_commit_hash()
+    model.repository = GITHUB_URL
+    model.created = datetime.datetime.today().isoformat()
     util.save_validation(validation_dataset, command_line_arguments.target)
     util.save_model(model, command_line_arguments.target)
     print(f'Saved model to {command_line_arguments.target}')
     runtime = f'Runtime: {time.time() - start_time:.2} seconds'
     print(runtime)
 
-    return ExitCode.SUCCESS
+    return 0
 
 
 def create_validation_dataset(input_data, target_data, prediction_data, columns):
@@ -217,113 +223,6 @@ def create_validation_dataset(input_data, target_data, prediction_data, columns)
     assert len(validation_dataset.columns) == len(columns) + 2
 
     return validation_dataset
-
-
-def bind_model_metadata(model, scores,
-                        cross_validation_scores=None,
-                        outlier_scores=None):
-    """
-    Generate metadata and bind it to the model. The following attributes
-    will be assigned to `model`:
-
-    - commit_hash
-    - validated
-    - repository
-    - numpy_version
-    - scipy_version
-    - pandas_version
-    - sklearn_version
-    - joblib_version
-    - threadpoolctl_version
-    - operating_system
-    - architecture
-    - created
-    - author
-
-    Args
-      model: An instance of a scikit-learn estimator.
-      scores: A scores dict returned by `score_model`.
-      cross_validation_scores: (Default=None) A 3-tuple of cross-validation scores
-                               consisting of (median_scores, mad_scores, n_splits).
-      outlier_scores: (Default=None) A 2-tuple of (scores dict, outlier count).
-
-    Returns
-      None
-
-    """
-
-    print('\nModel scores:')
-    model_attributes = len(dir(model))
-    score_count = 0
-    for metric, score in scores.items():
-        if score:
-            score_count += 1
-            setattr(model, metric, score)
-            msg = '{metric:13} {score:.4}'.format(metric=metric + ':', score=score)
-            print(msg)
-
-    assert len(dir(model)) - model_attributes == score_count
-    model_attributes = len(dir(model))
-
-    if outlier_scores:
-        print('\nOutlier scores:')
-        score_count = 0
-        for metric, score in outlier_scores.items():
-            if score:
-                score_count += 1
-                setattr(model, 'outlier_' + metric, score)
-                msg = '{metric:13} {score:.4}'.format(metric=metric + ':', score=score)
-                print(msg)
-
-        assert len(dir(model)) - model_attributes == score_count
-        model_attributes = len(dir(model))
-
-    if cross_validation_scores:
-        median_scores = cross_validation_scores[0]
-        mad_scores = cross_validation_scores[1]
-        n_splits = cross_validation_scores[2]
-        print(f'\n{n_splits}-fold cross-validation scores:')
-        score_count = 0
-        for metric, median_score, mad_score in zip(mad_scores, median_scores.values(), mad_scores.values()):
-            if median_score:
-                score_count += 2
-                setattr(model, 'median_' + metric, median_score)
-                setattr(model, 'mad_' + metric, mad_score)
-                median_msg = '{metric:20} {score:.4}'.format(metric='median ' + metric + ':',
-                                                             score=median_score)
-
-                mad_msg = '{metric:20} {score:.4}'.format(metric='mad ' + metric + ':',
-                                                          score=mad_score)
-
-                print(median_msg)
-                print(mad_msg)
-
-        assert len(dir(model)) - model_attributes == score_count
-        model_attributes = len(dir(model))
-
-    model.commit_hash = util.get_commit_hash()
-    model.validated = False
-    model.repository = GITHUB_URL
-    model.numpy_version = np.version.version
-    model.scipy_version = sp.version.version
-    model.pandas_version = pd.__version__
-    model.sklearn_version = sklearn.__version__
-    model.joblib_version = joblib.__version__
-    model.threadpoolctl_version = threadpoolctl.__version__
-    model.operating_system = platform.system() + ' ' + platform.version() + ' ' + platform.release()
-    model.architecture = platform.processor()
-    model.created = datetime.datetime.today().isoformat()
-    try:
-        username = util.run_command('git config user.name')
-        email = util.run_command('git config user.email')
-
-    except subprocess.CalledProcessError:
-        username = ''
-        email = ''
-
-    model.author = '{} <{}>'.format(username, email)
-
-    assert len(dir(model)) - model_attributes == 13
 
 
 def train_model(model_class,

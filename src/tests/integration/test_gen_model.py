@@ -106,7 +106,7 @@ class ModelConfigTestCase(GenModelTestCase):
         accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],
                                                   predictions)
 
-        self.assertAlmostEqual(accuracy, model.accuracy)
+        self.assertAlmostEqual(accuracy, model.validation['scores']['accuracy'])
         self.assertGreater(accuracy, 0.95)
 
     def test_qda_with_pca(self):
@@ -138,7 +138,7 @@ class ModelConfigTestCase(GenModelTestCase):
         accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],
                                                   predictions)
 
-        self.assertAlmostEqual(accuracy, model.accuracy)
+        self.assertAlmostEqual(accuracy, model.validation['scores']['accuracy'])
         self.assertGreater(accuracy, 0.95)
 
     def test_svm_with_robust_scaling(self):
@@ -168,7 +168,7 @@ class ModelConfigTestCase(GenModelTestCase):
         accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],
                                                   predictions)
 
-        self.assertAlmostEqual(accuracy, model.accuracy)
+        self.assertAlmostEqual(accuracy, model.validation['scores']['accuracy'])
         self.assertGreater(accuracy, 0.95)
 
     def test_rfc_with_no_preprocessing(self):
@@ -194,7 +194,7 @@ class ModelConfigTestCase(GenModelTestCase):
         accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],
                                                   predictions)
 
-        self.assertAlmostEqual(accuracy, model.accuracy)
+        self.assertAlmostEqual(accuracy, model.validation['scores']['accuracy'])
         self.assertGreater(accuracy, 0.95)
 
     def test_rrc_with_quantile_transformer(self):
@@ -227,7 +227,7 @@ class ModelConfigTestCase(GenModelTestCase):
         accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],
                                                   predictions)
 
-        self.assertAlmostEqual(accuracy, model.accuracy)
+        self.assertAlmostEqual(accuracy, model.validation['scores']['accuracy'])
         self.assertGreater(accuracy, 0.88)
 
     def test_lrc_with_power_transformer(self):
@@ -259,7 +259,7 @@ class ModelConfigTestCase(GenModelTestCase):
         accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],
                                                   predictions)
 
-        self.assertAlmostEqual(accuracy, model.accuracy)
+        self.assertAlmostEqual(accuracy, model.validation['scores']['accuracy'])
         self.assertGreater(accuracy, 0.88)
 
     def test_etc_with_normalization(self):
@@ -291,7 +291,7 @@ class ModelConfigTestCase(GenModelTestCase):
         accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],
                                                   predictions)
 
-        self.assertAlmostEqual(accuracy, model.accuracy)
+        self.assertAlmostEqual(accuracy, model.validation['scores']['accuracy'])
         self.assertGreater(accuracy, 0.95)
 
     def test_sgd_with_standard_scaling(self):
@@ -323,7 +323,7 @@ class ModelConfigTestCase(GenModelTestCase):
         accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],
                                                   predictions)
 
-        self.assertAlmostEqual(accuracy, model.accuracy)
+        self.assertAlmostEqual(accuracy, model.validation['scores']['accuracy'])
         self.assertGreater(accuracy, 0.95)
 
     def test_dtc_with_robust_scaling(self):
@@ -355,7 +355,7 @@ class ModelConfigTestCase(GenModelTestCase):
         accuracy = sklearn.metrics.accuracy_score(iris_dataset['target'],
                                                   predictions)
 
-        self.assertAlmostEqual(accuracy, model.accuracy)
+        self.assertAlmostEqual(accuracy, model.validation['scores']['accuracy'])
         self.assertGreater(accuracy, 0.95)
 
 
@@ -497,10 +497,10 @@ class CrossValidationTestCase(GenModelTestCase):
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
 
-        self.assertAlmostEqual(model.median_accuracy, 0.9666666666666667)
-        self.assertAlmostEqual(model.mad_accuracy, 0.0)
-        self.assertAlmostEqual(model.median_informedness, 0.9555335968379446)
-        self.assertAlmostEqual(model.mad_informedness, 0.006849386311628791)
+        self.assertAlmostEqual(model.validation['cross_validation_median']['accuracy'], 0.9666666666666667)
+        self.assertAlmostEqual(model.validation['cross_validation_mad']['accuracy'], 0.0)
+        self.assertAlmostEqual(model.validation['cross_validation_median']['informedness'], 0.9555335968379446)
+        self.assertAlmostEqual(model.validation['cross_validation_mad']['informedness'], 0.006849386311628791)
 
         with self.assertRaises(AttributeError):
             model.median_sensitivity
@@ -535,7 +535,7 @@ class OutliersTestCase(GenModelTestCase):
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
 
-        self.assertAlmostEqual(model.outlier_accuracy, 1.0)
-        self.assertAlmostEqual(model.outlier_precision, 1.0)
-        self.assertAlmostEqual(model.outlier_recall, 1.0)
-        self.assertAlmostEqual(model.outlier_informedness, 1.0)
+        self.assertAlmostEqual(model.validation['outlier_scores']['accuracy'], 1.0)
+        self.assertAlmostEqual(model.validation['outlier_scores']['precision'], 1.0)
+        self.assertAlmostEqual(model.validation['outlier_scores']['recall'], 1.0)
+        self.assertAlmostEqual(model.validation['outlier_scores']['informedness'], 1.0)
