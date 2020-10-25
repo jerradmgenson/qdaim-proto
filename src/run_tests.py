@@ -16,12 +16,9 @@ import os
 import sys
 import enum
 import time
-import argparse
 import unittest
 import subprocess
-import multiprocessing
 from pathlib import Path
-from collections import namedtuple
 
 from coverage import Coverage
 
@@ -51,21 +48,42 @@ class Verdict(enum.Enum):
     UNEXPECTED_SUCCESS = enum.auto()
 
 
-def main(argv):
+def main():
     start_time = time.time()
-    command_line_arguments = parse_command_line(argv)
     coverage_files = get_python_files(SRC_PATH,
                                       exclude=['tests',
                                                'run_tests.py',
                                                'run_linters.py'])
 
-    jobs = [(run_unittest, coverage_files)]
-    with multiprocessing.Pool(command_line_arguments.cpu) as pool:
-        test_results = pool.map(run_job, jobs)
+    coverage = Coverage()
+    coverage.start()
+    unit_testsuite = unittest.defaultTestLoader.discover(UNIT_PATH,
+                                                         top_level_dir=SRC_PATH)
 
-    unittest_results = test_results[0]
-    verdicts = unittest_results.verdicts
-    coverage_percentage = unittest_results.coverage_percentage
+    integration_testsuite = unittest.defaultTestLoader.discover(INTEGRATION_PATH,
+                                                                top_level_dir=SRC_PATH)
+
+    testcases = (extract_tests(unit_testsuite)
+                 + extract_tests(integration_testsuite))
+
+    verdicts = list(map(run_test, testcases))
+    coverage.stop()
+    coverage.save()
+    if coverage_files:
+        coverage_stream = io.StringIO()
+        coverage_percentage = coverage.report(file=coverage_stream,
+                                              include=coverage_files,
+                                              show_missing=True)
+
+        coverage_report = coverage_stream.getvalue()
+        coverage_stream.close()
+
+    else:
+        # coverage not run on any file changes.
+        # Set coverage percentage to the highest possible value (100).
+        coverage_percentage = 100
+        coverage_report = ''
+
     total_tests = len(verdicts)
     successes = verdicts.count(Verdict.SUCCESS)
     failures = verdicts.count(Verdict.FAILURE)
@@ -82,7 +100,7 @@ def main(argv):
     report += f'Expected failures:       {expected_failures}\n'
     report += f'Unexpected successes:    {unexpected_successes}\n'
     print(report)
-    print(unittest_results.coverage_report)
+    print(coverage_report)
     failed = (failures
               or errors
               or unexpected_successes
@@ -173,73 +191,6 @@ def extract_tests(testsuite):
     return testcases
 
 
-UnittestResult = namedtuple('UnittestResult',
-                            'verdicts coverage_percentage coverage_report')
-
-
-def run_unittest(coverage_files):
-    """
-    Run all unittest testcases.
-
-    Args
-      coverage_files: List of files to include in test coverage report.
-
-    Returns
-      An instance of UnittestResult.
-
-    """
-
-    coverage = Coverage()
-    coverage.start()
-    unit_testsuite = unittest.defaultTestLoader.discover(UNIT_PATH,
-                                                         top_level_dir=SRC_PATH)
-
-    integration_testsuite = unittest.defaultTestLoader.discover(INTEGRATION_PATH,
-                                                                top_level_dir=SRC_PATH)
-
-    testcases = (extract_tests(unit_testsuite)
-                 + extract_tests(integration_testsuite))
-
-    verdicts = list(map(run_test, testcases))
-    coverage.stop()
-    coverage.save()
-    if coverage_files:
-        coverage_stream = io.StringIO()
-        coverage_percentage = coverage.report(file=coverage_stream,
-                                              include=coverage_files,
-                                              show_missing=True)
-
-        coverage_report = coverage_stream.getvalue()
-        coverage_stream.close()
-
-    else:
-        # coverage not run on any file changes.
-        # Set coverage percentage to the highest possible value (100).
-        coverage_percentage = 100
-        coverage_report = ''
-
-    unittest_result = UnittestResult(verdicts=verdicts,
-                                     coverage_percentage=coverage_percentage,
-                                     coverage_report=coverage_report)
-
-    return unittest_result
-
-
-def run_job(job):
-    """
-    Run a job and return its results.
-
-    Args
-      job: A tuple of `(function, function_argument)`.
-
-    Returns
-      The value returned by `function`.
-
-    """
-
-    return job[0](job[1])
-
-
 def get_changed_files():
     """
     Get files that changed since the last commit. If there have been no
@@ -255,22 +206,6 @@ def get_changed_files():
     changed_files = set(str(GIT_ROOT / Path(x)) for x in re.findall(r'\+\+\+ b/(.+)', git_diff))
 
     return changed_files
-
-
-def parse_command_line(argv):
-    """
-    Parse the command line arguments given by argv.
-
-    """
-
-    description = 'Test source code for QDAIM.'
-    parser = argparse.ArgumentParser(description=description)
-    parser.add_argument('--cpu',
-                        type=int,
-                        default=multiprocessing.cpu_count(),
-                        help='Number of processes to use for running tests.')
-
-    return parser.parse_args(argv)
 
 
 def get_python_files(path, exclude=None):
@@ -302,4 +237,4 @@ def get_python_files(path, exclude=None):
 
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(main())
