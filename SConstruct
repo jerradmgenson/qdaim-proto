@@ -11,7 +11,6 @@ import subprocess
 from pathlib import Path
 
 import preprocess_stage1
-import preprocess_stage2
 import gen_model
 
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
@@ -30,7 +29,9 @@ preprocess_stage1_builder = Builder(action=build_preprocess_stage1,
                                     src_suffix='.data')
 
 def build_preprocess_stage2(target, source, env):
-   return preprocess_stage2.main([str(BUILD_DIR), str(source[0])])
+    return subprocess.call(['src/preprocess_stage2.R',
+                            BUILD_DIR.name,
+                            str(source[0])])
 
 preprocess_stage2_builder = Builder(action=build_preprocess_stage2,
                                     src_suffix='.csv')
