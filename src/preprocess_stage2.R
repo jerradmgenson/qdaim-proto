@@ -25,7 +25,6 @@
 options(error=traceback)
 
 library(argparser)
-library(tidyverse)
 
 # Path to the root of the git repository
 GIT_ROOT <- system2("git", args=c("rev-parse", "--show-toplevel"), stdout=TRUE)
@@ -50,7 +49,7 @@ TESTING_FRACTION <- 0.2
 VALIDATION_FRACTION <- 0.2
 
 # Integer to use for seeding the random number generator
-RANDOM_SEED <- 667252912
+RANDOM_SEED <- 96851945
 
 # Enumerates possible values for 'CLASSIFICATION_TYPE'.
 CLASSIFICATION_TYPES <- list(BINARY=0, TERNARY=1, MULTICLASS=2)
@@ -81,9 +80,9 @@ parse_command_line <- function(argv) {
 
 set.seed(RANDOM_SEED)
 command_line_arguments <- parse_command_line(commandArgs(trailingOnly=TRUE))
-dataset <- read_csv(command_line_arguments$source)
+dataset <- read.csv(command_line_arguments$source)
 data_subset <- dataset[, SUBSET_COLUMNS]
-data_subset <- drop_na(data_subset)
+data_subset <- na.omit(data_subset)
 data_subset <- data_subset[data_subset$trestbps != 0,]
 
 # Convert chest pain to a binary class.
@@ -117,15 +116,15 @@ if (CLASSIFICATION_TYPE == CLASSIFICATION_TYPES$BINARY) {
 # Shuffle order of rows in dataset.
 data_subset <- data_subset[sample(nrow(data_subset)),]
 
-testing_rows <- ceiling(nrow(data_subset) * TESTING_FRACTION) - 1
-validation_rows <- ceiling(nrow(data_subset) * VALIDATION_FRACTION) + testing_rows - 1
-testing_data <- slice(data_subset, 1:testing_rows)
-validation_data <- slice(data_subset, testing_rows:validation_rows)
-training_data <- slice(data_subset, validation_rows:nrow(data_subset))
+testing_rows <- ceiling(nrow(data_subset) * TESTING_FRACTION)
+validation_rows <- ceiling(nrow(data_subset) * VALIDATION_FRACTION) + testing_rows
+testing_data <- data_subset[1:testing_rows,]
+validation_data <- data_subset[(testing_rows+1):validation_rows,]
+training_data <- data_subset[(validation_rows+1):nrow(data_subset),]
 
 testing_path <- file.path(command_line_arguments$target, TESTING_DATASET_NAME)
-write_csv(testing_data, testing_path)
+write.csv(testing_data, file=testing_path, quote=FALSE, row.names=FALSE)
 validation_path <- file.path(command_line_arguments$target, VALIDATION_DATASET_NAME)
-write_csv(validation_data, validation_path)
+write.csv(validation_data, file=validation_path, quote=FALSE, row.names=FALSE)
 training_path <- file.path(command_line_arguments$target, TRAINING_DATASET_NAME)
-write_csv(training_data, training_path)
+write.csv(training_data, file=training_path, quote=FALSE, row.names=FALSE)
