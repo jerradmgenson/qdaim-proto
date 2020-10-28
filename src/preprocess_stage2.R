@@ -42,22 +42,6 @@ VALIDATION_DATASET_NAME <- "validation.csv"
 SUBSET_COLUMNS <- c("age", "sex", "cp", "thalrest", "trestbps", "restecg",
                     "fbs", "thalach", "exang", "oldpeak", "target")
 
-# Fraction of data to use for testing as a real number between 0 and 1
-TESTING_FRACTION <- 0.2
-
-# Fraction of data to use for validation as a real number between 0 and 1
-VALIDATION_FRACTION <- 0.2
-
-# Integer to use for seeding the random number generator
-RANDOM_SEED <- 96851945
-
-# Enumerates possible values for 'CLASSIFICATION_TYPE'.
-CLASSIFICATION_TYPES <- list(BINARY=0, TERNARY=1, MULTICLASS=2)
-
-# Set what type of classification target to generate.
-# Possible values are the members of ClassificationType.
-CLASSIFICATION_TYPE <- CLASSIFICATION_TYPES$BINARY
-
 
 parse_command_line <- function(argv) {
     # Parse the command line using argparse.
@@ -74,12 +58,28 @@ parse_command_line <- function(argv) {
     parser <- add_argument(parser, "source",
                            help="CSV dataset file output by preprocess_stage1.py.")
 
+    parser <- add_argument(parser, "--random-seed",
+                           default=1,
+                           help="Set the number number generator seed.")
+
+    parser <- add_argument(parser, "--classification-type",
+                           default="binary",
+                           help="Classification type. Possible values: 'binary', 'ternary', 'multiclass'")
+
+    parser <- add_argument(parser, "--testing-fraction",
+                           default=0.2,
+                           help="Fraction of data to use for testing as a real number between 0 and 1.")
+
+    parser <- add_argument(parser, "--validation-fraction",
+                           default=0.2,
+                           help="Fraction of data to use for validation as a real number between 0 and 1.")
+
     parse_args(parser, argv=argv)
 }
 
 
-set.seed(RANDOM_SEED)
 command_line_arguments <- parse_command_line(commandArgs(trailingOnly=TRUE))
+set.seed(command_line_arguments$random_seed)
 dataset <- read.csv(command_line_arguments$source)
 data_subset <- dataset[, SUBSET_COLUMNS]
 data_subset <- na.omit(data_subset)
@@ -97,27 +97,27 @@ data_subset$sex[data_subset$sex == 0] <- -1
 data_subset$exang[data_subset$exang == 0] <- -1
 data_subset$fbs[data_subset$fbs == 0] <- -1
 
-if (CLASSIFICATION_TYPE == CLASSIFICATION_TYPES$BINARY) {
+if (command_line_arguments$classification_type == "binary") {
     # Convert target (heart disease class) to a binary class.
     data_subset$target[data_subset$target != 0] <- 1
     data_subset$target[data_subset$target == 0] <- -1
 
-} else if (CLASSIFICATION_TYPE == CLASSIFICATION_TYPES$TERNARY) {
+} else if (command_line_arguments$classification_type == "ternary") {
     # Convert target to a ternary class.
     data_subset$target[data_subset$target == 0] <- -1
     data_subset$target[data_subset$target == 1] <- 0
     data_subset$target[data_subset$target > 1] <- 1
 
-} else if (CLASSIFICATION_TYPE != CLASSIFICATION_TYPES$MULTICLASS) {
+} else if (command_line_arguments$classification_type != "multiclass") {
     # Invalid classification type.
-    stop(sprintf("Unknown classification type `%s`.", CLASSIFICATION_TYPE))
+    stop(sprintf("Unknown classification type `%s`.", command_line_arguments$classification_type))
 }
 
 # Shuffle order of rows in dataset.
 data_subset <- data_subset[sample(nrow(data_subset)),]
 
-testing_rows <- ceiling(nrow(data_subset) * TESTING_FRACTION)
-validation_rows <- ceiling(nrow(data_subset) * VALIDATION_FRACTION) + testing_rows
+testing_rows <- ceiling(nrow(data_subset) * command_line_arguments$testing_fraction)
+validation_rows <- ceiling(nrow(data_subset) * command_line_arguments$validation_fraction) + testing_rows
 testing_data <- data_subset[1:testing_rows,]
 validation_data <- data_subset[(testing_rows+1):validation_rows,]
 training_data <- data_subset[(validation_rows+1):nrow(data_subset),]
