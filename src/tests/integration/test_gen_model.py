@@ -382,7 +382,8 @@ class GenModelIntegrationTestCase(GenModelTestCase):
         with open(config_tempfile_descriptor[1], 'w') as tmp_config_fp:
             json.dump(gen_model_config, tmp_config_fp)
 
-        subprocess.check_output([str(self.output_directory),
+        subprocess.check_output([test_preprocess_stage2.PreprocessStage2Test.PREPROCESS_STAGE2,
+                                 str(self.output_directory),
                                  str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS)])
 
         gen_model.CONFIG_FILE_PATH = Path(config_tempfile_descriptor[1])
