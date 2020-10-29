@@ -1,5 +1,5 @@
 """
-Integration testcases for preprocess_stage2.py.
+Integration testcases for preprocess_stage2.R
 
 Copyright 2020 Jerrad M. Genson
 
@@ -9,7 +9,6 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 """
 
-import os
 import unittest
 import tempfile
 import subprocess
@@ -18,32 +17,32 @@ from pathlib import Path
 import pandas as pd
 
 import preprocess_stage1
-import preprocess_stage2
 from tests.integration import test_preprocess_stage1
 
-RANDOM_SEED = 667252912
+RANDOM_SEED = '667252912'
 
 
 class PreprocessStage2Test(unittest.TestCase):
     """
-    Test cases for preprocess_stage2.py
+    Test cases for preprocess_stage2.R
 
     """
 
     GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
     GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
-    TEST_DATA = GIT_ROOT / Path('src/tests/data')
-    BINARY_TESTING_DATASET1 = TEST_DATA / Path('binary_testing_dataset1.csv')
-    BINARY_TRAINING_DATASET1 = TEST_DATA / Path('binary_training_dataset1.csv')
-    BINARY_VALIDATION_DATASET1 = TEST_DATA / Path('binary_validation_dataset1.csv')
-    BINARY_TESTING_DATASET2 = TEST_DATA / Path('binary_testing_dataset2.csv')
-    BINARY_TRAINING_DATASET2 = TEST_DATA / Path('binary_training_dataset2.csv')
-    TERNARY_TESTING_DATASET = TEST_DATA / Path('ternary_testing_dataset.csv')
-    TERNARY_TRAINING_DATASET = TEST_DATA / Path('ternary_training_dataset.csv')
-    TERNARY_VALIDATION_DATASET = TEST_DATA / Path('ternary_validation_dataset.csv')
-    MULTICLASS_TESTING_DATASET = TEST_DATA / Path('multiclass_testing_dataset.csv')
-    MULTICLASS_TRAINING_DATASET = TEST_DATA / Path('multiclass_training_dataset.csv')
-    MULTICLASS_VALIDATION_DATASET = TEST_DATA / Path('multiclass_validation_dataset.csv')
+    TEST_DATA = GIT_ROOT / 'src/tests/data'
+    BINARY_TESTING_DATASET1 = TEST_DATA / 'binary_testing_dataset1.csv'
+    BINARY_TRAINING_DATASET1 = TEST_DATA / 'binary_training_dataset1.csv'
+    BINARY_VALIDATION_DATASET1 = TEST_DATA / 'binary_validation_dataset1.csv'
+    BINARY_TESTING_DATASET2 = TEST_DATA / 'binary_testing_dataset2.csv'
+    BINARY_TRAINING_DATASET2 = TEST_DATA / 'binary_training_dataset2.csv'
+    TERNARY_TESTING_DATASET = TEST_DATA / 'ternary_testing_dataset.csv'
+    TERNARY_TRAINING_DATASET = TEST_DATA / 'ternary_training_dataset.csv'
+    TERNARY_VALIDATION_DATASET = TEST_DATA / 'ternary_validation_dataset.csv'
+    MULTICLASS_TESTING_DATASET = TEST_DATA / 'multiclass_testing_dataset.csv'
+    MULTICLASS_TRAINING_DATASET = TEST_DATA / 'multiclass_training_dataset.csv'
+    MULTICLASS_VALIDATION_DATASET = TEST_DATA / 'multiclass_validation_dataset.csv'
+    PREPROCESS_STAGE2 = GIT_ROOT / 'src/preprocess_stage2.R'
 
     def setUp(self):
         setUp(self)
@@ -58,8 +57,10 @@ class PreprocessStage2Test(unittest.TestCase):
 
         """
 
-        preprocess_stage2.main([str(self.output_directory),
-                                str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS)])
+        subprocess.check_output([str(self.PREPROCESS_STAGE2),
+                                 str(self.output_directory),
+                                 str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS),
+                                 '--random-seed', RANDOM_SEED])
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET1)
@@ -80,9 +81,11 @@ class PreprocessStage2Test(unittest.TestCase):
 
         """
 
-        preprocess_stage2.CLASSIFICATION_TYPE = preprocess_stage2.ClassificationType.TERNARY
-        preprocess_stage2.main([str(self.output_directory),
-                                str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS)])
+        subprocess.check_output([str(self.PREPROCESS_STAGE2),
+                                 str(self.output_directory),
+                                 str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS),
+                                 '--random-seed', RANDOM_SEED,
+                                 '--classification-type', 'ternary'])
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.TERNARY_TESTING_DATASET)
@@ -103,9 +106,11 @@ class PreprocessStage2Test(unittest.TestCase):
 
         """
 
-        preprocess_stage2.CLASSIFICATION_TYPE = preprocess_stage2.ClassificationType.MULTICLASS
-        preprocess_stage2.main([str(self.output_directory),
-                                str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS)])
+        subprocess.check_output([str(self.PREPROCESS_STAGE2),
+                                 str(self.output_directory),
+                                 str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS),
+                                 '--random-seed', RANDOM_SEED,
+                                 '--classification-type', 'multiclass'])
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.MULTICLASS_TESTING_DATASET)
@@ -121,17 +126,18 @@ class PreprocessStage2Test(unittest.TestCase):
 
     def test_invalid_classification_type(self):
         """
-        Test preprocess_stage2.py with an invalid classification type
+        Test preprocess_stage2.R with an invalid classification type
 
         """
 
-        preprocess_stage2.CLASSIFICATION_TYPE = 'invalid_classification_type'
-        with self.assertRaises(ValueError) as context_manager:
-            preprocess_stage2.main([str(self.output_directory),
-                                    str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS)])
+        stdout = subprocess.check_output([str(self.PREPROCESS_STAGE2),
+                                          str(self.output_directory),
+                                          str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS),
+                                          '--classification-type', 'invalid'],
+                                         stderr=subprocess.STDOUT)
 
-        self.assertEqual(str(context_manager.exception),
-                         'Unknown classification type `invalid_classification_type`.')
+        self.assertIn('Error: Unknown classification type `invalid`',
+                      stdout.decode('utf-8'))
 
     def test_training_testing_datasets(self):
         """
@@ -139,12 +145,11 @@ class PreprocessStage2Test(unittest.TestCase):
 
         """
 
-        prev_validation_fraction = preprocess_stage2.VALIDATION_FRACTION
-        preprocess_stage2.VALIDATION_FRACTION = 0
-        preprocess_stage2.main([str(self.output_directory),
-                                str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS)])
-
-        preprocess_stage2.VALIDATION_FRACTION = prev_validation_fraction
+        subprocess.check_output([str(self.PREPROCESS_STAGE2),
+                                 str(self.output_directory),
+                                 str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS),
+                                 '--random-seed', RANDOM_SEED,
+                                 '--validation-fraction', '0'])
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET2)
@@ -162,8 +167,10 @@ class PreprocessStage2Test(unittest.TestCase):
 
         test_preprocess_stage1.setUp(self)
         preprocess_stage1.main([str(self.output_path)] + test_preprocess_stage1.SOURCE_DATASETS)
-        preprocess_stage2.main([str(self.output_directory),
-                                str(self.output_path)])
+        subprocess.check_output([str(self.PREPROCESS_STAGE2),
+                                 str(self.output_directory),
+                                 str(self.output_path),
+                                 '--random-seed', RANDOM_SEED])
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET1)
@@ -188,17 +195,8 @@ def setUp(self):
     self.training_path = self.output_directory / 'training.csv'
     self.validation_path = self.output_directory / 'validation.csv'
 
-    self.prev_classification_type = preprocess_stage2.CLASSIFICATION_TYPE
-    self.prev_random_seed = preprocess_stage2.RANDOM_SEED
-
-    preprocess_stage2.CLASSIFICATION_TYPE = preprocess_stage2.ClassificationType.BINARY
-    preprocess_stage2.RANDOM_SEED = RANDOM_SEED
-
 
 def tearDown(self):
-    preprocess_stage2.CLASSIFICATION_TYPE = self.prev_classification_type
-    preprocess_stage2.RANDOM_SEED = self.prev_random_seed
-
     if self.training_path.exists():
         self.training_path.unlink()
 

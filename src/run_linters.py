@@ -13,6 +13,7 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import re
 import sys
 import time
+import json
 import argparse
 import subprocess
 import multiprocessing
@@ -32,33 +33,40 @@ UNIT_PATH = TESTS_PATH / Path('unit')
 INTEGRATION_PATH = TESTS_PATH / Path('integration')
 
 # The minimum pylint score (/10) required for the pylint test to pass.
-MIN_PYLINT_SCORE = 9
+MIN_LINTER_SCORE = 9
 
 
 def main(argv):
     start_time = time.time()
     command_line_arguments = parse_command_line(argv)
-    pylint_files = run_tests.get_python_files(SRC_PATH,
-                                              exclude=['unit', 'integration', '__init__.py'])
+    python_files = run_tests.get_files_with_extension(SRC_PATH,
+                                                      '.py',
+                                                      exclude=['unit', 'integration', '__init__.py'])
 
+    r_files = run_tests.get_files_with_extension(SRC_PATH,
+                                                 '.R',
+                                                 exclude=['unit', 'integration'])
+
+    linter_results = []
     with multiprocessing.Pool(command_line_arguments.cpu) as pool:
-        pylint_results = pool.map(run_pylint, pylint_files)
+        linter_results.extend(pool.map(run_pylint, python_files))
+        linter_results.extend(pool.map(run_lintr, r_files))
 
-    print('Pylint scores')
+    print('Linter scores')
     failure = False
-    for pylint_result in pylint_results:
-        if pylint_result.errors:
-            print(f'{pylint_result.path}.... error')
+    for linter_result in linter_results:
+        if linter_result.errors:
+            print(f'{linter_result.path}.... error')
             failure = True
 
         else:
-            print(f'{pylint_result.path}.... {pylint_result.score}/10')
+            print(f'{linter_result.path}.... {linter_result.score}/10')
 
-        if pylint_result.score < MIN_PYLINT_SCORE:
+        if linter_result.score < MIN_LINTER_SCORE:
             failure = True
 
-        if pylint_result.errors or pylint_result.score < MIN_PYLINT_SCORE:
-            print(pylint_result.report)
+        if linter_result.errors or linter_result.score < MIN_LINTER_SCORE:
+            print(linter_result.report)
 
     if failure:
         print('\nFinal status: FAIL')
@@ -71,12 +79,12 @@ def main(argv):
     return failure
 
 
-PylintResult = namedtuple('PylintResult', 'path score errors report')
+LinterResult = namedtuple('LinterResult', 'path score errors report')
 
 
 def run_pylint(path):
     """
-    Run pylint on the target file at `path` and return a PylintResult object.
+    Run pylint on the target file at `path` and return a LinterResult object.
 
     """
 
@@ -90,7 +98,7 @@ def run_pylint(path):
         pylint_stderr.close()
 
     if pylint_error:
-        return PylintResult(path=path, score=0.0, errors=True)
+        return LinterResult(path=path, score=0.0, errors=True)
 
     errors = bool(re.search(r':\d+: error', pylint_report))
     try:
@@ -101,12 +109,40 @@ def run_pylint(path):
         score = 0
         errors = True
 
-    pylint_result = PylintResult(path=path,
+    pylint_result = LinterResult(path=path,
                                  score=score,
                                  errors=errors,
                                  report=pylint_report)
 
     return pylint_result
+
+
+def run_lintr(path):
+    """
+    Run lintr on the target file at `path` and return a LinterResult object.
+
+    """
+
+    try:
+        lintr_stdout = subprocess.check_output(['R', '-e', f'library(lintr); lint("{str(path)}")']).decode('utf-8')
+
+    except subprocess.CalledProcessError:
+        return LinterResult(path=path,
+                            score=0,
+                            errors=True,
+                            report='')
+
+    errors = re.search(r':\d+:\d+: error:', lintr_stdout) is not None
+    issues = len(re.findall(r':\d+:\d+: \w+:', lintr_stdout))
+    cloc_stdout = subprocess.check_output(['cloc', str(path), '--json']).decode('utf-8')
+    cloc_json = json.loads(cloc_stdout)
+    lines_of_code = cloc_json['SUM']['code']
+    score = round((1 - issues / lines_of_code) * 10, 2)
+
+    return LinterResult(path=path,
+                        score=score,
+                        errors=errors,
+                        report=re.split(r'> library\(lintr\); lint\(.+\)', lintr_stdout)[1])
 
 
 def parse_command_line(argv):
