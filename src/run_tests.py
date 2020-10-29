@@ -50,10 +50,11 @@ class Verdict(enum.Enum):
 
 def main():
     start_time = time.time()
-    coverage_files = get_python_files(SRC_PATH,
-                                      exclude=['tests',
-                                               'run_tests.py',
-                                               'run_linters.py'])
+    coverage_files = get_files_with_extension(SRC_PATH,
+                                              '.py',
+                                              exclude=['tests',
+                                                       'run_tests.py',
+                                                       'run_linters.py'])
 
     coverage = Coverage()
     coverage.start()
@@ -208,32 +209,36 @@ def get_changed_files():
     return changed_files
 
 
-def get_python_files(path, exclude=None):
+def get_files_with_extension(path, extension, exclude=None):
     """
-    Get all Python files that live in `path` or any of its children.
+    Get all files with the given extension that live in `path` or any of
+    its children.
 
     Args
-      path: The path to the directory to search for Python files as either a
+      path: The path to the directory to search for matching files as either a
             string or a Path object.
+      extension: The file extension to match, including the leading '.'.
       exclude: (Optional) A list of directory names not to descend into.
 
     Returns
-      A set of path strings to all Python files within the directory at `path`.
+      A set of path strings to all matching files within the directory at `path`.
 
     """
 
     if exclude is None:
-        return set(str(x) for x in Path(path).glob('**/*.py'))
+        return set(str(x) for x in Path(path).glob(f'**/*{extension}'))
 
-    python_files = set()
+    matching_files = set()
     for child in Path(path).iterdir():
         if child.is_dir() and child.name not in exclude:
-            python_files.update(get_python_files(child, exclude=exclude))
+            matching_files.update(get_files_with_extension(child,
+                                                           extension,
+                                                           exclude=exclude))
 
-        elif child.suffix == '.py' and child.name not in exclude:
-            python_files.add(str(child))
+        elif child.suffix == extension and child.name not in exclude:
+            matching_files.add(str(child))
 
-    return python_files
+    return matching_files
 
 
 if __name__ == '__main__':
