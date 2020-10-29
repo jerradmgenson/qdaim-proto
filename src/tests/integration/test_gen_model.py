@@ -21,9 +21,7 @@ import pandas as pd
 import sklearn
 from sklearn.datasets import load_iris
 
-import util
 import gen_model
-import preprocess_stage2
 from tests.integration import test_preprocess_stage1
 from tests.integration import test_preprocess_stage2
 
@@ -64,7 +62,7 @@ class GenModelTestCase(unittest.TestCase):
 
 class ModelConfigTestCase(GenModelTestCase):
     """
-    Test cases for preprocess_stage2.py
+    Test cases for gen_model.py configuration file
 
     """
 
@@ -369,7 +367,7 @@ class GenModelIntegrationTestCase(GenModelTestCase):
 
     def test_run_gen_model_with_preprocess_stage2(self):
         """
-        Test running gen_model.py on the output of preprocess_stage2.py
+        Test running gen_model.py on the output of preprocess_stage2.R
 
         """
 
@@ -384,8 +382,8 @@ class GenModelIntegrationTestCase(GenModelTestCase):
         with open(config_tempfile_descriptor[1], 'w') as tmp_config_fp:
             json.dump(gen_model_config, tmp_config_fp)
 
-        preprocess_stage2.main([str(self.output_directory),
-                                str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS)])
+        subprocess.check_output([str(self.output_directory),
+                                 str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS)])
 
         gen_model.CONFIG_FILE_PATH = Path(config_tempfile_descriptor[1])
         exit_code = gen_model.main([str(self.output_path),
