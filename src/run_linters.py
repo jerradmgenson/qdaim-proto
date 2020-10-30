@@ -132,9 +132,8 @@ def run_lintr(path):
                             errors=True,
                             report='')
 
-    print(lintr_stdout)
-    errors = re.search(r':\d+:\d+: error:', lintr_stdout) is not None
-    issues = len(re.findall(r':\d+:\d+: \w+:', lintr_stdout))
+    errors = re.search(r'^Error:', lintr_stdout) is not None
+    issues = len(re.findall(r'^\w+:', lintr_stdout))
     cloc_stdout = subprocess.check_output(['cloc', str(path), '--json']).decode('utf-8')
     cloc_json = json.loads(cloc_stdout)
     lines_of_code = cloc_json['SUM']['code']
