@@ -132,6 +132,7 @@ def run_lintr(path):
                             errors=True,
                             report='')
 
+    print(lintr_stdout)
     errors = re.search(r':\d+:\d+: error:', lintr_stdout) is not None
     issues = len(re.findall(r':\d+:\d+: \w+:', lintr_stdout))
     cloc_stdout = subprocess.check_output(['cloc', str(path), '--json']).decode('utf-8')
