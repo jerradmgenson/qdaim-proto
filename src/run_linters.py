@@ -137,6 +137,7 @@ def run_lintr(path):
     cloc_stdout = subprocess.check_output(['cloc', str(path), '--json']).decode('utf-8')
     cloc_json = json.loads(cloc_stdout)
     lines_of_code = cloc_json['SUM']['code']
+    print(f'lines_of_code: {lines_of_code}')
     score = round((1 - issues / lines_of_code) * 10, 2)
 
     return LinterResult(path=path,
