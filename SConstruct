@@ -31,7 +31,8 @@ preprocess_stage1_builder = Builder(action=build_preprocess_stage1,
 def build_preprocess_stage2(target, source, env):
     return subprocess.call(['src/preprocess_stage2.R',
                             BUILD_DIR.name,
-                            str(source[0])])
+                            str(source[0]),
+                            '--random-seed', '1467756838'])
 
 preprocess_stage2_builder = Builder(action=build_preprocess_stage2,
                                     src_suffix='.csv')
