@@ -49,6 +49,8 @@ SUPPORTED_ALGORITHMS = {
                        ensemble.RandomForestClassifier),
     'etc': MLAlgorithm('extra trees',
                        ensemble.ExtraTreesClassifier),
+    'gbc': MLAlgorithm('gradient boosting',
+                       ensemble.GradientBoostingClassifier),
     'sgd': MLAlgorithm('stochastic gradient descent',
                        sklearn.linear_model.SGDClassifier),
     'rrc': MLAlgorithm('ridge regression',
