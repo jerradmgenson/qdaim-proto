@@ -25,8 +25,8 @@ from ingester_clparser import parse_command_line
 
 # Names of columns we are interested in studying.
 # Discard all other columns from the dataset.
-SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'restecg', 'thalach',
-                  'exang', 'oldpeak', 'target']
+SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'chol', 'restecg',
+                  'thalach', 'exang', 'oldpeak', 'slope', 'target']
 
 
 def main(argv):

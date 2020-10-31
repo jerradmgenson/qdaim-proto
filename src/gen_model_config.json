@@ -3,12 +3,20 @@
     "validation_dataset": "build/validation.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "preprocessing_method": "robust scaling",
-    "algorithm": "gbc",
+    "preprocessing_method": "pca",
+    "algorithm": "rfc",
     "parameter_grid":
     [
 	{
-	    "model__random_state": [63702260]
+	    "preprocessing__n_components": [2, 3, 4, 5, 6, 7, 8, 9, 10],
+	    "preprocessing__whiten": [false, true],
+	    "model__n_estimators": [50, 100, 200, 400],
+	    "model__criterion": ["gini", "entropy"],
+	    "model__min_samples_split": [2, 4, 8, 16],
+	    "model__max_depth": [null, 2, 4, 8],
+	    "model__bootstrap": [false, true],
+	    "model__class_weight": ["balanced"],
+	    "model__random_state": [3307259]
 	}
     ]
 }

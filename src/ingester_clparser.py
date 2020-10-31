@@ -12,6 +12,11 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import argparse
 from pathlib import Path
 
+# Names of columns we are interested in studying.
+# Discard all other columns from the dataset.
+SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'chol', 'restecg', 'thalach',
+                  'exang', 'oldpeak', 'slope', 'target']
+
 
 def parse_command_line(argv):
     """

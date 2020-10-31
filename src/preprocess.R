@@ -37,7 +37,8 @@ validation_dataset_name <- "validation.csv"
 
 # Columns to subset from the original input dataset
 subset_columns <- c("age", "sex", "cp", "trestbps", "restecg",
-                    "fbs", "thalach", "exang", "oldpeak", "target")
+                    "fbs", "chol", "thalach", "exang", "oldpeak",
+                    "slope", "target")
 
 
 parse_command_line <- function(argv) {
