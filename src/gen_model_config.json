@@ -3,17 +3,14 @@
     "validation_dataset": "build/validation.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
+    "algorithm": "knn",
     "preprocessing_method": "robust scaling",
-    "algorithm": "dtc",
     "parameter_grid":
     [
 	{
-	    "model__criterion": ["gini", "entropy"],
-	    "model__splitter": ["best", "random"],
-	    "model__min_samples_split": [2, 4, 8, 16],
-	    "model__min_samples_leaf": [1, 2, 4, 8],
-	    "model__max_features": ["sqrt", "log2"],
-	    "model__max_leaf_nodes": [5, 10, 20, 40, 80]
+	    "model__n_neighbors": [3, 5, 10, 15, 20, 40, 80],
+	    "model__weights": ["uniform", "distance"],
+	    "model__p": [1, 2]
 	}
     ]
 }
