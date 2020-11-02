@@ -3,14 +3,15 @@
     "validation_dataset": "build/validation.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "algorithm": "knn",
+    "algorithm": "rnc",
     "preprocessing_method": "robust scaling",
     "parameter_grid":
     [
 	{
-	    "model__n_neighbors": [3, 5, 10, 15, 20, 40, 80],
+	    "model__radius": [1, 2, 3, 4, 5, 10, 20, 40, 80],
 	    "model__weights": ["uniform", "distance"],
-	    "model__p": [1, 2]
+	    "model__p": [1, 2],
+	    "model__outlier_label": [-1]
 	}
     ]
 }
