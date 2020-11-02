@@ -31,6 +31,8 @@ from sklearn import ensemble
 from sklearn import discriminant_analysis
 from sklearn import manifold
 from sklearn import naive_bayes
+from sklearn import cluster
+from sklearn import neighbors
 
 # Path to the root of the git repository.
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
@@ -80,8 +82,11 @@ PREPROCESSING_METHODS = {
     'power transformer': sklearn.preprocessing.PowerTransformer,
     'normalize': sklearn.preprocessing.Normalizer,
     'pca': sklearn.decomposition.PCA,
-    'ica': sklearn.decomposition.FastICA,
+    'factor analysis': sklearn.decomposition.FactorAnalysis,
     'isomap': manifold.Isomap,
+    'lle': manifold.LocallyLinearEmbedding,
+    'feature agglomeration': cluster.FeatureAgglomeration,
+    'nca': neighbors.NeighborhoodComponentsAnalysis,
 }
 
 # Stores values from the configuration file.
@@ -91,7 +96,7 @@ Config = namedtuple('Config',
                      'random_seed',
                      'scoring',
                      'algorithm',
-                     'preprocessing_method',
+                     'preprocessing_methods',
                      'parameter_grid'))
 
 # Contains input data and target data for a single dataset.
@@ -212,8 +217,8 @@ def read_config_file(path):
 
     config_json['algorithm'] = SUPPORTED_ALGORITHMS[config_json['algorithm']]
 
-    if 'preprocessing_method' not in config_json:
-        config_json['preprocessing_method'] = None
+    if 'preprocessing_methods' not in config_json:
+        config_json['preprocessing_methods'] = []
 
     if 'parameter_grid' not in config_json:
         config_json['parameter_grid'] = []

@@ -118,7 +118,7 @@ def main(argv):
     print(f'Random number seed:    {config.random_seed}')
     print(f'Scoring method:        {config.scoring}')
     print(f'Algorithm:             {config.algorithm.name}')
-    print(f'Preprocessing method:  {config.preprocessing_method}')
+    print(f'Preprocessing methods: {config.preprocessing_methods}')
     print(f'Training samples:      {len(datasets.training.inputs)}')
     print(f'Validation samples:    {len(datasets.validation.inputs)}')
     score_function = scoring.scoring_methods()[config.scoring]
@@ -127,7 +127,7 @@ def main(argv):
                         datasets.training.inputs,
                         datasets.training.targets,
                         score_function,
-                        preprocessing_method=config.preprocessing_method,
+                        preprocessing_methods=config.preprocessing_methods,
                         cpus=command_line_arguments.cpu,
                         parameter_grid=config.parameter_grid)
 
@@ -181,6 +181,7 @@ def main(argv):
                                                    predictions,
                                                    datasets.columns[:-1])
 
+    print(f'Model hyperparameters:\n{model.get_params()}\n')
     print('\nSaving model to disk...')
     model.commit_hash = util.get_commit_hash()
     model.repository = GITHUB_URL
@@ -230,7 +231,7 @@ def train_model(model_class,
                 input_data,
                 target_data,
                 score_function,
-                preprocessing_method=None,
+                preprocessing_methods=None,
                 cpus=1,
                 parameter_grid=None):
 
@@ -249,8 +250,8 @@ def train_model(model_class,
                       estimator, an array of input data, and an array
                       of target data, and returns a score as a float,
                       where higher numbers are better.
-      preprocessing_method: Methods to use to preprocess the data before feeding
-                            it to the model. Must be a member of
+      preprocessing_methods: Iterable of methods to use to preprocess the data
+                             before feeding it to the model. Must be a member of
                             'PREPROCESSING_METHODS'. (Default=None)
       cpus: Number of processes to use for training the model. (Default=1)
       parameter_grid: A sequence of dicts with possible hyperparameter values.
@@ -262,10 +263,11 @@ def train_model(model_class,
 
     """
 
+    preprocessing_methods = preprocessing_methods or list()
     pipeline_steps = []
-    if preprocessing_method:
-        preprocessor = util.PREPROCESSING_METHODS[preprocessing_method]()
-        pipeline_steps.append(('preprocessing', preprocessor))
+    for count, method in enumerate(preprocessing_methods):
+        preprocessor = util.PREPROCESSING_METHODS[method]()
+        pipeline_steps.append(('preprocessing' + str(count+1), preprocessor))
 
     pipeline_steps.append(('model', model_class()))
     pipeline = Pipeline(steps=pipeline_steps)
