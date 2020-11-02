@@ -3,9 +3,19 @@
     "validation_dataset": "build/validation.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "algorithm": "qda",
-    "preprocessing_method": "robust scaling",
+    "preprocessing_method": "standard scaling",
+    "algorithm": "gbc",
     "parameter_grid":
     [
+	{
+	    "model__loss": ["deviance", "exponential"],
+	    "model__learning_rate": [0.001, 0.01, 0.1, 1, 10],
+	    "model__subsample": [0.7, 0.8, 0.9, 1.0],
+	    "model__n_estimators": [30, 75, 150, 300, 600],
+	    "model__criterion": ["friedman_mse", "mse", "mae"],
+	    "model__min_samples_split": [2, 4, 8, 16],
+	    "model__min_samples_leaf": [1, 2, 4, 8],
+	    "model__max_leaf_nodes": [5, 10, 20, 40, 80]
+	}
     ]
 }
