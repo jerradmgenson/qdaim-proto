@@ -180,6 +180,7 @@ def main(argv):
                                                    predictions,
                                                    datasets.columns[:-1])
 
+    print(f'Model hyperparameters:\n{model.get_params()}\n')
     print('\nSaving model to disk...')
     model.commit_hash = util.get_commit_hash()
     model.repository = GITHUB_URL
