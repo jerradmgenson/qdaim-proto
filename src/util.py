@@ -91,7 +91,7 @@ Config = namedtuple('Config',
                      'random_seed',
                      'scoring',
                      'algorithm',
-                     'preprocessing_method',
+                     'preprocessing_methods',
                      'parameter_grid'))
 
 # Contains input data and target data for a single dataset.
@@ -212,8 +212,8 @@ def read_config_file(path):
 
     config_json['algorithm'] = SUPPORTED_ALGORITHMS[config_json['algorithm']]
 
-    if 'preprocessing_method' not in config_json:
-        config_json['preprocessing_method'] = None
+    if 'preprocessing_methods' not in config_json:
+        config_json['preprocessing_methods'] = []
 
     if 'parameter_grid' not in config_json:
         config_json['parameter_grid'] = []

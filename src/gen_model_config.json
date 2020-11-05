@@ -3,7 +3,7 @@
     "validation_dataset": "build/validation.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "preprocessing_method": null,
+    "preprocessing_methods": ["robust scaling", "isomap"],
     "algorithm": "gbc",
     "parameter_grid":
     [
@@ -15,7 +15,10 @@
 	    "model__criterion": ["friedman_mse", "mse", "mae"],
 	    "model__min_samples_split": [2, 4, 8, 16],
 	    "model__min_samples_leaf": [1, 2, 4, 8],
-	    "model__max_leaf_nodes": [80]
+	    "model__max_leaf_nodes": [80],
+            "preprocessing2__n_neighbors": [3, 5, 10, 15, 20, 40, 80],
+            "preprocessing2__n_components": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            "preprocessing2__p": [1, 2]
 	}
     ]
 }
