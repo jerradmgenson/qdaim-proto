@@ -82,6 +82,7 @@ PREPROCESSING_METHODS = {
     'pca': sklearn.decomposition.PCA,
     'ica': sklearn.decomposition.FastICA,
     'isomap': manifold.Isomap,
+    'lle': manifold.LocallyLinearEmbedding,
 }
 
 # Stores values from the configuration file.
