@@ -3,7 +3,7 @@
     "validation_dataset": "build/validation.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "preprocessing_methods": ["robust scaling", "lle"],
+    "preprocessing_methods": ["robust scaling", "factor analysis"],
     "algorithm": "gbc",
     "parameter_grid":
     [
@@ -11,15 +11,13 @@
 	    "model__loss": ["deviance", "exponential"],
 	    "model__learning_rate": [0.001, 0.01, 0.1, 1, 10],
 	    "model__subsample": [0.7, 0.8, 0.9, 1.0],
-	    "model__n_estimators": [75],
+	    "model__n_estimators": [75, 150, 300],
 	    "model__criterion": ["friedman_mse", "mse", "mae"],
 	    "model__min_samples_split": [2, 4, 8, 16],
 	    "model__min_samples_leaf": [1, 2, 4, 8],
 	    "model__max_leaf_nodes": [80],
-            "preprocessing2__n_neighbors": [11, 15, 20, 40, 80],
             "preprocessing2__n_components": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-            "preprocessing2__method": ["modified"],
-            "preprocessing2__eigen_solver": ["dense"]
+	    "preprocessing2__svd_method": ["lapack"]
 	}
     ]
 }

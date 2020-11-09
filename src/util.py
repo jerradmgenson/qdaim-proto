@@ -80,7 +80,7 @@ PREPROCESSING_METHODS = {
     'power transformer': sklearn.preprocessing.PowerTransformer,
     'normalize': sklearn.preprocessing.Normalizer,
     'pca': sklearn.decomposition.PCA,
-    'ica': sklearn.decomposition.FastICA,
+    'factor analysis': sklearn.decomposition.FactorAnalysis,
     'isomap': manifold.Isomap,
     'lle': manifold.LocallyLinearEmbedding,
 }
