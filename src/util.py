@@ -31,6 +31,7 @@ from sklearn import ensemble
 from sklearn import discriminant_analysis
 from sklearn import manifold
 from sklearn import naive_bayes
+from sklearn import cluster
 
 # Path to the root of the git repository.
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
@@ -83,6 +84,7 @@ PREPROCESSING_METHODS = {
     'factor analysis': sklearn.decomposition.FactorAnalysis,
     'isomap': manifold.Isomap,
     'lle': manifold.LocallyLinearEmbedding,
+    'feature agglomeration': cluster.FeatureAgglomeration,
 }
 
 # Stores values from the configuration file.
