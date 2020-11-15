@@ -36,7 +36,7 @@ training_dataset_name <- "training.csv"
 validation_dataset_name <- "validation.csv"
 
 # Columns to subset from the original input dataset
-subset_columns <- c("age", "sex", "cp", "thalrest", "trestbps", "restecg",
+subset_columns <- c("age", "sex", "cp", "trestbps", "restecg",
                     "fbs", "thalach", "exang", "oldpeak", "target")
 
 
