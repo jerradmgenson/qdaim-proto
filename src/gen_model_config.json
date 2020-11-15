@@ -6,9 +6,9 @@
     "preprocessing_method": "robust scaling",
     "algorithm": "gbc",
     "parameter_grid":
-    {
-	[
+    [
+	{
 	    "model__random_state": [63702260]
-	]
-    }
+	}
+    ]
 }
