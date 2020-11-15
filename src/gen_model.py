@@ -174,6 +174,7 @@ def main(argv):
 
         model.validation['outlier_scores'] = outlier_scores
 
+    print(f'Model hyperparameters:\n{model.get_params()}\n')
     predictions = model.predict(datasets.validation.inputs)
     validation_dataset = create_validation_dataset(datasets.validation.inputs,
                                                    datasets.validation.targets,
