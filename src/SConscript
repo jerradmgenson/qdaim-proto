@@ -9,19 +9,20 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 Import('env')
 Import('GIT_ROOT')
+Import('INGESTED_DIR')
 DATA_DIR = GIT_ROOT / 'data'
 
-stage1 = env.Preprocess_stage1('aggregate_data',
-		               [str(DATA_DIR / 'hungarian'),
-                                str(DATA_DIR / 'long_beach'),
-                                str(DATA_DIR / 'switzerland')])
+hungarian = env.Ingest_raw_uci_data(str(INGESTED_DIR / 'hungarian'),
+                                    str(DATA_DIR / 'hungarian'))
 
-Clean(stage1, 'SConscript')
-stage2 = env.Preprocess_stage2(stage1)
-Clean(stage2, 'training.csv')
-Clean(stage2, 'testing.csv')
-Clean(stage2, 'validation.csv')
+long_beach = env.Ingest_raw_uci_data(str(INGESTED_DIR / 'long_beach'),
+                                     str(DATA_DIR / 'long_beach'))
+
+switzerland = env.Ingest_raw_uci_data(str(INGESTED_DIR / 'switzerland'),
+                                      str(DATA_DIR / 'switzerland'))
+
+preprocessed = env.Preprocess([hungarian, long_beach, switzerland])
 qdaim = env.Gen_model('qdaim', 'gen_model_config')
-Depends(qdaim, stage2)
+Depends(qdaim, preprocessed)
 Clean(qdaim, 'gen_model_config.json')
 NoClean(qdaim)

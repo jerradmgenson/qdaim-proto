@@ -1,19 +1,17 @@
 #!/usr/bin/python3
 """
-Perform preprocessing activities that occur before feature selection.
-Ergo, this script is designed to be run before the Feature Selection
+Ingest raw (unprocessed) UCI Heart Disease datasets.
+This script is designed to be run before the Feature Selection
 notebook - the output of this script will be read by that notebook,
-and by preprocess_stage2.py.
+and by preprocess.R.
 
 Inputs to this script are three individual datasets containing heart
 disease data - switzerland.data, hungarian.data, and long_beach.data.
 
-Preprocessing steps performed by this script include:
+Steps performed by this script include:
 - Convert each dataset from a one-dimensional list to a dataframe.
 - Create a subset of only the columns we are interested in
   (see SUBSET_COLUMNS).
-- Combine the three individual datasets into a single dataset with all
-  rows from the individual sets.
 - Rename num to target.
 
 Copyright 2020 Jerrad M. Genson
@@ -53,19 +51,13 @@ def main(argv):
     """
 
     command_line_arguments = parse_command_line(argv)
-    combined_dataset = None
-    for dataset_path in command_line_arguments.source:
-        dataset = load_dataset(dataset_path)
-        dataset_subset = dataset[SUBSET_COLUMNS]
-        if combined_dataset is not None:
-            combined_dataset = combined_dataset.append(dataset_subset)
-
-        else:
-            combined_dataset = dataset_subset
+    dataset = load_dataset(command_line_arguments.source)
+    dataset = dataset[SUBSET_COLUMNS]
 
     # Rename num to target.
-    combined_dataset.rename(mapper=dict(num='target'), axis=1, inplace=True)
-    combined_dataset.to_csv(command_line_arguments.target, index=False)
+    dataset.rename(mapper=dict(num='target'), axis=1, inplace=True)
+    output_path = (command_line_arguments.target / command_line_arguments.source.name).with_suffix('.csv')
+    dataset.to_csv(output_path, index=False)
 
     return 0
 
@@ -118,8 +110,7 @@ def parse_command_line(argv):
 
     parser.add_argument('source',
                         type=Path,
-                        nargs='+',
-                        help='Raw data files to preprocess.')
+                        help='Raw dataset to preprocess.')
 
     return parser.parse_args(argv)
 
