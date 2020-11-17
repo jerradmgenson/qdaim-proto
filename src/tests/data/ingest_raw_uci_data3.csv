@@ -1,0 +1,4 @@
+age,sex,cp,thalrest,trestbps,chol,fbs,restecg,thalach,exang,oldpeak,slope,smoke,cigs,years,famhist,target
+65,1,4,56,115,0,0.0,0,93,1,0.0,2,,,,,1
+32,1,1,74,95,0,,0,127,0,0.7,1,1.0,,,,1
+61,1,4,70,105,0,,0,110,1,1.5,1,,,,,1
