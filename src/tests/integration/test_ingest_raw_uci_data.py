@@ -22,14 +22,15 @@ import ingest_raw_uci_data
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
 GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
 TEST_DATA = GIT_ROOT / Path('src/tests/data')
-TEST_DATASET1 = TEST_DATA / Path('dataset1.data')
-TEST_DATASET2 = TEST_DATA / Path('dataset2.data')
-TEST_DATASET3 = TEST_DATA / Path('dataset3.data')
+TEST_DATASET1 = TEST_DATA / 'dataset1.data'
+TEST_DATASET2 = TEST_DATA / 'dataset2.data'
+TEST_DATASET3 = TEST_DATA / 'dataset3.data'
 SOURCE_DATASETS = [str(TEST_DATASET1), str(TEST_DATASET2), str(TEST_DATASET3)]
-TEST_COLUMNS = TEST_DATA / Path('column_names')
-EXPECTED_OUTPUT1 = TEST_DATA / Path('ingest_raw_uci_data1.csv')
-EXPECTED_OUTPUT2 = TEST_DATA / Path('ingest_raw_uci_data2.csv')
-EXPECTED_OUTPUT3 = TEST_DATA / Path('ingest_raw_uci_data3.csv')
+TEST_COLUMNS = TEST_DATA / 'column_names'
+INGESTED_DIR = TEST_DATA / 'ingested'
+EXPECTED_OUTPUT1 = INGESTED_DIR / 'ingest_raw_uci_data1.csv'
+EXPECTED_OUTPUT2 = INGESTED_DIR / 'ingest_raw_uci_data2.csv'
+EXPECTED_OUTPUT3 = INGESTED_DIR / 'ingest_raw_uci_data3.csv'
 
 
 class IngestRawUCIDataTest(unittest.TestCase):

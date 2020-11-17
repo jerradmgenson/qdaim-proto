@@ -16,8 +16,8 @@ from pathlib import Path
 
 import pandas as pd
 
-import preprocess_stage1
-from tests.integration import test_preprocess_stage1
+import ingest_raw_uci_data
+from tests.integration import test_ingest_raw_uci_data
 
 RANDOM_SEED = '667252912'
 
@@ -42,7 +42,7 @@ class PreprocessStage2Test(unittest.TestCase):
     MULTICLASS_TESTING_DATASET = TEST_DATA / 'multiclass_testing_dataset.csv'
     MULTICLASS_TRAINING_DATASET = TEST_DATA / 'multiclass_training_dataset.csv'
     MULTICLASS_VALIDATION_DATASET = TEST_DATA / 'multiclass_validation_dataset.csv'
-    PREPROCESS_STAGE2 = GIT_ROOT / 'src/preprocess_stage2.R'
+    PREPROCESS = GIT_ROOT / 'src/preprocess.R'
 
     def setUp(self):
         setUp(self)
@@ -57,9 +57,9 @@ class PreprocessStage2Test(unittest.TestCase):
 
         """
 
-        subprocess.check_output([str(self.PREPROCESS_STAGE2),
+        subprocess.check_output([str(self.PREPROCESS),
                                  str(self.output_directory),
-                                 str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS),
+                                 str(test_ingest_raw_uci_data.INGESTED_DIR),
                                  '--random-seed', RANDOM_SEED])
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
@@ -81,9 +81,9 @@ class PreprocessStage2Test(unittest.TestCase):
 
         """
 
-        subprocess.check_output([str(self.PREPROCESS_STAGE2),
+        subprocess.check_output([str(self.PREPROCESS),
                                  str(self.output_directory),
-                                 str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS),
+                                 str(test_ingest_raw_uci_data.INGESTED_DIR),
                                  '--random-seed', RANDOM_SEED,
                                  '--classification-type', 'ternary'])
 
@@ -106,9 +106,9 @@ class PreprocessStage2Test(unittest.TestCase):
 
         """
 
-        subprocess.check_output([str(self.PREPROCESS_STAGE2),
+        subprocess.check_output([str(self.PREPROCESS),
                                  str(self.output_directory),
-                                 str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS),
+                                 str(test_ingest_raw_uci_data.INGESTED_DIR),
                                  '--random-seed', RANDOM_SEED,
                                  '--classification-type', 'multiclass'])
 
@@ -130,9 +130,9 @@ class PreprocessStage2Test(unittest.TestCase):
 
         """
 
-        stdout = subprocess.check_output([str(self.PREPROCESS_STAGE2),
+        stdout = subprocess.check_output([str(self.PREPROCESS),
                                           str(self.output_directory),
-                                          str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS),
+                                          str(test_ingest_raw_uci_data.INGESTED_DIR),
                                           '--classification-type', 'invalid'],
                                          stderr=subprocess.STDOUT)
 
@@ -145,9 +145,9 @@ class PreprocessStage2Test(unittest.TestCase):
 
         """
 
-        subprocess.check_output([str(self.PREPROCESS_STAGE2),
+        subprocess.check_output([str(self.PREPROCESS),
                                  str(self.output_directory),
-                                 str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS),
+                                 str(test_ingest_raw_uci_data.INGESTED_DIR),
                                  '--random-seed', RANDOM_SEED,
                                  '--validation-fraction', '0'])
 
@@ -159,15 +159,17 @@ class PreprocessStage2Test(unittest.TestCase):
         expected_training_dataset = pd.read_csv(self.BINARY_TRAINING_DATASET2)
         self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
 
-    def test_with_preprocess_stage1(self):
+    def test_with_ingest_raw_uci_data(self):
         """
-        Test running preprocess_stage2.py on the output of preprocess_stage1.py.
+        Test running preprocess_stage2.py on the output of ingest_raw_uci_data.py.
 
         """
 
-        test_preprocess_stage1.setUp(self)
-        preprocess_stage1.main([str(self.output_path)] + test_preprocess_stage1.SOURCE_DATASETS)
-        subprocess.check_output([str(self.PREPROCESS_STAGE2),
+        test_ingest_raw_uci_data.setUp(self)
+        for test_dataset in test_ingest_raw_uci_data.SOURCE_DATASETS:
+            ingest_raw_uci_data.main([self.output_path, test_dataset])
+
+        subprocess.check_output([str(self.PREPROCESS),
                                  str(self.output_directory),
                                  str(self.output_path),
                                  '--random-seed', RANDOM_SEED])
@@ -184,7 +186,7 @@ class PreprocessStage2Test(unittest.TestCase):
         expected_validation_dataset = pd.read_csv(self.BINARY_VALIDATION_DATASET1)
         self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
 
-        test_preprocess_stage1.tearDown(self)
+        test_ingest_raw_uci_data.tearDown(self)
 
 
 # Define setUp and tearDown functions outside of the class so that they are
