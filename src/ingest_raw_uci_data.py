@@ -24,20 +24,20 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import re
 import sys
-import argparse
 import subprocess
 from pathlib import Path
 
 import pandas as pd
 
+from ingester_clparser import parse_command_line
+
 
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
 GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
-BUILD = GIT_ROOT / Path('build')
-DATA = GIT_ROOT / Path('data')
+DATA = GIT_ROOT / 'data'
 
 # Path to the file containing column names for the above three datasets.
-COLUMNS_FILE = DATA / Path('column_names')
+COLUMNS_FILE = DATA / 'column_names'
 
 # Names of columns we are interested in studying.
 # Discard all other columns from the dataset.
@@ -89,30 +89,6 @@ def load_dataset(path):
 
     dataset = pd.DataFrame(data=samples, columns=attributes)
     return dataset
-
-
-def parse_command_line(argv):
-    """
-    Parse the command line using argparse.
-
-    Args
-      argv: A list of command line arguments, excluding the program name.
-
-    Returns
-      The output of parse_args().
-
-    """
-
-    parser = argparse.ArgumentParser(description='Stage 1 preprocessor')
-    parser.add_argument('target',
-                        type=Path,
-                        help='Path to output the result of preprocess_stage1.py.')
-
-    parser.add_argument('source',
-                        type=Path,
-                        help='Raw dataset to preprocess.')
-
-    return parser.parse_args(argv)
 
 
 if __name__ == '__main__':  # pragma: no cover

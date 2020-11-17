@@ -11,6 +11,7 @@ import subprocess
 from pathlib import Path
 
 import ingest_raw_uci_data
+import ingest_cleveland_data
 import gen_model
 
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
@@ -28,6 +29,13 @@ def build_ingest_raw_uci_data(target, source, env):
 ingest_raw_uci_data_builder = Builder(action=build_ingest_raw_uci_data,
                                       suffix='.csv',
                                       src_suffix='.data')
+
+def build_ingest_cleveland_data(target, source, env):
+    return ingest_cleveland_data.main([str(INGESTED_DIR), str(source[0])])
+
+ingest_cleveland_data_builder = Builder(action=build_ingest_cleveland_data,
+                                        suffix='.csv',
+                                        src_suffix='.csv')
 
 def build_preprocess(target, source, env):
     return subprocess.call(['src/preprocess.R',
@@ -49,6 +57,7 @@ gen_model_builder = Builder(action=build_gen_model,
 
 env = Environment(BUILDERS=dict(
     Ingest_raw_uci_data=ingest_raw_uci_data_builder,
+    Ingest_cleveland_data=ingest_cleveland_data_builder,
     Preprocess=preprocess_builder,
     Gen_model=gen_model_builder,
 ))
