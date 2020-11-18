@@ -43,6 +43,8 @@ class PreprocessStage2Test(unittest.TestCase):
     MULTICLASS_TRAINING_DATASET = TEST_DATA / 'multiclass_training_dataset.csv'
     MULTICLASS_VALIDATION_DATASET = TEST_DATA / 'multiclass_validation_dataset.csv'
     PREPROCESS = GIT_ROOT / 'src/preprocess.R'
+    EXPECTED_TOTAL_ROWS = 17
+    EXPECTED_TOTAL_ROWS_RAW_UCI = 7
 
     def setUp(self):
         setUp(self)
@@ -57,10 +59,10 @@ class PreprocessStage2Test(unittest.TestCase):
 
         """
 
-        subprocess.check_output([str(self.PREPROCESS),
-                                 str(self.output_directory),
-                                 str(test_ingest_raw_uci_data.INGESTED_DIR),
-                                 '--random-seed', RANDOM_SEED])
+        subprocess.check_call([str(self.PREPROCESS),
+                               str(self.output_directory),
+                               str(test_ingest_raw_uci_data.INGESTED_DIR),
+                               '--random-seed', RANDOM_SEED])
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET1)
@@ -74,6 +76,19 @@ class PreprocessStage2Test(unittest.TestCase):
         expected_validation_dataset = pd.read_csv(self.BINARY_VALIDATION_DATASET1)
         self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
 
+        total_rows = (len(actual_testing_dataset)
+                      + len(actual_training_dataset)
+                      + len(actual_validation_dataset))
+
+        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS)
+
+        testing_set = frozenset(actual_testing_dataset.apply(tuple, axis=1))
+        training_set = frozenset(actual_training_dataset.apply(tuple, axis=1))
+        validation_set = frozenset(actual_validation_dataset.apply(tuple, axis=1))
+        self.assertFalse(testing_set & training_set)
+        self.assertFalse(testing_set & validation_set)
+        self.assertFalse(training_set & validation_set)
+
     def test_ternary_classification_datasets(self):
         """
         Test creation of training, testing, and validation datasets for
@@ -81,11 +96,11 @@ class PreprocessStage2Test(unittest.TestCase):
 
         """
 
-        subprocess.check_output([str(self.PREPROCESS),
-                                 str(self.output_directory),
-                                 str(test_ingest_raw_uci_data.INGESTED_DIR),
-                                 '--random-seed', RANDOM_SEED,
-                                 '--classification-type', 'ternary'])
+        subprocess.check_call([str(self.PREPROCESS),
+                               str(self.output_directory),
+                               str(test_ingest_raw_uci_data.INGESTED_DIR),
+                               '--random-seed', RANDOM_SEED,
+                               '--classification-type', 'ternary'])
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.TERNARY_TESTING_DATASET)
@@ -99,6 +114,19 @@ class PreprocessStage2Test(unittest.TestCase):
         expected_validation_dataset = pd.read_csv(self.TERNARY_VALIDATION_DATASET)
         self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
 
+        total_rows = (len(actual_testing_dataset)
+                      + len(actual_training_dataset)
+                      + len(actual_validation_dataset))
+
+        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS)
+
+        testing_set = frozenset(actual_testing_dataset.apply(tuple, axis=1))
+        training_set = frozenset(actual_training_dataset.apply(tuple, axis=1))
+        validation_set = frozenset(actual_validation_dataset.apply(tuple, axis=1))
+        self.assertFalse(testing_set & training_set)
+        self.assertFalse(testing_set & validation_set)
+        self.assertFalse(training_set & validation_set)
+
     def test_multiclass_classification_datasets(self):
         """
         Test creation of training, testing, and validation datasets for
@@ -106,11 +134,11 @@ class PreprocessStage2Test(unittest.TestCase):
 
         """
 
-        subprocess.check_output([str(self.PREPROCESS),
-                                 str(self.output_directory),
-                                 str(test_ingest_raw_uci_data.INGESTED_DIR),
-                                 '--random-seed', RANDOM_SEED,
-                                 '--classification-type', 'multiclass'])
+        subprocess.check_call([str(self.PREPROCESS),
+                               str(self.output_directory),
+                               str(test_ingest_raw_uci_data.INGESTED_DIR),
+                               '--random-seed', RANDOM_SEED,
+                               '--classification-type', 'multiclass'])
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.MULTICLASS_TESTING_DATASET)
@@ -123,6 +151,19 @@ class PreprocessStage2Test(unittest.TestCase):
         actual_validation_dataset = pd.read_csv(self.validation_path)
         expected_validation_dataset = pd.read_csv(self.MULTICLASS_VALIDATION_DATASET)
         self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
+
+        total_rows = (len(actual_testing_dataset)
+                      + len(actual_training_dataset)
+                      + len(actual_validation_dataset))
+
+        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS)
+
+        testing_set = frozenset(actual_testing_dataset.apply(tuple, axis=1))
+        training_set = frozenset(actual_training_dataset.apply(tuple, axis=1))
+        validation_set = frozenset(actual_validation_dataset.apply(tuple, axis=1))
+        self.assertFalse(testing_set & training_set)
+        self.assertFalse(testing_set & validation_set)
+        self.assertFalse(training_set & validation_set)
 
     def test_invalid_classification_type(self):
         """
@@ -145,11 +186,11 @@ class PreprocessStage2Test(unittest.TestCase):
 
         """
 
-        subprocess.check_output([str(self.PREPROCESS),
-                                 str(self.output_directory),
-                                 str(test_ingest_raw_uci_data.INGESTED_DIR),
-                                 '--random-seed', RANDOM_SEED,
-                                 '--validation-fraction', '0'])
+        subprocess.check_call([str(self.PREPROCESS),
+                               str(self.output_directory),
+                               str(test_ingest_raw_uci_data.INGESTED_DIR),
+                               '--random-seed', RANDOM_SEED,
+                               '--validation-fraction', '0'])
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET2)
@@ -158,6 +199,13 @@ class PreprocessStage2Test(unittest.TestCase):
         actual_training_dataset = pd.read_csv(self.training_path)
         expected_training_dataset = pd.read_csv(self.BINARY_TRAINING_DATASET2)
         self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
+
+        total_rows = len(actual_testing_dataset) + len(actual_training_dataset)
+        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS)
+
+        testing_set = frozenset(actual_testing_dataset.apply(tuple, axis=1))
+        training_set = frozenset(actual_training_dataset.apply(tuple, axis=1))
+        self.assertFalse(testing_set & training_set)
 
     def test_with_ingest_raw_uci_data(self):
         """
@@ -169,22 +217,27 @@ class PreprocessStage2Test(unittest.TestCase):
         for test_dataset in test_ingest_raw_uci_data.SOURCE_DATASETS:
             ingest_raw_uci_data.main([self.output_path, test_dataset])
 
-        subprocess.check_output([str(self.PREPROCESS),
-                                 str(self.output_directory),
-                                 str(self.output_path),
-                                 '--random-seed', RANDOM_SEED])
+        subprocess.check_call([str(self.PREPROCESS),
+                               str(self.output_directory),
+                               str(self.output_path),
+                               '--random-seed', RANDOM_SEED])
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
-        expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET1)
-        self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
-
         actual_training_dataset = pd.read_csv(self.training_path)
-        expected_training_dataset = pd.read_csv(self.BINARY_TRAINING_DATASET1)
-        self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
-
         actual_validation_dataset = pd.read_csv(self.validation_path)
-        expected_validation_dataset = pd.read_csv(self.BINARY_VALIDATION_DATASET1)
-        self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
+
+        total_rows = (len(actual_testing_dataset)
+                      + len(actual_training_dataset)
+                      + len(actual_validation_dataset))
+
+        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_RAW_UCI)
+
+        testing_set = frozenset(actual_testing_dataset.apply(tuple, axis=1))
+        training_set = frozenset(actual_training_dataset.apply(tuple, axis=1))
+        validation_set = frozenset(actual_validation_dataset.apply(tuple, axis=1))
+        self.assertFalse(testing_set & training_set)
+        self.assertFalse(testing_set & validation_set)
+        self.assertFalse(training_set & validation_set)
 
         test_ingest_raw_uci_data.tearDown(self)
 
