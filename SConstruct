@@ -10,32 +10,41 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import subprocess
 from pathlib import Path
 
-import preprocess_stage1
+import ingest_raw_uci_data
+import ingest_cleveland_data
 import gen_model
 
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
 GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
-BUILD_DIR = GIT_ROOT / Path('build')
+BUILD_DIR = GIT_ROOT / 'build'
+INGESTED_DIR = BUILD_DIR / 'ingested'
 
 # Number of folds (or "splits") to use in cross-validation.
 N_SPLITS = 20
 
 
-def build_preprocess_stage1(target, source, env):
-    return preprocess_stage1.main([str(target[0])] + [str(s) for s in source])
+def build_ingest_raw_uci_data(target, source, env):
+    return ingest_raw_uci_data.main([str(INGESTED_DIR), str(source[0])])
 
-preprocess_stage1_builder = Builder(action=build_preprocess_stage1,
-                                    suffix='.csv',
-                                    src_suffix='.data')
+ingest_raw_uci_data_builder = Builder(action=build_ingest_raw_uci_data,
+                                      suffix='.csv',
+                                      src_suffix='.data')
 
-def build_preprocess_stage2(target, source, env):
-    return subprocess.call(['src/preprocess_stage2.R',
+def build_ingest_cleveland_data(target, source, env):
+    return ingest_cleveland_data.main([str(INGESTED_DIR), str(source[0])])
+
+ingest_cleveland_data_builder = Builder(action=build_ingest_cleveland_data,
+                                        suffix='.csv',
+                                        src_suffix='.csv')
+
+def build_preprocess(target, source, env):
+    return subprocess.call(['src/preprocess.R',
                             BUILD_DIR.name,
-                            str(source[0]),
+                            str(INGESTED_DIR),
                             '--random-seed', '1467756838'])
 
-preprocess_stage2_builder = Builder(action=build_preprocess_stage2,
-                                    src_suffix='.csv')
+preprocess_builder = Builder(action=build_preprocess,
+                             src_suffix='.csv')
 
 def build_gen_model(target, source, env):
     return gen_model.main([str(target[0]), str(source[0]),
@@ -47,11 +56,13 @@ gen_model_builder = Builder(action=build_gen_model,
                             src_suffix='.json')
 
 env = Environment(BUILDERS=dict(
-    Preprocess_stage1=preprocess_stage1_builder,
-    Preprocess_stage2=preprocess_stage2_builder,
+    Ingest_raw_uci_data=ingest_raw_uci_data_builder,
+    Ingest_cleveland_data=ingest_cleveland_data_builder,
+    Preprocess=preprocess_builder,
     Gen_model=gen_model_builder,
 ))
 
 Export('GIT_ROOT')
+Export('INGESTED_DIR')
 Export('env')
 SConscript('src/SConscript', variant_dir=BUILD_DIR.name)

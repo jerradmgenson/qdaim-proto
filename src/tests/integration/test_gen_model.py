@@ -22,8 +22,8 @@ import sklearn
 from sklearn.datasets import load_iris
 
 import gen_model
-from tests.integration import test_preprocess_stage1
-from tests.integration import test_preprocess_stage2
+from tests.integration import test_ingest_raw_uci_data
+from tests.integration import test_preprocess
 
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
 GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
@@ -371,7 +371,7 @@ class GenModelIntegrationTestCase(GenModelTestCase):
 
         """
 
-        test_preprocess_stage2.setUp(self)
+        test_preprocess.setUp(self)
         with self.GEN_MODEL_CONFIG.open() as config_template_fp:
             gen_model_config = json.load(config_template_fp)
 
@@ -382,9 +382,9 @@ class GenModelIntegrationTestCase(GenModelTestCase):
         with open(config_tempfile_descriptor[1], 'w') as tmp_config_fp:
             json.dump(gen_model_config, tmp_config_fp)
 
-        subprocess.check_output([test_preprocess_stage2.PreprocessStage2Test.PREPROCESS_STAGE2,
+        subprocess.check_output([test_preprocess.PreprocessStage2Test.PREPROCESS,
                                  str(self.output_directory),
-                                 str(test_preprocess_stage1.EXPECTED_OUTPUT_DEFAULT_PARAMETERS)])
+                                 str(test_ingest_raw_uci_data.INGESTED_DIR)])
 
         gen_model.CONFIG_FILE_PATH = Path(config_tempfile_descriptor[1])
         exit_code = gen_model.main([str(self.output_path),
@@ -410,7 +410,7 @@ class GenModelIntegrationTestCase(GenModelTestCase):
         predictions = model.predict(testing_inputs)
         accuracy = sklearn.metrics.accuracy_score(testing_targets, predictions)
         self.assertGreaterEqual(accuracy, 0.5)
-        test_preprocess_stage2.tearDown(self)
+        test_preprocess.tearDown(self)
 
 
 class ValidationCSVTestCase(GenModelTestCase):

@@ -53,7 +53,7 @@ parse_command_line <- function(argv) {
                            help = "Path of the directory to output the result of Stage 2 preprocessing.")
 
     parser <- add_argument(parser, "source",
-                           help = "CSV dataset file output by preprocess_stage1.py.")
+                           help = "Directory of CSV dataset files.")
 
     parser <- add_argument(parser, "--random-seed",
                            default = 1,
@@ -77,8 +77,18 @@ parse_command_line <- function(argv) {
 
 command_line_arguments <- parse_command_line(commandArgs(trailingOnly = TRUE))
 set.seed(command_line_arguments$random_seed)
-dataset <- read.csv(command_line_arguments$source)
-data_subset <- dataset[, subset_columns]
+input_files <- dir(command_line_arguments$source, pattern=".csv")
+data_subset <- NULL
+for (input_file in input_files) {
+    full_path <- file.path(command_line_arguments$source, input_file)
+    dataset <- read.csv(full_path)[, subset_columns]
+    if (is.null(dataset)) {
+        data_subset <- dataset
+    } else {
+        data_subset <- rbind(data_subset, dataset)
+    }
+}
+
 data_subset <- na.omit(data_subset)
 data_subset <- data_subset[data_subset$trestbps != 0, ]
 

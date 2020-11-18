@@ -1,19 +1,17 @@
 #!/usr/bin/python3
 """
-Perform preprocessing activities that occur before feature selection.
-Ergo, this script is designed to be run before the Feature Selection
+Ingest raw (unprocessed) UCI Heart Disease datasets.
+This script is designed to be run before the Feature Selection
 notebook - the output of this script will be read by that notebook,
-and by preprocess_stage2.py.
+and by preprocess.R.
 
 Inputs to this script are three individual datasets containing heart
 disease data - switzerland.data, hungarian.data, and long_beach.data.
 
-Preprocessing steps performed by this script include:
+Steps performed by this script include:
 - Convert each dataset from a one-dimensional list to a dataframe.
 - Create a subset of only the columns we are interested in
   (see SUBSET_COLUMNS).
-- Combine the three individual datasets into a single dataset with all
-  rows from the individual sets.
 - Rename num to target.
 
 Copyright 2020 Jerrad M. Genson
@@ -26,20 +24,20 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import re
 import sys
-import argparse
 import subprocess
 from pathlib import Path
 
 import pandas as pd
 
+from ingester_clparser import parse_command_line
+
 
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
 GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
-BUILD = GIT_ROOT / Path('build')
-DATA = GIT_ROOT / Path('data')
+DATA = GIT_ROOT / 'data'
 
 # Path to the file containing column names for the above three datasets.
-COLUMNS_FILE = DATA / Path('column_names')
+COLUMNS_FILE = DATA / 'column_names'
 
 # Names of columns we are interested in studying.
 # Discard all other columns from the dataset.
@@ -53,19 +51,13 @@ def main(argv):
     """
 
     command_line_arguments = parse_command_line(argv)
-    combined_dataset = None
-    for dataset_path in command_line_arguments.source:
-        dataset = load_dataset(dataset_path)
-        dataset_subset = dataset[SUBSET_COLUMNS]
-        if combined_dataset is not None:
-            combined_dataset = combined_dataset.append(dataset_subset)
-
-        else:
-            combined_dataset = dataset_subset
+    dataset = load_dataset(command_line_arguments.source)
+    dataset = dataset[SUBSET_COLUMNS]
 
     # Rename num to target.
-    combined_dataset.rename(mapper=dict(num='target'), axis=1, inplace=True)
-    combined_dataset.to_csv(command_line_arguments.target, index=False)
+    dataset.rename(mapper=dict(num='target'), axis=1, inplace=True)
+    output_path = (command_line_arguments.target / command_line_arguments.source.name).with_suffix('.csv')
+    dataset.to_csv(output_path, index=False)
 
     return 0
 
@@ -97,31 +89,6 @@ def load_dataset(path):
 
     dataset = pd.DataFrame(data=samples, columns=attributes)
     return dataset
-
-
-def parse_command_line(argv):
-    """
-    Parse the command line using argparse.
-
-    Args
-      argv: A list of command line arguments, excluding the program name.
-
-    Returns
-      The output of parse_args().
-
-    """
-
-    parser = argparse.ArgumentParser(description='Stage 1 preprocessor')
-    parser.add_argument('target',
-                        type=Path,
-                        help='Path to output the result of preprocess_stage1.py.')
-
-    parser.add_argument('source',
-                        type=Path,
-                        nargs='+',
-                        help='Raw data files to preprocess.')
-
-    return parser.parse_args(argv)
 
 
 if __name__ == '__main__':  # pragma: no cover
