@@ -22,7 +22,7 @@ import sklearn
 from sklearn.datasets import load_iris
 
 import gen_model
-from tests.integration import test_ingest_raw_uci_data
+
 from tests.integration import test_preprocess
 
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
@@ -384,7 +384,7 @@ class GenModelIntegrationTestCase(GenModelTestCase):
 
         subprocess.check_output([test_preprocess.PreprocessStage2Test.PREPROCESS,
                                  str(self.output_directory),
-                                 str(test_ingest_raw_uci_data.INGESTED_DIR)])
+                                 str(test_preprocess.INGESTED_DIR)])
 
         gen_model.CONFIG_FILE_PATH = Path(config_tempfile_descriptor[1])
         exit_code = gen_model.main([str(self.output_path),
