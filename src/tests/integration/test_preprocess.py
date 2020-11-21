@@ -16,10 +16,12 @@ from pathlib import Path
 
 import pandas as pd
 
-import ingest_raw_uci_data
-from tests.integration import test_ingest_raw_uci_data
 
 RANDOM_SEED = '667252912'
+GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
+GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
+TEST_DATA = GIT_ROOT / Path('src/tests/data')
+INGESTED_DIR = TEST_DATA / 'ingested'
 
 
 class PreprocessStage2Test(unittest.TestCase):
@@ -61,7 +63,7 @@ class PreprocessStage2Test(unittest.TestCase):
 
         subprocess.check_call([str(self.PREPROCESS),
                                str(self.output_directory),
-                               str(test_ingest_raw_uci_data.INGESTED_DIR),
+                               str(INGESTED_DIR),
                                '--random-seed', RANDOM_SEED])
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
@@ -98,7 +100,7 @@ class PreprocessStage2Test(unittest.TestCase):
 
         subprocess.check_call([str(self.PREPROCESS),
                                str(self.output_directory),
-                               str(test_ingest_raw_uci_data.INGESTED_DIR),
+                               str(INGESTED_DIR),
                                '--random-seed', RANDOM_SEED,
                                '--classification-type', 'ternary'])
 
@@ -136,7 +138,7 @@ class PreprocessStage2Test(unittest.TestCase):
 
         subprocess.check_call([str(self.PREPROCESS),
                                str(self.output_directory),
-                               str(test_ingest_raw_uci_data.INGESTED_DIR),
+                               str(INGESTED_DIR),
                                '--random-seed', RANDOM_SEED,
                                '--classification-type', 'multiclass'])
 
@@ -173,7 +175,7 @@ class PreprocessStage2Test(unittest.TestCase):
 
         stdout = subprocess.check_output([str(self.PREPROCESS),
                                           str(self.output_directory),
-                                          str(test_ingest_raw_uci_data.INGESTED_DIR),
+                                          str(INGESTED_DIR),
                                           '--classification-type', 'invalid'],
                                          stderr=subprocess.STDOUT)
 
@@ -188,7 +190,7 @@ class PreprocessStage2Test(unittest.TestCase):
 
         subprocess.check_call([str(self.PREPROCESS),
                                str(self.output_directory),
-                               str(test_ingest_raw_uci_data.INGESTED_DIR),
+                               str(INGESTED_DIR),
                                '--random-seed', RANDOM_SEED,
                                '--validation-fraction', '0'])
 
@@ -206,40 +208,6 @@ class PreprocessStage2Test(unittest.TestCase):
         testing_set = frozenset(actual_testing_dataset.apply(tuple, axis=1))
         training_set = frozenset(actual_training_dataset.apply(tuple, axis=1))
         self.assertFalse(testing_set & training_set)
-
-    def test_with_ingest_raw_uci_data(self):
-        """
-        Test running preprocess_stage2.py on the output of ingest_raw_uci_data.py.
-
-        """
-
-        test_ingest_raw_uci_data.setUp(self)
-        for test_dataset in test_ingest_raw_uci_data.SOURCE_DATASETS:
-            ingest_raw_uci_data.main([self.output_path, test_dataset])
-
-        subprocess.check_call([str(self.PREPROCESS),
-                               str(self.output_directory),
-                               str(self.output_path),
-                               '--random-seed', RANDOM_SEED])
-
-        actual_testing_dataset = pd.read_csv(self.testing_path)
-        actual_training_dataset = pd.read_csv(self.training_path)
-        actual_validation_dataset = pd.read_csv(self.validation_path)
-
-        total_rows = (len(actual_testing_dataset)
-                      + len(actual_training_dataset)
-                      + len(actual_validation_dataset))
-
-        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_RAW_UCI)
-
-        testing_set = frozenset(actual_testing_dataset.apply(tuple, axis=1))
-        training_set = frozenset(actual_training_dataset.apply(tuple, axis=1))
-        validation_set = frozenset(actual_validation_dataset.apply(tuple, axis=1))
-        self.assertFalse(testing_set & training_set)
-        self.assertFalse(testing_set & validation_set)
-        self.assertFalse(training_set & validation_set)
-
-        test_ingest_raw_uci_data.tearDown(self)
 
 
 # Define setUp and tearDown functions outside of the class so that they are
