@@ -3,13 +3,15 @@
     "validation_dataset": "build/validation.csv",
     "random_seed": 3307259,
     "scoring": "informedness",
-    "preprocessing_methods": ["pca"],
+    "preprocessing_methods": ["robust scaling", "lle"],
     "algorithm": "qda",
     "parameter_grid":
     [
 	{
-	    "preprocessing1__n_components": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-	    "preprocessing1__whiten": [false, true],
+            "preprocessing2__n_neighbors": [3, 5, 10, 15, 20, 40, 80],
+            "preprocessing2__n_components": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+            "preprocessing2__method": ["standard"],
+            "preprocessing2__eigen_solver": ["dense"],
 	    "model__reg_param": [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 	}
     ]
