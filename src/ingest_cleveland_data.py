@@ -23,12 +23,6 @@ import pandas as pd
 from ingester_clparser import parse_command_line
 
 
-# Names of columns we are interested in studying.
-# Discard all other columns from the dataset.
-SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'restecg', 'thalach',
-                  'exang', 'oldpeak', 'target']
-
-
 def main(argv):
     """
     Program's 'main' function. Main execution starts here.
@@ -37,7 +31,7 @@ def main(argv):
 
     command_line_arguments = parse_command_line(argv)
     dataset = pd.read_csv(command_line_arguments.source)
-    dataset = dataset[SUBSET_COLUMNS]
+    dataset = dataset[command_line_arguments.columns]
     dataset.replace(to_replace='?', inplace=True)
     output_path = (command_line_arguments.target
                    / command_line_arguments.source.name).with_suffix('.csv')

@@ -4,11 +4,11 @@
     "random_seed": 3307259,
     "scoring": "informedness",
     "preprocessing_method": "robust scaling",
-    "algorithm": "gbc",
+    "algorithm": "qda",
     "parameter_grid":
     [
 	{
-	    "model__random_state": [63702260]
+	    "model__reg_param": [0.5]
 	}
     ]
 }

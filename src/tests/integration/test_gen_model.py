@@ -384,7 +384,8 @@ class GenModelIntegrationTestCase(GenModelTestCase):
 
         subprocess.check_output([test_preprocess.PreprocessStage2Test.PREPROCESS,
                                  str(self.output_directory),
-                                 str(test_preprocess.INGESTED_DIR)])
+                                 str(test_preprocess.INGESTED_DIR),
+                                 '--columns'] + test_preprocess.SUBSET_COLUMNS)
 
         gen_model.CONFIG_FILE_PATH = Path(config_tempfile_descriptor[1])
         exit_code = gen_model.main([str(self.output_path),
