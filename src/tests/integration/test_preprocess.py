@@ -22,6 +22,8 @@ GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
 GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
 TEST_DATA = GIT_ROOT / Path('src/tests/data')
 INGESTED_DIR = TEST_DATA / 'ingested'
+SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'restecg', 'fbs', 'thalach',
+                  'exang', 'oldpeak', 'target']
 
 
 class PreprocessStage2Test(unittest.TestCase):
@@ -64,7 +66,8 @@ class PreprocessStage2Test(unittest.TestCase):
         subprocess.check_call([str(self.PREPROCESS),
                                str(self.output_directory),
                                str(INGESTED_DIR),
-                               '--random-seed', RANDOM_SEED])
+                               '--random-seed', RANDOM_SEED,
+                               '--columns'] + SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET1)
@@ -102,7 +105,8 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.output_directory),
                                str(INGESTED_DIR),
                                '--random-seed', RANDOM_SEED,
-                               '--classification-type', 'ternary'])
+                               '--classification-type', 'ternary',
+                               '--columns'] + SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.TERNARY_TESTING_DATASET)
@@ -140,7 +144,8 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.output_directory),
                                str(INGESTED_DIR),
                                '--random-seed', RANDOM_SEED,
-                               '--classification-type', 'multiclass'])
+                               '--classification-type', 'multiclass',
+                               '--columns'] + SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.MULTICLASS_TESTING_DATASET)
@@ -176,7 +181,8 @@ class PreprocessStage2Test(unittest.TestCase):
         stdout = subprocess.check_output([str(self.PREPROCESS),
                                           str(self.output_directory),
                                           str(INGESTED_DIR),
-                                          '--classification-type', 'invalid'],
+                                          '--classification-type', 'invalid',
+                                          '--columns'] + SUBSET_COLUMNS,
                                          stderr=subprocess.STDOUT)
 
         self.assertIn('Error: Unknown classification type `invalid`',
@@ -192,7 +198,8 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.output_directory),
                                str(INGESTED_DIR),
                                '--random-seed', RANDOM_SEED,
-                               '--validation-fraction', '0'])
+                               '--validation-fraction', '0',
+                               '--columns'] + SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET2)

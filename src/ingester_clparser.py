@@ -12,11 +12,6 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 import argparse
 from pathlib import Path
 
-# Names of columns we are interested in studying.
-# Discard all other columns from the dataset.
-SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'chol', 'restecg', 'thalach',
-                  'exang', 'oldpeak', 'slope', 'target']
-
 
 def parse_command_line(argv):
     """
@@ -38,5 +33,9 @@ def parse_command_line(argv):
     parser.add_argument('source',
                         type=Path,
                         help='Raw dataset to preprocess.')
+
+    parser.add_argument('--columns',
+                        nargs='+',
+                        help='Columns to subset from the input datasets.')
 
     return parser.parse_args(argv)

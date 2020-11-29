@@ -35,11 +35,6 @@ training_dataset_name <- "training.csv"
 # Name of the validation dataset
 validation_dataset_name <- "validation.csv"
 
-# Columns to subset from the original input dataset
-subset_columns <- c("age", "sex", "cp", "trestbps", "restecg",
-                    "fbs", "chol", "thalach", "exang", "oldpeak",
-                    "slope", "target")
-
 
 parse_command_line <- function(argv) {
     # Parse the command line using argparse.
@@ -72,6 +67,10 @@ parse_command_line <- function(argv) {
                            default = 0.2,
                            help = "Fraction of data to use for validation as a real number between 0 and 1.")
 
+    parser  <- add_argument(parser, '--columns',
+                            nargs = Inf,
+                            help = "Columns to subset from the input datasets.")
+
     parse_args(parser, argv = argv)
 }
 
@@ -82,7 +81,7 @@ input_files <- dir(command_line_arguments$source, pattern=".csv")
 data_subset <- NULL
 for (input_file in input_files) {
     full_path <- file.path(command_line_arguments$source, input_file)
-    dataset <- read.csv(full_path)[, subset_columns]
+    dataset <- read.csv(full_path)[, command_line_arguments$columns]
     if (is.null(dataset)) {
         data_subset <- dataset
     } else {

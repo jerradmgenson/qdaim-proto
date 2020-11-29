@@ -31,6 +31,8 @@ INGESTED_DIR = TEST_DATA / 'ingested'
 EXPECTED_OUTPUT1 = INGESTED_DIR / 'cleveland1.csv'
 EXPECTED_OUTPUT2 = INGESTED_DIR / 'cleveland2.csv'
 EXPECTED_OUTPUT3 = INGESTED_DIR / 'cleveland3.csv'
+SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'restecg', 'thalach',
+                  'exang', 'oldpeak', 'target']
 
 
 class IngestClevelandDataTest(unittest.TestCase):
@@ -51,7 +53,9 @@ class IngestClevelandDataTest(unittest.TestCase):
 
         """
 
-        ingest_cleveland_data.main([self.output_path, str(TEST_DATASET1)])
+        ingest_cleveland_data.main([self.output_path, str(TEST_DATASET1),
+                                    '--columns'] + SUBSET_COLUMNS)
+
         actual_dataset = pd.read_csv((Path(self.output_path) / TEST_DATASET1.name).with_suffix('.csv'))
         expected_dataset = pd.read_csv(EXPECTED_OUTPUT1)
         self.assertTrue(expected_dataset.equals(actual_dataset))
@@ -62,7 +66,9 @@ class IngestClevelandDataTest(unittest.TestCase):
 
         """
 
-        ingest_cleveland_data.main([self.output_path, str(TEST_DATASET2)])
+        ingest_cleveland_data.main([self.output_path, str(TEST_DATASET2),
+                                    '--columns'] + SUBSET_COLUMNS)
+
         actual_dataset = pd.read_csv((Path(self.output_path) / TEST_DATASET2.name).with_suffix('.csv'))
         expected_dataset = pd.read_csv(EXPECTED_OUTPUT2)
         self.assertTrue(expected_dataset.equals(actual_dataset))
@@ -73,7 +79,9 @@ class IngestClevelandDataTest(unittest.TestCase):
 
         """
 
-        ingest_cleveland_data.main([self.output_path, str(TEST_DATASET3)])
+        ingest_cleveland_data.main([self.output_path, str(TEST_DATASET3),
+                                    '--columns'] + SUBSET_COLUMNS)
+
         actual_dataset = pd.read_csv((Path(self.output_path) / TEST_DATASET3.name).with_suffix('.csv'))
         expected_dataset = pd.read_csv(EXPECTED_OUTPUT3)
         self.assertTrue(expected_dataset.equals(actual_dataset))

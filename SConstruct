@@ -18,12 +18,17 @@ GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
 BUILD_DIR = GIT_ROOT / 'build'
 INGESTED_DIR = BUILD_DIR / 'ingested'
 
+# Columns to subset from the original input datasets
+SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'chol', 'restecg', 'thalach',
+      	          'exang', 'oldpeak', 'slope', 'target']
+
 # Number of folds (or "splits") to use in cross-validation.
 N_SPLITS = 20
 
 
 def build_ingest_cleveland_data(target, source, env):
-    return ingest_cleveland_data.main([str(INGESTED_DIR), str(source[0])])
+    return ingest_cleveland_data.main([str(INGESTED_DIR), str(source[0]),
+                                       '--columns'] + SUBSET_COLUMNS)
 
 ingest_cleveland_data_builder = Builder(action=build_ingest_cleveland_data,
                                         suffix='.csv',
@@ -33,7 +38,8 @@ def build_preprocess(target, source, env):
     return subprocess.call(['src/preprocess.R',
                             BUILD_DIR.name,
                             str(INGESTED_DIR),
-                            '--random-seed', '1467756838'])
+                            '--random-seed', '1467756838',
+			    '--columns'] + SUBSET_COLUMNS)
 
 preprocess_builder = Builder(action=build_preprocess,
                              src_suffix='.csv')
