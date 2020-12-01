@@ -17,21 +17,21 @@ import gen_model
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
 GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
 BUILD_DIR = GIT_ROOT / 'build'
-INGESTED_DIR = BUILD_DIR / 'ingested'
+INGEST_DIR = BUILD_DIR / 'ingest'
 
 # Number of folds (or "splits") to use in cross-validation.
 N_SPLITS = 20
 
 
 def build_ingest_raw_uci_data(target, source, env):
-    return ingest_raw_uci_data.main([str(INGESTED_DIR), str(source[0])])
+    return ingest_raw_uci_data.main([str(INGEST_DIR), str(source[0])])
 
 ingest_raw_uci_data_builder = Builder(action=build_ingest_raw_uci_data,
                                       suffix='.csv',
                                       src_suffix='.data')
 
 def build_ingest_cleveland_data(target, source, env):
-    return ingest_cleveland_data.main([str(INGESTED_DIR), str(source[0])])
+    return ingest_cleveland_data.main([str(INGEST_DIR), str(source[0])])
 
 ingest_cleveland_data_builder = Builder(action=build_ingest_cleveland_data,
                                         suffix='.csv',
@@ -40,7 +40,7 @@ ingest_cleveland_data_builder = Builder(action=build_ingest_cleveland_data,
 def build_preprocess(target, source, env):
     return subprocess.call(['src/preprocess.R',
                             BUILD_DIR.name,
-                            str(INGESTED_DIR),
+                            str(INGEST_DIR),
                             '--random-seed', '1467756838'])
 
 preprocess_builder = Builder(action=build_preprocess,
@@ -63,6 +63,6 @@ env = Environment(BUILDERS=dict(
 ))
 
 Export('GIT_ROOT')
-Export('INGESTED_DIR')
+Export('INGEST_DIR')
 Export('env')
 SConscript('src/SConscript', variant_dir=BUILD_DIR.name)
