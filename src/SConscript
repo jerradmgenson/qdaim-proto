@@ -12,10 +12,19 @@ Import('GIT_ROOT')
 Import('INGESTED_DIR')
 DATA_DIR = GIT_ROOT / 'data'
 
+hungarian = env.Ingest_raw_uci_data(str(INGESTED_DIR / 'hungarian'),
+                                    str(DATA_DIR / 'hungarian'))
+
+long_beach = env.Ingest_raw_uci_data(str(INGESTED_DIR / 'long_beach'),
+                                     str(DATA_DIR / 'long_beach'))
+
+switzerland = env.Ingest_raw_uci_data(str(INGESTED_DIR / 'switzerland'),
+                                      str(DATA_DIR / 'switzerland'))
+
 cleveland = env.Ingest_cleveland_data(str(INGESTED_DIR / 'cleveland'),
                                       str(DATA_DIR / 'cleveland'))
 
-preprocessed = env.Preprocess(cleveland)
+preprocessed = env.Preprocess([hungarian, long_beach, switzerland, cleveland])
 qdaim = env.Gen_model('qdaim', 'gen_model_config')
 Depends(qdaim, preprocessed)
 Clean(qdaim, 'gen_model_config.json')

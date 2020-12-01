@@ -34,8 +34,4 @@ def parse_command_line(argv):
                         type=Path,
                         help='Raw dataset to preprocess.')
 
-    parser.add_argument('--columns',
-                        nargs='+',
-                        help='Columns to subset from the input datasets.')
-
     return parser.parse_args(argv)
