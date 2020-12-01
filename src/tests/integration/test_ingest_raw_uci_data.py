@@ -17,25 +17,25 @@ from pathlib import Path
 
 import pandas as pd
 
-import ingest_cleveland_data
+import ingest_raw_uci_data
 
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
 GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
 TEST_DATA = GIT_ROOT / Path('src/tests/data')
-TEST_DATASET1 = TEST_DATA / 'cleveland1.csv'
-TEST_DATASET2 = TEST_DATA / 'cleveland2.csv'
-TEST_DATASET3 = TEST_DATA / 'cleveland3.csv'
+TEST_DATASET1 = TEST_DATA / 'dataset1.data'
+TEST_DATASET2 = TEST_DATA / 'dataset2.data'
+TEST_DATASET3 = TEST_DATA / 'dataset3.data'
 SOURCE_DATASETS = [str(TEST_DATASET1), str(TEST_DATASET2), str(TEST_DATASET3)]
 TEST_COLUMNS = TEST_DATA / 'column_names'
 INGESTED_DIR = TEST_DATA / 'ingested'
-EXPECTED_OUTPUT1 = INGESTED_DIR / 'cleveland1.csv'
-EXPECTED_OUTPUT2 = INGESTED_DIR / 'cleveland2.csv'
-EXPECTED_OUTPUT3 = INGESTED_DIR / 'cleveland3.csv'
+EXPECTED_OUTPUT1 = INGESTED_DIR / 'ingest_raw_uci_data1.csv'
+EXPECTED_OUTPUT2 = INGESTED_DIR / 'ingest_raw_uci_data2.csv'
+EXPECTED_OUTPUT3 = INGESTED_DIR / 'ingest_raw_uci_data3.csv'
 
 
-class IngestClevelandDataTest(unittest.TestCase):
+class IngestRawUCIDataTest(unittest.TestCase):
     """
-    Test cases for ingest_cleveland_data.py
+    Test cases for ingest_raw_uci_data.py
 
     """
 
@@ -47,33 +47,33 @@ class IngestClevelandDataTest(unittest.TestCase):
 
     def test_dataset1(self):
         """
-        Test ingest_cleveland_data.py with the default parameters.
+        Test ingest_raw_uci_data.py with the default parameters.
 
         """
 
-        ingest_cleveland_data.main([self.output_path, str(TEST_DATASET1)])
+        ingest_raw_uci_data.main([self.output_path, str(TEST_DATASET1)])
         actual_dataset = pd.read_csv((Path(self.output_path) / TEST_DATASET1.name).with_suffix('.csv'))
         expected_dataset = pd.read_csv(EXPECTED_OUTPUT1)
         self.assertTrue(expected_dataset.equals(actual_dataset))
 
     def test_dataset2(self):
         """
-        Test ingest_cleveland_data.py with the default parameters.
+        Test ingest_raw_uci_data.py with the default parameters.
 
         """
 
-        ingest_cleveland_data.main([self.output_path, str(TEST_DATASET2)])
+        ingest_raw_uci_data.main([self.output_path, str(TEST_DATASET2)])
         actual_dataset = pd.read_csv((Path(self.output_path) / TEST_DATASET2.name).with_suffix('.csv'))
         expected_dataset = pd.read_csv(EXPECTED_OUTPUT2)
         self.assertTrue(expected_dataset.equals(actual_dataset))
 
     def test_dataset3(self):
         """
-        Test ingest_cleveland_data.py with the default parameters.
+        Test ingest_raw_uci_data.py with the default parameters.
 
         """
 
-        ingest_cleveland_data.main([self.output_path, str(TEST_DATASET3)])
+        ingest_raw_uci_data.main([self.output_path, str(TEST_DATASET3)])
         actual_dataset = pd.read_csv((Path(self.output_path) / TEST_DATASET3.name).with_suffix('.csv'))
         expected_dataset = pd.read_csv(EXPECTED_OUTPUT3)
         self.assertTrue(expected_dataset.equals(actual_dataset))
@@ -83,9 +83,12 @@ class IngestClevelandDataTest(unittest.TestCase):
 # callable from other TestCase classes.
 def setUp(self):
     self.output_path = tempfile.mkdtemp()
+    self.prev_columns_file = ingest_raw_uci_data.COLUMNS_FILE
+    ingest_raw_uci_data.COLUMNS_FILE = TEST_COLUMNS
 
 
 def tearDown(self):
+    ingest_raw_uci_data.COLUMNS_FILE = self.prev_columns_file
     shutil.rmtree(self.output_path, ignore_errors=True)
 
 
