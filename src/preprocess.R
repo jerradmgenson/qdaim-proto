@@ -26,6 +26,9 @@ options(error = traceback)
 
 library(argparser)
 
+git_root <- system2('git', args=c('rev-parse', '--show-toplevel'), stdout=TRUE)
+source(file.path(git_root, "src/util.R"))
+
 # Name of the testing dataset
 testing_dataset_name <- "testing.csv"
 
@@ -77,8 +80,7 @@ parse_command_line <- function(argv) {
 
 command_line_arguments <- parse_command_line(commandArgs(trailingOnly = TRUE))
 set.seed(command_line_arguments$random_seed)
-input_files <- dir(command_line_arguments$source, pattern=".csv")
-data_subset <- NULL
+data_subset <- read_dir(command_line_arguments$source)
 for (input_file in input_files) {
     full_path <- file.path(command_line_arguments$source, input_file)
     dataset <- read.csv(full_path)[, subset_columns]
