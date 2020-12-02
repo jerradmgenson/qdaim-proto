@@ -9,11 +9,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+options(error = traceback)
 
-read_dir <- function(path) {
+read_dir <- function(path, columns = NULL) {
     # Read all CSV files in a directory into a common dataframe.
     # Args:
     #   path: Path to the directory to read from.
+    #   columns: The columns to select from the input datasets.
+    #            Defaults to all available columns.
 
     # Returns:
     #   A dataframe with the combined data from all CSVs in `path`.
@@ -23,6 +26,9 @@ read_dir <- function(path) {
     for (csv_file in csv_files) {
         full_path <- file.path(path, csv_file)
         data_subset <- utils::read.csv(full_path)
+        if (!is.null(columns)) {
+            data_subset <- data_subset[columns]
+        }
         if (is.null(df)) {
             df <- data_subset
         } else {

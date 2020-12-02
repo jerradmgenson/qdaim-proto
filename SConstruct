@@ -22,6 +22,10 @@ INGEST_DIR = BUILD_DIR / 'ingest'
 # Number of folds (or "splits") to use in cross-validation.
 N_SPLITS = 20
 
+# Columns to select from the datasets in INGEST_DIR.
+SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'restecg', 'thalach',
+                  'exang', 'oldpeak', 'target']
+
 
 def build_ingest_raw_uci_data(target, source, env):
     return ingest_raw_uci_data.main([str(INGEST_DIR), str(source[0])])
@@ -41,7 +45,8 @@ def build_preprocess(target, source, env):
     return subprocess.call(['src/preprocess.R',
                             BUILD_DIR.name,
                             str(INGEST_DIR),
-                            '--random-seed', '1467756838'])
+                            '--random-seed', '1467756838',
+                            '--columns'] + SUBSET_COLUMNS)
 
 preprocess_builder = Builder(action=build_preprocess,
                              src_suffix='.csv')

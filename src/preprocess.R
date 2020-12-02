@@ -7,7 +7,6 @@
 # gen_model.py.
 #
 # Preprocessing steps performed by this script include:
-# - Discard all columns except those in subset_columns.
 # - Discard all rows where trestbps is equal to 0.
 # - Convert cp to a binary class.
 # - Convert restecg to a binary class.
@@ -37,10 +36,6 @@ training_dataset_name <- "training.csv"
 
 # Name of the validation dataset
 validation_dataset_name <- "validation.csv"
-
-# Columns to subset from the original input dataset
-subset_columns <- c("age", "sex", "cp", "trestbps", "restecg",
-                    "fbs", "thalach", "exang", "oldpeak", "target")
 
 
 parse_command_line <- function(argv) {
@@ -74,22 +69,19 @@ parse_command_line <- function(argv) {
                            default = 0.2,
                            help = "Fraction of data to use for validation as a real number between 0 and 1.")
 
+    parser <- add_argument(parser, "--columns",
+                           nargs = Inf,
+                           help = "Columns to select from the input datasets.")
+
     parse_args(parser, argv = argv)
 }
 
 
 command_line_arguments <- parse_command_line(commandArgs(trailingOnly = TRUE))
 set.seed(command_line_arguments$random_seed)
-data_subset <- read_dir(command_line_arguments$source)
-for (input_file in input_files) {
-    full_path <- file.path(command_line_arguments$source, input_file)
-    dataset <- read.csv(full_path)[, subset_columns]
-    if (is.null(dataset)) {
-        data_subset <- dataset
-    } else {
-        data_subset <- rbind(data_subset, dataset)
-    }
-}
+columns  <- if (!is.na(command_line_arguments$columns)) command_line_arguments$columns else NULL
+data_subset <- read_dir(command_line_arguments$source,
+                        columns = columns)
 
 data_subset <- na.omit(data_subset)
 data_subset <- data_subset[data_subset$trestbps != 0, ]
