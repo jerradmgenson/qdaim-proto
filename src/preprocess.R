@@ -8,6 +8,8 @@
 #
 # Preprocessing steps performed by this script include:
 # - Discard all rows where trestbps is equal to 0.
+# - Discard all rows containing more than one NA.
+# - Impute remaining missing values using mice.
 # - Convert cp to a binary class.
 # - Convert restecg to a binary class.
 # - Optionally convert target to a binary or ternary class.
@@ -24,6 +26,7 @@
 options(error = traceback)
 
 library(argparser)
+library(mice)
 
 git_root <- system2('git', args=c('rev-parse', '--show-toplevel'), stdout=TRUE)
 source(file.path(git_root, "src/util.R"))
@@ -79,35 +82,57 @@ parse_command_line <- function(argv) {
 
 command_line_arguments <- parse_command_line(commandArgs(trailingOnly = TRUE))
 set.seed(command_line_arguments$random_seed)
+
+# Convert optional parameter from NA to NULL if it wasn't given.
 columns  <- if (!is.na(command_line_arguments$columns)) command_line_arguments$columns else NULL
+
+# Read all CSV files from the given directory into a single dataframe.
 uci_dataset <- read_dir(command_line_arguments$source,
                         columns = columns)
 
-uci_dataset <- na.omit(uci_dataset)
+# Remove rows where trestbps is 0.
 uci_dataset <- uci_dataset[uci_dataset$trestbps != 0, ]
 
+# Remove rows containing more than one NA.
+uci_dataset <- uci_dataset[rowSums(is.na(uci_dataset)) < 2, ]
+
+# Impute missing data using single imputation.
+uci_dataset$restecg <- as.factor(uci_dataset$restecg)
+uci_dataset$fbs <- as.factor(uci_dataset$fbs)
+uci_mids <- mice(uci_dataset,
+                 seed = command_line_arguments$random_seed,
+                 method = c("", "", "", "", "logreg", "polyreg", "", "", "pmm", ""),
+                 visit = "monotone",
+                 maxit = 20,
+                 m = 1,
+                 print = FALSE)
+
+imputed_dataset <- complete(uci_mids, 1)
+imputed_dataset$restecg <- as.numeric(imputed_dataset$restecg)
+imputed_dataset$fbs <- as.numeric(imputed_dataset$fbs)
+
 # Convert chest pain to a binary class.
-uci_dataset$cp[uci_dataset$cp != 4] <- 1
-uci_dataset$cp[uci_dataset$cp == 4] <- -1
+imputed_dataset$cp[imputed_dataset$cp != 4] <- 1
+imputed_dataset$cp[imputed_dataset$cp == 4] <- -1
 
 # Convert resting ECG to a binary class.
-uci_dataset$restecg[uci_dataset$restecg != 1] <- -1
+imputed_dataset$restecg[imputed_dataset$restecg != 1] <- -1
 
 # Rescale binary/ternary classes to range from -1 to 1.
-uci_dataset$sex[uci_dataset$sex == 0] <- -1
-uci_dataset$exang[uci_dataset$exang == 0] <- -1
-uci_dataset$fbs[uci_dataset$fbs == 0] <- -1
+imputed_dataset$sex[imputed_dataset$sex == 0] <- -1
+imputed_dataset$exang[imputed_dataset$exang == 0] <- -1
+imputed_dataset$fbs[imputed_dataset$fbs == 0] <- -1
 
 if (command_line_arguments$classification_type == "binary") {
     # Convert target (heart disease class) to a binary class.
-    uci_dataset$target[uci_dataset$target != 0] <- 1
-    uci_dataset$target[uci_dataset$target == 0] <- -1
+    imputed_dataset$target[imputed_dataset$target != 0] <- 1
+    imputed_dataset$target[imputed_dataset$target == 0] <- -1
 
 } else if (command_line_arguments$classification_type == "ternary") {
     # Convert target to a ternary class.
-    uci_dataset$target[uci_dataset$target == 0] <- -1
-    uci_dataset$target[uci_dataset$target == 1] <- 0
-    uci_dataset$target[uci_dataset$target > 1] <- 1
+    imputed_dataset$target[imputed_dataset$target == 0] <- -1
+    imputed_dataset$target[imputed_dataset$target == 1] <- 0
+    imputed_dataset$target[imputed_dataset$target > 1] <- 1
 
 } else if (command_line_arguments$classification_type != "multiclass") {
     # Invalid classification type.
@@ -116,18 +141,18 @@ if (command_line_arguments$classification_type == "binary") {
 }
 
 # Shuffle order of rows in dataset.
-uci_dataset <- uci_dataset[sample(nrow(uci_dataset)), ]
+imputed_dataset <- imputed_dataset[sample(nrow(imputed_dataset)), ]
 
-testing_rows <- ceiling(nrow(uci_dataset)
+testing_rows <- ceiling(nrow(imputed_dataset)
                         * command_line_arguments$testing_fraction)
 
 validation_rows <-
-    ceiling(nrow(uci_dataset)
+    ceiling(nrow(imputed_dataset)
             * command_line_arguments$validation_fraction) + testing_rows
 
-testing_data <- uci_dataset[1:testing_rows, ]
-validation_data <- uci_dataset[(testing_rows + 1):validation_rows, ]
-training_data <- uci_dataset[(validation_rows + 1):nrow(uci_dataset), ]
+testing_data <- imputed_dataset[1:testing_rows, ]
+validation_data <- imputed_dataset[(testing_rows + 1):validation_rows, ]
+training_data <- imputed_dataset[(validation_rows + 1):nrow(imputed_dataset), ]
 
 testing_path <- file.path(command_line_arguments$target, testing_dataset_name)
 write.csv(testing_data, file = testing_path, quote = FALSE, row.names = FALSE)
