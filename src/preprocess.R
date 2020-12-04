@@ -80,34 +80,34 @@ parse_command_line <- function(argv) {
 command_line_arguments <- parse_command_line(commandArgs(trailingOnly = TRUE))
 set.seed(command_line_arguments$random_seed)
 columns  <- if (!is.na(command_line_arguments$columns)) command_line_arguments$columns else NULL
-data_subset <- read_dir(command_line_arguments$source,
+uci_dataset <- read_dir(command_line_arguments$source,
                         columns = columns)
 
-data_subset <- na.omit(data_subset)
-data_subset <- data_subset[data_subset$trestbps != 0, ]
+uci_dataset <- na.omit(uci_dataset)
+uci_dataset <- uci_dataset[uci_dataset$trestbps != 0, ]
 
 # Convert chest pain to a binary class.
-data_subset$cp[data_subset$cp != 4] <- 1
-data_subset$cp[data_subset$cp == 4] <- -1
+uci_dataset$cp[uci_dataset$cp != 4] <- 1
+uci_dataset$cp[uci_dataset$cp == 4] <- -1
 
 # Convert resting ECG to a binary class.
-data_subset$restecg[data_subset$restecg != 1] <- -1
+uci_dataset$restecg[uci_dataset$restecg != 1] <- -1
 
 # Rescale binary/ternary classes to range from -1 to 1.
-data_subset$sex[data_subset$sex == 0] <- -1
-data_subset$exang[data_subset$exang == 0] <- -1
-data_subset$fbs[data_subset$fbs == 0] <- -1
+uci_dataset$sex[uci_dataset$sex == 0] <- -1
+uci_dataset$exang[uci_dataset$exang == 0] <- -1
+uci_dataset$fbs[uci_dataset$fbs == 0] <- -1
 
 if (command_line_arguments$classification_type == "binary") {
     # Convert target (heart disease class) to a binary class.
-    data_subset$target[data_subset$target != 0] <- 1
-    data_subset$target[data_subset$target == 0] <- -1
+    uci_dataset$target[uci_dataset$target != 0] <- 1
+    uci_dataset$target[uci_dataset$target == 0] <- -1
 
 } else if (command_line_arguments$classification_type == "ternary") {
     # Convert target to a ternary class.
-    data_subset$target[data_subset$target == 0] <- -1
-    data_subset$target[data_subset$target == 1] <- 0
-    data_subset$target[data_subset$target > 1] <- 1
+    uci_dataset$target[uci_dataset$target == 0] <- -1
+    uci_dataset$target[uci_dataset$target == 1] <- 0
+    uci_dataset$target[uci_dataset$target > 1] <- 1
 
 } else if (command_line_arguments$classification_type != "multiclass") {
     # Invalid classification type.
@@ -116,18 +116,18 @@ if (command_line_arguments$classification_type == "binary") {
 }
 
 # Shuffle order of rows in dataset.
-data_subset <- data_subset[sample(nrow(data_subset)), ]
+uci_dataset <- uci_dataset[sample(nrow(uci_dataset)), ]
 
-testing_rows <- ceiling(nrow(data_subset)
+testing_rows <- ceiling(nrow(uci_dataset)
                         * command_line_arguments$testing_fraction)
 
 validation_rows <-
-    ceiling(nrow(data_subset)
+    ceiling(nrow(uci_dataset)
             * command_line_arguments$validation_fraction) + testing_rows
 
-testing_data <- data_subset[1:testing_rows, ]
-validation_data <- data_subset[(testing_rows + 1):validation_rows, ]
-training_data <- data_subset[(validation_rows + 1):nrow(data_subset), ]
+testing_data <- uci_dataset[1:testing_rows, ]
+validation_data <- uci_dataset[(testing_rows + 1):validation_rows, ]
+training_data <- uci_dataset[(validation_rows + 1):nrow(uci_dataset), ]
 
 testing_path <- file.path(command_line_arguments$target, testing_dataset_name)
 write.csv(testing_data, file = testing_path, quote = FALSE, row.names = FALSE)
