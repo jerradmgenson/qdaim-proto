@@ -48,6 +48,9 @@ class PreprocessStage2Test(unittest.TestCase):
     SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'restecg', 'thalach',
                       'exang', 'oldpeak', 'target']
 
+    MISSING_VALUES_INGEST_DIR = TEST_DATA / 'imputation_ingest'
+    EXPECTED_TOTAL_ROWS_SINGLE_IMPUTATION = 13
+
     def setUp(self):
         setUp(self)
 
@@ -247,6 +250,36 @@ class PreprocessStage2Test(unittest.TestCase):
         self.assertFalse(training_set & validation_set)
 
         test_ingest_raw_uci_data.tearDown(self)
+
+    def test_single_imputation(self):
+        """
+        Test that single imputation works as expected.
+
+        """
+
+        subprocess.check_call([str(self.PREPROCESS),
+                               str(self.output_directory),
+                               str(self.MISSING_VALUES_INGEST_DIR),
+                               '--random-seed', RANDOM_SEED,
+                               '--columns'] + self.SUBSET_COLUMNS)
+
+        testing_dataset = pd.read_csv(self.testing_path)
+        testing_nans = testing_dataset.isnull().sum().sum()
+        self.assertEqual(testing_nans, 0)
+
+        training_dataset = pd.read_csv(self.training_path)
+        training_nans = training_dataset.isnull().sum().sum()
+        self.assertEqual(training_nans, 0)
+
+        validation_dataset = pd.read_csv(self.validation_path)
+        validation_nans = validation_dataset.isnull().sum().sum()
+        self.assertEqual(validation_nans, 0)
+
+        total_rows = (len(testing_dataset)
+                      + len(training_dataset)
+                      + len(validation_dataset))
+
+        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_SINGLE_IMPUTATION)
 
 
 # Define setUp and tearDown functions outside of the class so that they are
