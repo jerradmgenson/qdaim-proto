@@ -43,8 +43,10 @@ class PreprocessStage2Test(unittest.TestCase):
     MULTICLASS_TRAINING_DATASET = TEST_DATA / 'multiclass_training_dataset.csv'
     MULTICLASS_VALIDATION_DATASET = TEST_DATA / 'multiclass_validation_dataset.csv'
     PREPROCESS = GIT_ROOT / 'src/preprocess.R'
-    EXPECTED_TOTAL_ROWS = 17
-    EXPECTED_TOTAL_ROWS_RAW_UCI = 7
+    EXPECTED_TOTAL_ROWS = 19
+    EXPECTED_TOTAL_ROWS_RAW_UCI = 9
+    SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'restecg', 'thalach',
+                      'exang', 'oldpeak', 'target']
 
     def setUp(self):
         setUp(self)
@@ -62,7 +64,8 @@ class PreprocessStage2Test(unittest.TestCase):
         subprocess.check_call([str(self.PREPROCESS),
                                str(self.output_directory),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
-                               '--random-seed', RANDOM_SEED])
+                               '--random-seed', RANDOM_SEED,
+                               '--columns'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET1)
@@ -100,7 +103,8 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.output_directory),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
                                '--random-seed', RANDOM_SEED,
-                               '--classification-type', 'ternary'])
+                               '--classification-type', 'ternary',
+                               '--columns'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.TERNARY_TESTING_DATASET)
@@ -138,7 +142,8 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.output_directory),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
                                '--random-seed', RANDOM_SEED,
-                               '--classification-type', 'multiclass'])
+                               '--classification-type', 'multiclass',
+                               '--columns'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.MULTICLASS_TESTING_DATASET)
@@ -190,7 +195,8 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.output_directory),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
                                '--random-seed', RANDOM_SEED,
-                               '--validation-fraction', '0'])
+                               '--validation-fraction', '0',
+                               '--columns'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET2)
@@ -220,7 +226,8 @@ class PreprocessStage2Test(unittest.TestCase):
         subprocess.check_call([str(self.PREPROCESS),
                                str(self.output_directory),
                                str(self.output_path),
-                               '--random-seed', RANDOM_SEED])
+                               '--random-seed', RANDOM_SEED,
+                               '--columns'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         actual_training_dataset = pd.read_csv(self.training_path)

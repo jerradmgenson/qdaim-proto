@@ -121,7 +121,8 @@ imputed_dataset$restecg[imputed_dataset$restecg != 1] <- -1
 # Rescale binary/ternary classes to range from -1 to 1.
 imputed_dataset$sex[imputed_dataset$sex == 0] <- -1
 imputed_dataset$exang[imputed_dataset$exang == 0] <- -1
-imputed_dataset$fbs[imputed_dataset$fbs == 0] <- -1
+imputed_dataset$fbs[imputed_dataset$fbs == 1] <- -1
+imputed_dataset$fbs[imputed_dataset$fbs == 2] <- 1
 
 if (command_line_arguments$classification_type == "binary") {
     # Convert target (heart disease class) to a binary class.
@@ -143,6 +144,7 @@ if (command_line_arguments$classification_type == "binary") {
 # Shuffle order of rows in dataset.
 imputed_dataset <- imputed_dataset[sample(nrow(imputed_dataset)), ]
 
+# Split dataset into testing, training, and validation sets.
 testing_rows <- ceiling(nrow(imputed_dataset)
                         * command_line_arguments$testing_fraction)
 
@@ -154,6 +156,7 @@ testing_data <- imputed_dataset[1:testing_rows, ]
 validation_data <- imputed_dataset[(testing_rows + 1):validation_rows, ]
 training_data <- imputed_dataset[(validation_rows + 1):nrow(imputed_dataset), ]
 
+# Write datasets to the filesystem.
 testing_path <- file.path(command_line_arguments$target, testing_dataset_name)
 write.csv(testing_data, file = testing_path, quote = FALSE, row.names = FALSE)
 validation_path <- file.path(command_line_arguments$target,
