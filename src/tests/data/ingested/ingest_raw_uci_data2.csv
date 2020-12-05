@@ -1,4 +1,4 @@
-age,sex,cp,thalrest,trestbps,chol,fbs,restecg,thalach,exang,oldpeak,slope,smoke,cigs,years,famhist,target
-63,1,4,62,140,260,0,1,112,1,3.0,2.0,0,0,0,0,2
-44,1,4,73,130,209,0,1,127,0,0.0,,0,20,10,0,0
-60,1,4,68,132,218,0,1,140,1,1.5,3.0,1,40,40,0,2
+id,ccf,age,sex,painloc,painexer,relrest,pncaden,cp,trestbps,htn,chol,smoke,cigs,years,fbs,dm,famhist,restecg,ekgmo,ekgday,ekgyr,dig,prop,nitr,pro,diuretic,proto,thaldur,thaltime,met,thalach,thalrest,tpeakbps,tpeakbpd,dummy,trestbpd,exang,xhypo,oldpeak,slope,rldv5,rldv5e,ca,restckm,exerckm,restef,restwm,exeref,exerwm,thal,thalsev,thalpul,earlobe,cmo,cday,cyr,target,lmt,ladprox,laddist,diag,cxmain,ramus,om1,om2,rcaprox,rcadist,lvx1,lvx2,lvx3,lvx4,lvf,cathef,junk,name
+1,0,63,1,1,1,1,,4,140,0,260,0,0,0,0,,0,1,1,22,85,0,0,1,0,0.0,5,4.5,,5,112,62,160,90,140,80,1,0,3.0,2.0,20.0,19.0,,,0.0,,,,,,,,,2,27,85,2,1,1,2,1,1,1,1,1,2,1,1,1,1,1,1,0.7,5.5,name
+2,0,44,1,1,1,1,,4,130,0,209,0,20,10,0,1.0,0,1,7,23,84,0,0,1,0,0.0,5,2.5,,2,127,73,150,80,130,70,0,0,0.0,,,,,,,,,,,,,,,7,31,84,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0.5,-9.0,name
+3,0,60,1,1,1,1,,4,132,1,218,1,40,40,0,,0,1,6,12,84,0,0,1,0,,5,6.0,,6,140,68,210,110,132,80,1,0,1.5,3.0,21.0,20.0,,,,,,,,,,,,7,30,84,2,1,1,1,1,2,1,2,1,2,1,1,1,1,7,2,0.52,4.1,name

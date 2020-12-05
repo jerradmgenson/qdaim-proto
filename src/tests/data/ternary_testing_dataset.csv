@@ -1,5 +1,5 @@
-age,sex,cp,trestbps,restecg,fbs,thalach,exang,oldpeak,target
-46,1,1,101,-1,1,156,-1,0.0,-1
+age,sex,cp,trestbps,fbs,restecg,thalach,exang,oldpeak,target
 53,-1,-1,138,-1,-1,160,-1,0.0,-1
-65,1,-1,115,-1,-1,93,1,0.0,0
+40,1,1,140,-1,1,172,-1,0.0,-1
+53,-1,1,128,-1,-1,115,-1,0.0,-1
 67,1,-1,160,-1,-1,108,1,1.5,1

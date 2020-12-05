@@ -39,10 +39,6 @@ DATA = GIT_ROOT / 'data'
 # Path to the file containing column names for the above three datasets.
 COLUMNS_FILE = DATA / 'column_names'
 
-# Names of columns we are interested in studying.
-# Discard all other columns from the dataset.
-SUBSET_COLUMNS = ['age', 'sex', 'cp', 'thalrest', 'trestbps', 'chol', 'fbs', 'restecg', 'thalach', 'exang', 'oldpeak', 'slope', 'smoke', 'cigs', 'years', 'famhist', 'num']
-
 
 def main(argv):
     """
@@ -52,7 +48,6 @@ def main(argv):
 
     command_line_arguments = parse_command_line(argv)
     dataset = load_dataset(command_line_arguments.source)
-    dataset = dataset[SUBSET_COLUMNS]
 
     # Rename num to target.
     dataset.rename(mapper=dict(num='target'), axis=1, inplace=True)

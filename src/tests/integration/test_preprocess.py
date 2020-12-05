@@ -43,8 +43,13 @@ class PreprocessStage2Test(unittest.TestCase):
     MULTICLASS_TRAINING_DATASET = TEST_DATA / 'multiclass_training_dataset.csv'
     MULTICLASS_VALIDATION_DATASET = TEST_DATA / 'multiclass_validation_dataset.csv'
     PREPROCESS = GIT_ROOT / 'src/preprocess.R'
-    EXPECTED_TOTAL_ROWS = 17
-    EXPECTED_TOTAL_ROWS_RAW_UCI = 7
+    EXPECTED_TOTAL_ROWS = 19
+    EXPECTED_TOTAL_ROWS_RAW_UCI = 9
+    SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'restecg', 'thalach',
+                      'exang', 'oldpeak', 'target']
+
+    MISSING_VALUES_INGEST_DIR = TEST_DATA / 'imputation_ingest'
+    EXPECTED_TOTAL_ROWS_SINGLE_IMPUTATION = 13
 
     def setUp(self):
         setUp(self)
@@ -62,7 +67,8 @@ class PreprocessStage2Test(unittest.TestCase):
         subprocess.check_call([str(self.PREPROCESS),
                                str(self.output_directory),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
-                               '--random-seed', RANDOM_SEED])
+                               '--random-seed', RANDOM_SEED,
+                               '--columns'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET1)
@@ -100,7 +106,8 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.output_directory),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
                                '--random-seed', RANDOM_SEED,
-                               '--classification-type', 'ternary'])
+                               '--classification-type', 'ternary',
+                               '--columns'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.TERNARY_TESTING_DATASET)
@@ -138,7 +145,8 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.output_directory),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
                                '--random-seed', RANDOM_SEED,
-                               '--classification-type', 'multiclass'])
+                               '--classification-type', 'multiclass',
+                               '--columns'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.MULTICLASS_TESTING_DATASET)
@@ -190,7 +198,8 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.output_directory),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
                                '--random-seed', RANDOM_SEED,
-                               '--validation-fraction', '0'])
+                               '--validation-fraction', '0',
+                               '--columns'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET2)
@@ -220,7 +229,8 @@ class PreprocessStage2Test(unittest.TestCase):
         subprocess.check_call([str(self.PREPROCESS),
                                str(self.output_directory),
                                str(self.output_path),
-                               '--random-seed', RANDOM_SEED])
+                               '--random-seed', RANDOM_SEED,
+                               '--columns'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         actual_training_dataset = pd.read_csv(self.training_path)
@@ -240,6 +250,36 @@ class PreprocessStage2Test(unittest.TestCase):
         self.assertFalse(training_set & validation_set)
 
         test_ingest_raw_uci_data.tearDown(self)
+
+    def test_single_imputation(self):
+        """
+        Test that single imputation works as expected.
+
+        """
+
+        subprocess.check_call([str(self.PREPROCESS),
+                               str(self.output_directory),
+                               str(self.MISSING_VALUES_INGEST_DIR),
+                               '--random-seed', RANDOM_SEED,
+                               '--columns'] + self.SUBSET_COLUMNS)
+
+        testing_dataset = pd.read_csv(self.testing_path)
+        testing_nans = testing_dataset.isnull().sum().sum()
+        self.assertEqual(testing_nans, 0)
+
+        training_dataset = pd.read_csv(self.training_path)
+        training_nans = training_dataset.isnull().sum().sum()
+        self.assertEqual(training_nans, 0)
+
+        validation_dataset = pd.read_csv(self.validation_path)
+        validation_nans = validation_dataset.isnull().sum().sum()
+        self.assertEqual(validation_nans, 0)
+
+        total_rows = (len(testing_dataset)
+                      + len(training_dataset)
+                      + len(validation_dataset))
+
+        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_SINGLE_IMPUTATION)
 
 
 # Define setUp and tearDown functions outside of the class so that they are
