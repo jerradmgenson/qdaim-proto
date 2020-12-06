@@ -179,14 +179,11 @@ class PreprocessStage2Test(unittest.TestCase):
 
         """
 
-        stdout = subprocess.check_output([str(self.PREPROCESS),
-                                          str(self.output_directory),
-                                          str(test_ingest_raw_uci_data.INGESTED_DIR),
-                                          '--classification-type', 'invalid'],
-                                         stderr=subprocess.STDOUT)
-
-        self.assertIn('Error: Unknown classification type `invalid`',
-                      stdout.decode('utf-8'))
+        with self.assertRaises(subprocess.CalledProcessError):
+            subprocess.check_output([str(self.PREPROCESS),
+                                     str(self.output_directory),
+                                     str(test_ingest_raw_uci_data.INGESTED_DIR),
+                                     '--classification-type', 'invalid'])
 
     def test_training_testing_datasets(self):
         """
