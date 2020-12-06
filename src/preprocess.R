@@ -144,31 +144,49 @@ if (command_line_arguments$classification_type == "binary") {
                  command_line_arguments$classification_type))
 }
 
-# Shuffle order of rows in dataset.
-imputed_dataset <- imputed_dataset[sample(nrow(imputed_dataset)), ]
-
 # Split dataset into test, training, and validation sets.
 test_rows <- ceiling(nrow(imputed_dataset)
                         * command_line_arguments$test_fraction)
 
-# Check that the number of test rows doesn't exceed the number of rows in the
-# specified test dataset if one was given.
-if (command_line_arguments$test_set != "") {
-    original_test_rows <-
-        nrow(uci_dataset$df[(rowSums(is.na(uci_dataset$df)) < 2)[1:uci_dataset$test_rows], ])
 
-    if (test_rows > original_test_rows) {
-        stop(sprintf("Too few samples in %s to create test set.",
-                     command_line_arguments$test_set))
-    }
+if (command_line_arguments$test_set != "") {
+
 }
 
 validation_rows <-
     ceiling(nrow(imputed_dataset)
-            * command_line_arguments$validation_fraction) + test_rows
+            * command_line_arguments$validation_fraction)
 
-test_data <- imputed_dataset[1:test_rows, ]
-validation_data <- imputed_dataset[(test_rows + 1):validation_rows, ]
+if (command_line_arguments$test_set != "") {
+    # Check that the number of test rows doesn't exceed the number of rows in the
+    # specified test dataset if one was given.
+    original_test_set <- uci_dataset$df[1:uci_dataset$test_rows, ]
+    original_test_rows <- nrow(original_test_set[(rowSums(is.na(original_test_set)) < 2), ])
+    if (test_rows > original_test_rows) {
+        stop(sprintf("Too few samples in %s to create test set.",
+                     command_line_arguments$test_set))
+    }
+
+    # Sample test data before we shuffle the source dataframe to make
+    # sure we sample from the correct dataset.
+    test_data <- imputed_dataset[1:test_rows, ]
+
+    # Remove test samples from the source dataframe.
+    imputed_dataset <- imputed_dataset[(test_rows + 1):nrow(imputed_dataset), ]
+
+    # Now shuffle the source dataframe.
+    imputed_dataset <- imputed_dataset[sample(nrow(imputed_dataset)), ]
+
+} else {
+    # Shuffle souce dataframe before sampling test data.
+    imputed_dataset <- imputed_dataset[sample(nrow(imputed_dataset)), ]
+    test_data <- imputed_dataset[1:test_rows, ]
+
+    # Remove test samples from the source dataframe.
+    imputed_dataset <- imputed_dataset[(test_rows + 1):nrow(imputed_dataset), ]
+}
+
+validation_data <- imputed_dataset[1:validation_rows, ]
 training_data <- imputed_dataset[(validation_rows + 1):nrow(imputed_dataset), ]
 
 # Write datasets to the filesystem.
