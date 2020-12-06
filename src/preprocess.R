@@ -23,8 +23,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-options(error = traceback)
-
 library(argparser)
 library(mice)
 
@@ -157,7 +155,7 @@ test_rows <- ceiling(nrow(imputed_dataset)
 # specified test dataset if one was given.
 if (command_line_arguments$test_set != "") {
     original_test_rows <-
-        length(uci_dataset$df[(rowSums(is.na(uci_dataset$df)) < 2)[1:uci_dataset$test_rows], ])
+        nrow(uci_dataset$df[(rowSums(is.na(uci_dataset$df)) < 2)[1:uci_dataset$test_rows], ])
 
     if (test_rows > original_test_rows) {
         stop(sprintf("Too few samples in %s to create test set.",

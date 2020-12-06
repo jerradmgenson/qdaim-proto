@@ -9,8 +9,6 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-options(error = traceback)
-
 read_dir <- function(path, columns = NULL, test_set = "") {
     # Read all CSV files in a directory into a common dataframe.
     # Args:
@@ -36,11 +34,13 @@ read_dir <- function(path, columns = NULL, test_set = "") {
         if (!is.null(columns)) {
             data_subset <- data_subset[columns]
         }
+        test_set_match <- test_set == unlist(strsplit(csv_file, split = ".csv"))
         if (is.null(df)) {
             df <- data_subset
-        } else if (test_set != "" & (test_set == unlist(strsplit(csv_file, split = ".csv"))[1])) {
+            test_rows <- ifelse(test_set_match, nrow(data_subset), test_rows)
+        } else if (test_set_match) {
             df <- rbind(data_subset, df)
-            test_rows <- length(data_subset)
+            test_rows <- nrow(data_subset)
         } else {
             df <- rbind(df, data_subset)
         }
