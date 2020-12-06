@@ -15,7 +15,7 @@
 # - Optionally convert target to a binary or ternary class.
 # - Rescale binary and ternary classes to range from -1 to 1.
 # - Randomize the row order.
-# - Split data into testing, training, and validation sets.
+# - Split data into test, train, and validation sets.
 #
 # Copyright 2020 Jerrad M. Genson
 #
@@ -23,16 +23,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-options(error = traceback)
-
 library(argparser)
 library(mice)
 
 git_root <- system2('git', args=c('rev-parse', '--show-toplevel'), stdout=TRUE)
 source(file.path(git_root, "src/util.R"))
 
-# Name of the testing dataset
-testing_dataset_name <- "testing.csv"
+# Name of the test dataset
+test_dataset_name <- "testing.csv"
 
 # Name of the training dataset
 training_dataset_name <- "training.csv"
@@ -64,7 +62,7 @@ parse_command_line <- function(argv) {
                            default = "binary",
                            help = "Classification type. Possible values: 'binary', 'ternary', 'multiclass'")
 
-    parser <- add_argument(parser, "--testing-fraction",
+    parser <- add_argument(parser, "--test-fraction",
                            default = 0.2,
                            help = "Fraction of data to use for testing as a real number between 0 and 1.")
 
@@ -75,6 +73,10 @@ parse_command_line <- function(argv) {
     parser <- add_argument(parser, "--columns",
                            nargs = Inf,
                            help = "Columns to select from the input datasets.")
+
+    parser <- add_argument(parser, "--test-set",
+                           default = "",
+                           help = "Name of the dataset to sample test data from. Defaults to all datasets.")
 
     parse_args(parser, argv = argv)
 }
@@ -88,18 +90,19 @@ columns  <- if (!is.na(command_line_arguments$columns)) command_line_arguments$c
 
 # Read all CSV files from the given directory into a single dataframe.
 uci_dataset <- read_dir(command_line_arguments$source,
-                        columns = columns)
+                        columns = columns,
+                        test_set = command_line_arguments$test_set)
 
 # Remove rows where trestbps is 0.
-uci_dataset <- uci_dataset[uci_dataset$trestbps != 0, ]
+uci_dataset$df <- uci_dataset$df[uci_dataset$df$trestbps != 0, ]
 
 # Remove rows containing more than one NA.
-uci_dataset <- uci_dataset[rowSums(is.na(uci_dataset)) < 2, ]
+uci_wo_multi_na_rows <- uci_dataset$df[rowSums(is.na(uci_dataset$df)) < 2, ]
 
 # Impute missing data using single imputation.
-uci_dataset$restecg <- as.factor(uci_dataset$restecg)
-uci_dataset$fbs <- as.factor(uci_dataset$fbs)
-uci_mids <- mice(uci_dataset,
+uci_wo_multi_na_rows$restecg <- as.factor(uci_wo_multi_na_rows$restecg)
+uci_wo_multi_na_rows$fbs <- as.factor(uci_wo_multi_na_rows$fbs)
+uci_mids <- mice(uci_wo_multi_na_rows,
                  seed = command_line_arguments$random_seed,
                  method = c("", "", "", "", "logreg", "polyreg", "", "", "pmm", ""),
                  visit = "monotone",
@@ -141,24 +144,54 @@ if (command_line_arguments$classification_type == "binary") {
                  command_line_arguments$classification_type))
 }
 
-# Shuffle order of rows in dataset.
-imputed_dataset <- imputed_dataset[sample(nrow(imputed_dataset)), ]
+# Split dataset into test, training, and validation sets.
+test_rows <- ceiling(nrow(imputed_dataset)
+                        * command_line_arguments$test_fraction)
 
-# Split dataset into testing, training, and validation sets.
-testing_rows <- ceiling(nrow(imputed_dataset)
-                        * command_line_arguments$testing_fraction)
+
+if (command_line_arguments$test_set != "") {
+
+}
 
 validation_rows <-
     ceiling(nrow(imputed_dataset)
-            * command_line_arguments$validation_fraction) + testing_rows
+            * command_line_arguments$validation_fraction)
 
-testing_data <- imputed_dataset[1:testing_rows, ]
-validation_data <- imputed_dataset[(testing_rows + 1):validation_rows, ]
+if (command_line_arguments$test_set != "") {
+    # Check that the number of test rows doesn't exceed the number of rows in the
+    # specified test dataset if one was given.
+    original_test_set <- uci_dataset$df[1:uci_dataset$test_rows, ]
+    original_test_rows <- nrow(original_test_set[(rowSums(is.na(original_test_set)) < 2), ])
+    if (test_rows > original_test_rows) {
+        stop(sprintf("Too few samples in %s to create test set.",
+                     command_line_arguments$test_set))
+    }
+
+    # Sample test data before we shuffle the source dataframe to make
+    # sure we sample from the correct dataset.
+    test_data <- imputed_dataset[1:test_rows, ]
+
+    # Remove test samples from the source dataframe.
+    imputed_dataset <- imputed_dataset[(test_rows + 1):nrow(imputed_dataset), ]
+
+    # Now shuffle the source dataframe.
+    imputed_dataset <- imputed_dataset[sample(nrow(imputed_dataset)), ]
+
+} else {
+    # Shuffle souce dataframe before sampling test data.
+    imputed_dataset <- imputed_dataset[sample(nrow(imputed_dataset)), ]
+    test_data <- imputed_dataset[1:test_rows, ]
+
+    # Remove test samples from the source dataframe.
+    imputed_dataset <- imputed_dataset[(test_rows + 1):nrow(imputed_dataset), ]
+}
+
+validation_data <- imputed_dataset[1:validation_rows, ]
 training_data <- imputed_dataset[(validation_rows + 1):nrow(imputed_dataset), ]
 
 # Write datasets to the filesystem.
-testing_path <- file.path(command_line_arguments$target, testing_dataset_name)
-write.csv(testing_data, file = testing_path, quote = FALSE, row.names = FALSE)
+test_path <- file.path(command_line_arguments$target, test_dataset_name)
+write.csv(test_data, file = test_path, quote = FALSE, row.names = FALSE)
 validation_path <- file.path(command_line_arguments$target,
                              validation_dataset_name)
 

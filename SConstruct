@@ -46,6 +46,7 @@ def build_preprocess(target, source, env):
                             BUILD_DIR.name,
                             str(INGEST_DIR),
                             '--random-seed', '1467756838',
+                            '--test-set', 'cleveland',
                             '--columns'] + SUBSET_COLUMNS)
 
 preprocess_builder = Builder(action=build_preprocess,
