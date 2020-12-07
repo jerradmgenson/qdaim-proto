@@ -25,13 +25,15 @@ import scoring
 DEFAULT_TREE_SIZE = 256
 
 
-def score(model, datasets):  # pylint: disable=C0103
+def score(model, datasets, random_state=0):  # pylint: disable=C0103
     """
     Score model on only the outliers in a dataset.
 
     Args:
       model: A trained instance of a scikit-learn estimator.
       datasets: An instance of Datasets.
+      random_state: An integer to initialize the random number generators.
+                    Default is 0.
 
     Returns:
       A scores dict returned by `score_model`.
@@ -44,7 +46,7 @@ def score(model, datasets):  # pylint: disable=C0103
     test = np.column_stack([datasets.validation.inputs, datasets.validation.targets])
     assert test.shape[0] == datasets.validation.inputs.shape[0]
     assert test.shape[1] == datasets.validation.inputs.shape[1] + 1
-    outliers = locate(train, test)
+    outliers = locate(train, test, random_state=random_state)
     outlier_count = np.sum(outliers)
     if outlier_count == 0:
         logger = logging.getLogger(__name__)
@@ -62,7 +64,7 @@ def score(model, datasets):  # pylint: disable=C0103
     return scores
 
 
-def locate(x1, x2):  # pylint: disable=C0103
+def locate(x1, x2, random_state=0):  # pylint: disable=C0103
     """
     Locate outlier rows in array x2 with respect to array x1 using univariate
     and multivariate methods for outlier detection.
@@ -70,6 +72,8 @@ def locate(x1, x2):  # pylint: disable=C0103
     Args:
       x1: n x m array to use as the basis for identifying outlier rows.
       x2: k x m array to test for outlier rows.
+      random_state: An integer to initialize the random number generators.
+                    Default is 0.
 
     Returns:
       k x 1 boolean array where True elements indicate outlier rows in x2.
@@ -92,7 +96,7 @@ def locate(x1, x2):  # pylint: disable=C0103
     assert len(outliers.shape) == 1
     assert outliers.shape[0] == x2.shape[0]
     tree_size = min(DEFAULT_TREE_SIZE, x1.shape[0] // 2)
-    outliers += random_cut(x1, x2, tree_size=tree_size)
+    outliers += random_cut(x1, x2, tree_size=tree_size, random_state=random_state)
     assert len(outliers.shape) == 1
     assert outliers.shape[0] == x2.shape[0]
 
@@ -203,7 +207,11 @@ def adjusted_boxplot(x1, x2):  # pylint: disable=C0103
     return outliers
 
 
-def random_cut(x1, x2, n_trees=100, tree_size=DEFAULT_TREE_SIZE, k=1.5):  # pylint: disable=C0103
+def random_cut(x1, x2,
+               n_trees=100,
+               tree_size=DEFAULT_TREE_SIZE,
+               k=1.5,
+               random_state=0):  # pylint: disable=C0103
     """
     Find outliers in a multivariate system using Robust Random Cut Forest.
 
@@ -223,6 +231,8 @@ def random_cut(x1, x2, n_trees=100, tree_size=DEFAULT_TREE_SIZE, k=1.5):  # pyli
       tree_size: Number of samples to include in a single tree.
                  (Default=DEFAULT_TREE_SIZE)
       k: Value of k to use for Tukey's fences. (Default=1.5)
+      random_state: An integer to initialize the random number generators.
+                    Default is 0.
 
     Returns:
       k x 1 boolean array where True elements correspond to outliers in x2.
@@ -233,6 +243,7 @@ def random_cut(x1, x2, n_trees=100, tree_size=DEFAULT_TREE_SIZE, k=1.5):  # pyli
 
     """
 
+    np.random.seed(random_state)
     if n_trees < 1 or int(n_trees) != n_trees:
         raise ValueError('n_trees must be an int greater than 0.')
 

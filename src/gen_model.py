@@ -165,7 +165,9 @@ def main(argv):
         model.validation['cross_validation_mad'] = mad_scores
 
     if command_line_arguments.outlier_scores:
-        outlier_scores = outliers.score(model, datasets)
+        outlier_scores = outliers.score(model, datasets,
+                                        random_state=command_line_arguments.random_state)
+
         print('\nOutlier scores:')
         for metric, score in outlier_scores.items():
             if score:
