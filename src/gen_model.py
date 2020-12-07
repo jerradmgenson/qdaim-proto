@@ -78,6 +78,7 @@ import random
 import time
 import sys
 import datetime
+import json
 
 import numpy as np
 from scipy.stats import median_abs_deviation
@@ -105,31 +106,30 @@ def main(argv):
         command_line_arguments.target.stem + '.log')
 
     util.configure_logging(command_line_arguments.log_level, logfile_path)
-    print('Reading configuration file...')
-    config = util.read_config_file(command_line_arguments.config)
-    random.seed(config.random_seed)
-    np.random.seed(config.random_seed)
+    parameter_grid = json.loads(command_line_arguments.parameter_grid)
+    random.seed(command_line_arguments.random_state)
+    np.random.seed(command_line_arguments.random_state)
     print('Loading datasets...')
-    datasets = util.load_datasets(config.training_dataset,
-                                  config.validation_dataset)
+    datasets = util.load_datasets(command_line_arguments.training,
+                                  command_line_arguments.validation)
 
-    print(f'Training dataset:      {config.training_dataset}')
-    print(f'Validation dataset:    {config.validation_dataset}')
-    print(f'Random number seed:    {config.random_seed}')
-    print(f'Scoring method:        {config.scoring}')
-    print(f'Algorithm:             {config.algorithm.name}')
-    print(f'Preprocessing method:  {config.preprocessing_method}')
+    print(f'Training dataset:      {command_line_arguments.training}')
+    print(f'Validation dataset:    {command_line_arguments.validation}')
+    print(f'Random state:          {command_line_arguments.random_state}')
+    print(f'Scoring method:        {command_line_arguments.scoring}')
+    print(f'Model:                 {command_line_arguments.model.name}')
+    print(f'Preprocessing methods: {command_line_arguments.preprocessing}')
     print(f'Training samples:      {len(datasets.training.inputs)}')
     print(f'Validation samples:    {len(datasets.validation.inputs)}')
-    score_function = scoring.scoring_methods()[config.scoring]
+    score_function = scoring.scoring_methods()[command_line_arguments.scoring]
     print('Generating model...')
-    model = train_model(config.algorithm.class_,
+    model = train_model(command_line_arguments.model.class_,
                         datasets.training.inputs,
                         datasets.training.targets,
                         score_function,
-                        preprocessing_method=config.preprocessing_method,
+                        preprocessing_methods=command_line_arguments.preprocessing,
                         cpus=command_line_arguments.cpu,
-                        parameter_grid=config.parameter_grid)
+                        parameter_grid=parameter_grid)
 
     model.validation = dict()
     print('Scoring model...')
@@ -174,7 +174,9 @@ def main(argv):
 
         model.validation['outlier_scores'] = outlier_scores
 
-    print(f'Model hyperparameters:\n{model.get_params()}\n')
+    if command_line_arguments.print_hyperparameters:
+        print(f'Model hyperparameters:\n{model.get_params()}\n')
+
     predictions = model.predict(datasets.validation.inputs)
     validation_dataset = create_validation_dataset(datasets.validation.inputs,
                                                    datasets.validation.targets,
@@ -230,7 +232,7 @@ def train_model(model_class,
                 input_data,
                 target_data,
                 score_function,
-                preprocessing_method=None,
+                preprocessing_methods=None,
                 cpus=1,
                 parameter_grid=None):
 
@@ -249,9 +251,9 @@ def train_model(model_class,
                       estimator, an array of input data, and an array
                       of target data, and returns a score as a float,
                       where higher numbers are better.
-      preprocessing_method: Methods to use to preprocess the data before feeding
-                            it to the model. Must be a member of
-                            'PREPROCESSING_METHODS'. (Default=None)
+      preprocessing_methods: Methods to use to preprocess the data before feeding
+                             it to the model. Must be a member of
+                             'PREPROCESSING_METHODS'. (Default=None)
       cpus: Number of processes to use for training the model. (Default=1)
       parameter_grid: A sequence of dicts with possible hyperparameter values.
                       Used for tuning the hyperparameters. When present, grid
@@ -263,9 +265,10 @@ def train_model(model_class,
     """
 
     pipeline_steps = []
-    if preprocessing_method:
-        preprocessor = util.PREPROCESSING_METHODS[preprocessing_method]()
-        pipeline_steps.append(('preprocessing', preprocessor))
+    preprocessing_methods = preprocessing_methods or []
+    for count, method in enumerate(preprocessing_methods):
+        preprocessor = util.PREPROCESSING_METHODS[method]()
+        pipeline_steps.append((f'preprocessing{count+1}', preprocessor))
 
     pipeline_steps.append(('model', model_class()))
     pipeline = Pipeline(steps=pipeline_steps)

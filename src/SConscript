@@ -10,6 +10,10 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 Import('env')
 Import('GIT_ROOT')
 Import('INGEST_DIR')
+Import('training_dataset')
+Import('validation_dataset')
+Import('test_dataset')
+
 DATA_DIR = GIT_ROOT / 'data'
 
 hungarian = env.Ingest_raw_uci_data(str(INGEST_DIR / 'hungarian'),
@@ -24,8 +28,10 @@ switzerland = env.Ingest_raw_uci_data(str(INGEST_DIR / 'switzerland'),
 cleveland = env.Ingest_cleveland_data(str(INGEST_DIR / 'cleveland'),
                                       str(DATA_DIR / 'cleveland'))
 
-preprocessed = env.Preprocess([hungarian, long_beach, switzerland, cleveland])
-qdaim = env.Gen_model('qdaim', 'gen_model_config')
+preprocessed = env.Preprocess([training_dataset, test_dataset, validation_dataset],
+                              str(INGEST_DIR))
+
+qdaim = env.Gen_model('qdaim', [training_dataset, validation_dataset])
 Depends(qdaim, preprocessed)
 Clean(qdaim, 'gen_model_config.json')
 NoClean(qdaim)

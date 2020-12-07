@@ -32,12 +32,12 @@ import pandas as pd
 from ingester_clparser import parse_command_line
 
 
+# Column names for raw UCI heart disease datasets in the order that they
+# appear in the datasets.
+COLUMN_NAMES = ('id', 'ccf', 'age', 'sex', 'painloc', 'painexer', 'relrest', 'pncaden', 'cp', 'trestbps', 'htn', 'chol', 'smoke', 'cigs', 'years', 'fbs', 'dm', 'famhist', 'restecg', 'ekgmo', 'ekgday', 'ekgyr', 'dig', 'prop', 'nitr', 'pro', 'diuretic', 'proto', 'thaldur', 'thaltime', 'met', 'thalach', 'thalrest', 'tpeakbps', 'tpeakbpd', 'dummy', 'trestbpd', 'exang', 'xhypo', 'oldpeak', 'slope', 'rldv5', 'rldv5e', 'ca', 'restckm', 'exerckm', 'restef', 'restwm', 'exeref', 'exerwm', 'thal', 'thalsev', 'thalpul', 'earlobe', 'cmo', 'cday', 'cyr', 'num', 'lmt', 'ladprox', 'laddist', 'diag', 'cxmain', 'ramus', 'om1', 'om2', 'rcaprox', 'rcadist', 'lvx1', 'lvx2', 'lvx3', 'lvx4', 'lvf', 'cathef', 'junk', 'name')
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
 GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
 DATA = GIT_ROOT / 'data'
-
-# Path to the file containing column names for the above three datasets.
-COLUMNS_FILE = DATA / 'column_names'
 
 
 def main(argv):
@@ -64,16 +64,13 @@ def load_dataset(path):
 
     """
 
-    with COLUMNS_FILE.open() as attributes_fp:
-        attributes = attributes_fp.read().split(', ')
-
     with path.open() as dataset_fp:
         raw_data = dataset_fp.read()
 
     samples = []
     current_sample = []
     for count, data_point in enumerate(re.split(r'\s+', raw_data)):
-        if count != 0 and count % len(attributes) == 0:
+        if count != 0 and count % len(COLUMN_NAMES) == 0:
             samples.append(current_sample)
             current_sample = []
 
@@ -82,7 +79,7 @@ def load_dataset(path):
 
         current_sample.append(data_point)
 
-    dataset = pd.DataFrame(data=samples, columns=attributes)
+    dataset = pd.DataFrame(data=samples, columns=COLUMN_NAMES)
     return dataset
 
 
