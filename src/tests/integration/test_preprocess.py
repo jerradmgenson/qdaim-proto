@@ -97,6 +97,7 @@ class PreprocessStage2Test(unittest.TestCase):
         self.assertFalse(testing_set & training_set)
         self.assertFalse(testing_set & validation_set)
         self.assertFalse(training_set & validation_set)
+        self.assertEqual(len(testing_set | training_set | validation_set), total_rows)
 
     def test_ternary_classification_datasets(self):
         """
@@ -136,6 +137,7 @@ class PreprocessStage2Test(unittest.TestCase):
         self.assertFalse(testing_set & training_set)
         self.assertFalse(testing_set & validation_set)
         self.assertFalse(training_set & validation_set)
+        self.assertEqual(len(testing_set | training_set | validation_set), total_rows)
 
     def test_multiclass_classification_datasets(self):
         """
@@ -175,6 +177,7 @@ class PreprocessStage2Test(unittest.TestCase):
         self.assertFalse(testing_set & training_set)
         self.assertFalse(testing_set & validation_set)
         self.assertFalse(training_set & validation_set)
+        self.assertEqual(len(testing_set | training_set | validation_set), total_rows)
 
     def test_invalid_classification_type(self):
         """
@@ -215,6 +218,7 @@ class PreprocessStage2Test(unittest.TestCase):
         testing_set = frozenset(actual_testing_dataset.apply(tuple, axis=1))
         training_set = frozenset(actual_training_dataset.apply(tuple, axis=1))
         self.assertFalse(testing_set & training_set)
+        self.assertEqual(len(testing_set | training_set), total_rows)
 
     def test_with_ingest_raw_uci_data(self):
         """
@@ -248,6 +252,7 @@ class PreprocessStage2Test(unittest.TestCase):
         self.assertFalse(testing_set & training_set)
         self.assertFalse(testing_set & validation_set)
         self.assertFalse(training_set & validation_set)
+        self.assertEqual(len(testing_set | training_set | validation_set), total_rows)
 
         test_ingest_raw_uci_data.tearDown(self)
 
@@ -312,6 +317,10 @@ class PreprocessStage2Test(unittest.TestCase):
         testing_subset = frozenset(testing_dataset[['age', 'trestbps', 'thalach', 'oldpeak']].apply(tuple, axis=1))
         self.assertTrue(testing_subset <= cleveland_subset)
 
+        training_subset = frozenset(training_dataset[['age', 'trestbps', 'thalach', 'oldpeak']].apply(tuple, axis=1))
+        validation_subset = frozenset(validation_dataset[['age', 'trestbps', 'thalach', 'oldpeak']].apply(tuple, axis=1))
+        self.assertEqual(len(testing_subset | training_subset | validation_subset), total_rows)
+
     def test_test_set_with_second_dataset(self):
         """
         Test preprocess.R with the --test-set option on a dataset whose
@@ -344,6 +353,10 @@ class PreprocessStage2Test(unittest.TestCase):
 
         testing_subset = frozenset(testing_dataset[['age', 'trestbps', 'thalach', 'oldpeak']].apply(tuple, axis=1))
         self.assertTrue(testing_subset <= ingest_raw_uci_data1_subset)
+
+        training_subset = frozenset(training_dataset[['age', 'trestbps', 'thalach', 'oldpeak']].apply(tuple, axis=1))
+        validation_subset = frozenset(validation_dataset[['age', 'trestbps', 'thalach', 'oldpeak']].apply(tuple, axis=1))
+        self.assertEqual(len(testing_subset | training_subset | validation_subset), total_rows)
 
     def test_test_set_with_insufficient_dataset(self):
         """
