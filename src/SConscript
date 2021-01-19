@@ -29,7 +29,7 @@ cleveland = env.Ingest_cleveland_data(str(INGEST_DIR / 'cleveland'),
                                       str(DATA_DIR / 'cleveland'))
 
 preprocessed = env.Preprocess([training_dataset, test_dataset, validation_dataset],
-                              str(INGEST_DIR))
+                              [hungarian, long_beach, switzerland, cleveland])
 
 qdaim = env.Gen_model('qdaim', [training_dataset, validation_dataset])
 Depends(qdaim, preprocessed)

@@ -49,25 +49,26 @@ ingest_cleveland_data_builder = Builder(action=build_ingest_cleveland_data,
                                         src_suffix='.csv')
 
 def build_preprocess(target, source, env):
+    print(f'source: {source}')
+    print(f'target: {target}')
     return subprocess.call(['src/preprocess.R',
-                            target[0],
-                            target[1],
-                            target[2],
-                            source[0],
-                            '--random-state', model_gen_config['random_state'],
+                            str(target[0]),
+                            str(target[1]),
+                            str(target[2]),
+                            str(INGEST_DIR),
+                            '--random-state', str(model_gen_config['random_state']),
                             '--test-samples-from', model_gen_config['test_samples_from'],
                             '--features'] + model_gen_config['features'])
 
-preprocess_builder = Builder(action=build_preprocess,
-                             src_suffix='.csv')
+preprocess_builder = Builder(action=build_preprocess)
 
 def build_gen_model(target, source, env):
     return gen_model.main([str(target[0]), str(source[0]), str(source[1]),
                            '--model', model_gen_config['model'],
-                           '--random-state', model_gen_config['random_state'],
+                           '--random-state', str(model_gen_config['random_state']),
                            '--scoring', model_gen_config['scoring'],
                            '--parameter-grid', parameter_grid,
-                           '--cross-validate', model_gen_config['cross_validation_folds'],
+                           '--cross-validate', str(model_gen_config['cross_validation_folds']),
                            '--outlier-scores',
                            '--preprocessing'] + model_gen_config['preprocessing'])
 

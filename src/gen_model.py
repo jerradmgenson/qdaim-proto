@@ -106,7 +106,6 @@ def main(argv):
         command_line_arguments.target.stem + '.log')
 
     util.configure_logging(command_line_arguments.log_level, logfile_path)
-    parameter_grid = json.loads(command_line_arguments.parameter_grid)
     random.seed(command_line_arguments.random_state)
     np.random.seed(command_line_arguments.random_state)
     print('Loading datasets...')
@@ -117,19 +116,20 @@ def main(argv):
     print(f'Validation dataset:    {command_line_arguments.validation}')
     print(f'Random state:          {command_line_arguments.random_state}')
     print(f'Scoring method:        {command_line_arguments.scoring}')
-    print(f'Model:                 {command_line_arguments.model.name}')
+    print(f'Model:                 {command_line_arguments.model}')
     print(f'Preprocessing methods: {command_line_arguments.preprocessing}')
     print(f'Training samples:      {len(datasets.training.inputs)}')
     print(f'Validation samples:    {len(datasets.validation.inputs)}')
     score_function = scoring.scoring_methods()[command_line_arguments.scoring]
     print('Generating model...')
-    model = train_model(command_line_arguments.model.class_,
+    preprocessing_methods = [util.PREPROCESSING_METHODS[i] for i in command_line_arguments.preprocessing]
+    model = train_model(util.SUPPORTED_ALGORITHMS[command_line_arguments.model].class_,
                         datasets.training.inputs,
                         datasets.training.targets,
                         score_function,
-                        preprocessing_methods=command_line_arguments.preprocessing,
+                        preprocessing_methods=preprocessing_methods,
                         cpus=command_line_arguments.cpu,
-                        parameter_grid=parameter_grid)
+                        parameter_grid=command_line_arguments.parameter_grid)
 
     model.validation = dict()
     print('Scoring model...')
@@ -269,7 +269,7 @@ def train_model(model_class,
     pipeline_steps = []
     preprocessing_methods = preprocessing_methods or []
     for count, method in enumerate(preprocessing_methods):
-        preprocessor = util.PREPROCESSING_METHODS[method]()
+        preprocessor = method()
         pipeline_steps.append((f'preprocessing{count+1}', preprocessor))
 
     pipeline_steps.append(('model', model_class()))

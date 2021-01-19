@@ -261,12 +261,10 @@ def parse_command_line(argv):
     parser.add_argument('--model',
                         choices=SUPPORTED_ALGORITHMS,
                         default='qda',
-                        type=SUPPORTED_ALGORITHMS.get,
                         help='Algorithm to use to generate the model.')
 
     parser.add_argument('--preprocessing',
                         choices=PREPROCESSING_METHODS,
-                        type=PREPROCESSING_METHODS.get,
                         nargs='+',
                         help='Preprocessing methods to use in the generated model.')
 
