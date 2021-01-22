@@ -198,7 +198,9 @@ class PreprocessStage2Test(unittest.TestCase):
         """
 
         subprocess.check_call([str(self.PREPROCESS),
-                               str(self.output_directory),
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
                                '--random-seed', RANDOM_SEED,
                                '--validation-fraction', '0',
