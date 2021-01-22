@@ -231,10 +231,12 @@ class PreprocessStage2Test(unittest.TestCase):
             ingest_raw_uci_data.main([self.output_path, test_dataset])
 
         subprocess.check_call([str(self.PREPROCESS),
-                               str(self.output_directory),
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
                                str(self.output_path),
                                '--random-seed', RANDOM_SEED,
-                               '--columns'] + self.SUBSET_COLUMNS)
+                               '--features'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         actual_training_dataset = pd.read_csv(self.training_path)
