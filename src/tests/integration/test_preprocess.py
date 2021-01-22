@@ -369,9 +369,11 @@ class PreprocessStage2Test(unittest.TestCase):
 
         with self.assertRaises(subprocess.CalledProcessError):
             subprocess.check_call([str(self.PREPROCESS),
-                                   str(self.output_directory),
+                                   str(self.training_path),
+                                   str(self.testing_path),
+                                   str(self.validation_path),
                                    self.TEST_SET_INGEST_DIR,
-                                   '--random-seed', RANDOM_SEED,
+                                   '--random-state', RANDOM_SEED,
                                    '--test-set', 'ingest_raw_uci_data2',
                                    '--columns'] + self.SUBSET_COLUMNS)
 
