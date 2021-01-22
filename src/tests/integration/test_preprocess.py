@@ -235,7 +235,7 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                str(self.output_path),
-                               '--random-seed', RANDOM_SEED,
+                               '--random-state', RANDOM_SEED,
                                '--features'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
