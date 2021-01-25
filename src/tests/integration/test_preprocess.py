@@ -68,10 +68,12 @@ class PreprocessStage2Test(unittest.TestCase):
         """
 
         subprocess.check_call([str(self.PREPROCESS),
-                               str(self.output_directory),
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
-                               '--random-seed', RANDOM_SEED,
-                               '--columns'] + self.SUBSET_COLUMNS)
+                               '--random-state', RANDOM_SEED,
+                               '--features'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET1)
@@ -107,11 +109,13 @@ class PreprocessStage2Test(unittest.TestCase):
         """
 
         subprocess.check_call([str(self.PREPROCESS),
-                               str(self.output_directory),
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
-                               '--random-seed', RANDOM_SEED,
+                               '--random-state', RANDOM_SEED,
                                '--classification-type', 'ternary',
-                               '--columns'] + self.SUBSET_COLUMNS)
+                               '--features'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.TERNARY_TESTING_DATASET)
@@ -147,11 +151,13 @@ class PreprocessStage2Test(unittest.TestCase):
         """
 
         subprocess.check_call([str(self.PREPROCESS),
-                               str(self.output_directory),
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
-                               '--random-seed', RANDOM_SEED,
+                               '--random-state', RANDOM_SEED,
                                '--classification-type', 'multiclass',
-                               '--columns'] + self.SUBSET_COLUMNS)
+                               '--features'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.MULTICLASS_TESTING_DATASET)
@@ -187,7 +193,9 @@ class PreprocessStage2Test(unittest.TestCase):
 
         with self.assertRaises(subprocess.CalledProcessError):
             subprocess.check_call([str(self.PREPROCESS),
-                                   str(self.output_directory),
+                                   str(self.training_path),
+                                   str(self.testing_path),
+                                   str(self.validation_path),
                                    str(test_ingest_raw_uci_data.INGESTED_DIR),
                                    '--classification-type', 'invalid'])
 
@@ -202,9 +210,9 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
-                               '--random-seed', RANDOM_SEED,
+                               '--random-state', RANDOM_SEED,
                                '--validation-fraction', '0',
-                               '--columns'] + self.SUBSET_COLUMNS)
+                               '--features'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
         expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET2)
@@ -267,10 +275,12 @@ class PreprocessStage2Test(unittest.TestCase):
         """
 
         subprocess.check_call([str(self.PREPROCESS),
-                               str(self.output_directory),
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
                                str(self.MISSING_VALUES_INGEST_DIR),
-                               '--random-seed', RANDOM_SEED,
-                               '--columns'] + self.SUBSET_COLUMNS)
+                               '--random-state', RANDOM_SEED,
+                               '--features'] + self.SUBSET_COLUMNS)
 
         testing_dataset = pd.read_csv(self.testing_path)
         testing_nans = testing_dataset.isnull().sum().sum()
@@ -292,17 +302,19 @@ class PreprocessStage2Test(unittest.TestCase):
 
     def test_test_set_with_first_dataset(self):
         """
-        Test preprocess.R with the --test-set option on a dataset whose
+        Test preprocess.R with the --test-samples-from option on a dataset whose
         name is first in alphabetical order.
 
         """
 
         subprocess.check_call([str(self.PREPROCESS),
-                               str(self.output_directory),
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
                                self.TEST_SET_INGEST_DIR,
-                               '--random-seed', RANDOM_SEED,
-                               '--test-set', 'cleveland',
-                               '--columns'] + self.SUBSET_COLUMNS)
+                               '--random-state', RANDOM_SEED,
+                               '--test-samples-from', 'cleveland',
+                               '--features'] + self.SUBSET_COLUMNS)
 
         testing_dataset = pd.read_csv(self.testing_path)
         training_dataset = pd.read_csv(self.training_path)
@@ -327,17 +339,19 @@ class PreprocessStage2Test(unittest.TestCase):
 
     def test_test_set_with_second_dataset(self):
         """
-        Test preprocess.R with the --test-set option on a dataset whose
+        Test preprocess.R with the --test-samples-from option on a dataset whose
         name is second in alphabetical order.
 
         """
 
         subprocess.check_call([str(self.PREPROCESS),
-                               str(self.output_directory),
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
                                self.TEST_SET_INGEST_DIR,
-                               '--random-seed', RANDOM_SEED,
-                               '--test-set', 'ingest_raw_uci_data1',
-                               '--columns'] + self.SUBSET_COLUMNS)
+                               '--random-state', RANDOM_SEED,
+                               '--test-samples-from', 'ingest_raw_uci_data1',
+                               '--features'] + self.SUBSET_COLUMNS)
 
         testing_dataset = pd.read_csv(self.testing_path)
         training_dataset = pd.read_csv(self.training_path)
@@ -364,7 +378,7 @@ class PreprocessStage2Test(unittest.TestCase):
 
     def test_test_set_with_insufficient_dataset(self):
         """
-        Test preprocess.R with the --test-set option on a dataset that
+        Test preprocess.R with the --test-samples-from option on a dataset that
         does now contain enough rows to fill the testing set.
 
         """
@@ -376,8 +390,8 @@ class PreprocessStage2Test(unittest.TestCase):
                                    str(self.validation_path),
                                    self.TEST_SET_INGEST_DIR,
                                    '--random-state', RANDOM_SEED,
-                                   '--test-set', 'ingest_raw_uci_data2',
-                                   '--columns'] + self.SUBSET_COLUMNS)
+                                   '--test-samples-from', 'ingest_raw_uci_data2',
+                                   '--features'] + self.SUBSET_COLUMNS)
 
 
 # Define setUp and tearDown functions outside of the class so that they are

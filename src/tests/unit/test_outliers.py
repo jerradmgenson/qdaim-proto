@@ -372,9 +372,8 @@ class RandomCutTestCase(unittest.TestCase):
         x2_outliers = outliers.random_cut(x1, x2)
         self.assertEqual(x2_outliers.ndim, 1)
         self.assertEqual(x2_outliers.shape[0], x2.shape[0])
-        self.assertEqual(np.sum(x2_outliers), 4)
+        self.assertEqual(np.sum(x2_outliers), 3)
         self.assertTrue(x2_outliers[0])
-        self.assertTrue(x2_outliers[-1])
 
 
 class IsNumericTestCase(unittest.TestCase):
@@ -671,7 +670,7 @@ class ScoreTestCase(unittest.TestCase):
 
         """
 
-        np.random.seed(1)
+        np.random.seed(10)
         dist = stats.uniform(loc=100, scale=15)
         x1_inputs = np.reshape(dist.rvs(size=10000, random_state=1), (1000, 10))
         x1_targets = np.repeat([0, 1], 500)
@@ -686,5 +685,10 @@ class ScoreTestCase(unittest.TestCase):
                                  columns=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'])
 
         model = Mock()
+
+        def model_predict(input_data):
+            return []
+
+        model.predict = model_predict
         scores = outliers.score(model, datasets)
         self.assertDictEqual(scores, dict())

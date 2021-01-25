@@ -265,6 +265,7 @@ def parse_command_line(argv):
 
     parser.add_argument('--preprocessing',
                         choices=PREPROCESSING_METHODS,
+                        default=[],
                         nargs='+',
                         help='Preprocessing methods to use in the generated model.')
 

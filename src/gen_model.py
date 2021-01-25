@@ -78,7 +78,6 @@ import random
 import time
 import sys
 import datetime
-import json
 
 import numpy as np
 from scipy.stats import median_abs_deviation
@@ -88,9 +87,9 @@ from sklearn.pipeline import Pipeline
 
 import util
 import scoring
-import outliers
 
 # URL for the repository on Github.
+import outliers
 GITHUB_URL = 'https://github.com/jerradmgenson/cardiac'
 
 

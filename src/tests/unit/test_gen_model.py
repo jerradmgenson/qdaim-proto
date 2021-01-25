@@ -78,12 +78,12 @@ class TrainModelTest(unittest.TestCase):
                                       inputs,
                                       targets,
                                       score,
-                                      preprocessing_method='standard scaling',
+                                      preprocessing_methods=[util.PREPROCESSING_METHODS['standard scaling']],
                                       parameter_grid=grid,
                                       cpus=1)
 
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'preprocessing')
+        self.assertEqual(model.steps[0][0], 'preprocessing1')
         self.assertEqual(model.steps[1][0], 'model')
         self.assertTrue((model.predict(inputs) == targets).all())
 
@@ -119,11 +119,11 @@ class TrainModelTest(unittest.TestCase):
                                       inputs,
                                       targets,
                                       score,
-                                      preprocessing_method='robust scaling',
+                                      preprocessing_methods=[util.PREPROCESSING_METHODS['robust scaling']],
                                       cpus=4)
 
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'preprocessing')
+        self.assertEqual(model.steps[0][0], 'preprocessing1')
         self.assertEqual(model.steps[1][0], 'model')
         self.assertTrue(model.predict(inputs).any())
 
