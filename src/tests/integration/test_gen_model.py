@@ -80,6 +80,7 @@ class ModelConfigTestCase(GenModelTestCase):
                                     '--random-state', '3307259',
                                     '--scoring', 'accuracy',
                                     '--preprocessing', 'standard scaling',
+                                    '--print-hyperparameters',
                                     '--model', 'lda'])
 
         self.assertEqual(exit_code, 0)
