@@ -72,13 +72,8 @@ def score_model(model, input_data, target_data):
         raise ValueError('target_data must have dimensions N x 1.')
 
     predictions = model.predict(input_data)
-    try:
-        assert len(predictions) == len(target_data)
-
-    except AssertionError:
-        m = f'predictions: {predictions}\ntargets: {len(target_data)}'
-        raise ValueError(m)
-
+    
+    assert len(predictions) == len(target_data)
     assert np.ndim(predictions) == 1
 
     scores = dict()
