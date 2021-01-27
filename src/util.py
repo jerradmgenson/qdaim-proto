@@ -4,7 +4,7 @@ model generation algorithms or another, more specific library. This includes
 functions for reading/writing files, executing commands, parsing the command
 line, and configuring logging.
 
-Copyright 2020 Jerrad M. Genson
+Copyright 2020, 2021 Jerrad M. Genson
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -31,6 +31,8 @@ from sklearn import ensemble
 from sklearn import discriminant_analysis
 from sklearn import manifold
 from sklearn import naive_bayes
+
+import scoring
 
 # Path to the root of the git repository.
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
@@ -91,8 +93,7 @@ Config = namedtuple('Config',
                      'random_seed',
                      'scoring',
                      'algorithm',
-                     'preprocessing_method',
-                     'parameter_grid'))
+                     'preprocessing_method'))
 
 # Contains input data and target data for a single dataset.
 Dataset = namedtuple('Dataset', 'inputs targets')
@@ -189,38 +190,6 @@ def save_validation(dataset, output_path):
     dataset.to_csv(dataset_path, index=None)
 
 
-def read_config_file(path):
-    """
-    Read a json configuration file into memory.
-
-    Args
-      path: Path to the configuration file (as a Path object).
-
-    Returns
-      A Config object.
-
-    """
-
-    with path.open() as config_fp:
-        config_json = json.load(config_fp)
-
-    config_json['training_dataset'] = os.path.join(str(GIT_ROOT),
-                                                   config_json['training_dataset'])
-
-    config_json['validation_dataset'] = os.path.join(str(GIT_ROOT),
-                                                     config_json['validation_dataset'])
-
-    config_json['algorithm'] = SUPPORTED_ALGORITHMS[config_json['algorithm']]
-
-    if 'preprocessing_method' not in config_json:
-        config_json['preprocessing_method'] = None
-
-    if 'parameter_grid' not in config_json:
-        config_json['parameter_grid'] = []
-
-    return Config(**config_json)
-
-
 def get_commit_hash():
     """
     Get the git commit hash of the current commit.
@@ -262,9 +231,13 @@ def parse_command_line(argv):
                         type=Path,
                         help='Output path to save the model to.')
 
-    parser.add_argument('config',
+    parser.add_argument('training',
                         type=Path,
-                        help='Path to the gen_model configuration file.')
+                        help='Path to the training dataset.')
+
+    parser.add_argument('validation',
+                        type=Path,
+                        help='Path to the validation dataset.')
 
     parser.add_argument('--cpu',
                         type=int,
@@ -284,6 +257,35 @@ def parse_command_line(argv):
     parser.add_argument('--outlier-scores',
                         action='store_true',
                         help='Score model on outliers in the testing data.')
+
+    parser.add_argument('--model',
+                        choices=SUPPORTED_ALGORITHMS,
+                        default='qda',
+                        help='Algorithm to use to generate the model.')
+
+    parser.add_argument('--preprocessing',
+                        choices=PREPROCESSING_METHODS,
+                        default=[],
+                        nargs='+',
+                        help='Preprocessing methods to use in the generated model.')
+
+    parser.add_argument('--scoring',
+                        choices=scoring.scoring_methods(),
+                        default='accuracy',
+                        help='Scoring method to use for model hyperparameter tuning.')
+
+    parser.add_argument('--random-state',
+                        type=int,
+                        default=0,
+                        help='State to initialize random number generators with.')
+
+    parser.add_argument('--parameter-grid',
+                        type=json.loads,
+                        help='Parameter grid to use with grid search (as a json string).')
+
+    parser.add_argument('--print-hyperparameters',
+                        action='store_true',
+                        help='Print hyperparameter values of the final model.')
 
     return parser.parse_args(argv)
 

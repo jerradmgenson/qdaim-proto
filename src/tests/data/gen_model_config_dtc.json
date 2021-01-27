@@ -1,8 +1,0 @@
-{
-    "training_dataset": "src/tests/data/iris_dataset.csv",
-    "validation_dataset": "src/tests/data/iris_dataset.csv",
-    "random_seed": 3307259,
-    "scoring": "accuracy",
-    "preprocessing_method": "robust scaling",
-    "algorithm": "dtc"
-}

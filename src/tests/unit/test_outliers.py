@@ -1,7 +1,7 @@
 """
 Unit tests for outliers.py
 
-Copyright 2020 Jerrad M. Genson
+Copyright 2020, 2021 Jerrad M. Genson
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -316,7 +316,7 @@ class RandomCutTestCase(unittest.TestCase):
         x2_outliers = outliers.random_cut(x1, x2)
         self.assertEqual(x2_outliers.shape[0], x2.shape[0])
         self.assertTrue(np.array_equal(np.where(x2_outliers)[0],
-                                       np.array([1, 16, 19, 41, 48, 59, 65, 85, 87])))
+                                       np.array([1, 19, 41, 59, 65, 84, 85, 87])))
 
     def test_wishart_with_nine_outliers(self):
         """
@@ -332,7 +332,7 @@ class RandomCutTestCase(unittest.TestCase):
         x2_outliers = outliers.random_cut(x1, x2)
         self.assertEqual(x2_outliers.shape[0], x2.shape[0])
         self.assertTrue(np.array_equal(np.where(x2_outliers)[0],
-                                       np.array([13, 36, 50, 57, 66, 70, 83, 84, 91, 99])))
+                                       np.array([13, 36, 50, 57, 70, 84, 91, 99])))
 
     def test_beta_with_three_outliers(self):
         """
@@ -372,9 +372,8 @@ class RandomCutTestCase(unittest.TestCase):
         x2_outliers = outliers.random_cut(x1, x2)
         self.assertEqual(x2_outliers.ndim, 1)
         self.assertEqual(x2_outliers.shape[0], x2.shape[0])
-        self.assertEqual(np.sum(x2_outliers), 4)
+        self.assertEqual(np.sum(x2_outliers), 3)
         self.assertTrue(x2_outliers[0])
-        self.assertTrue(x2_outliers[-1])
 
 
 class IsNumericTestCase(unittest.TestCase):
@@ -671,7 +670,7 @@ class ScoreTestCase(unittest.TestCase):
 
         """
 
-        np.random.seed(1)
+        np.random.seed(7)
         dist = stats.uniform(loc=100, scale=15)
         x1_inputs = np.reshape(dist.rvs(size=10000, random_state=1), (1000, 10))
         x1_targets = np.repeat([0, 1], 500)

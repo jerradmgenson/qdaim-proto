@@ -1,7 +1,7 @@
 """
 Integration testcases for ingest_raw_uci_data.py.
 
-Copyright 2020 Jerrad M. Genson
+Copyright 2020, 2021 Jerrad M. Genson
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -26,7 +26,7 @@ TEST_DATASET1 = TEST_DATA / 'dataset1.data'
 TEST_DATASET2 = TEST_DATA / 'dataset2.data'
 TEST_DATASET3 = TEST_DATA / 'dataset3.data'
 SOURCE_DATASETS = [str(TEST_DATASET1), str(TEST_DATASET2), str(TEST_DATASET3)]
-TEST_COLUMNS = TEST_DATA / 'column_names'
+TEST_COLUMNS = 'id', 'ccf', 'age', 'sex', 'painloc', 'painexer', 'relrest', 'pncaden', 'cp', 'trestbps', 'htn', 'chol', 'smoke', 'cigs', 'years', 'fbs', 'dm', 'famhist', 'restecg', 'ekgmo', 'ekgday', 'ekgyr', 'dig', 'prop', 'nitr', 'pro', 'diuretic', 'proto', 'thaldur', 'thaltime', 'met', 'thalach', 'thalrest', 'tpeakbps', 'tpeakbpd', 'dummy', 'trestbpd', 'exang', 'xhypo', 'oldpeak', 'slope', 'rldv5', 'rldv5e', 'ca', 'restckm', 'exerckm', 'restef', 'restwm', 'exeref', 'exerwm', 'thal', 'thalsev', 'thalpul', 'earlobe', 'cmo', 'cday', 'cyr', 'num', 'lmt', 'ladprox', 'laddist', 'diag', 'cxmain', 'ramus', 'om1', 'om2', 'rcaprox', 'rcadist', 'lvx1', 'lvx2', 'lvx3', 'lvx4', 'lvf', 'cathef', 'junk', 'name'
 INGESTED_DIR = TEST_DATA / 'ingested'
 EXPECTED_OUTPUT1 = INGESTED_DIR / 'ingest_raw_uci_data1.csv'
 EXPECTED_OUTPUT2 = INGESTED_DIR / 'ingest_raw_uci_data2.csv'
@@ -83,12 +83,12 @@ class IngestRawUCIDataTest(unittest.TestCase):
 # callable from other TestCase classes.
 def setUp(self):
     self.output_path = tempfile.mkdtemp()
-    self.prev_columns_file = ingest_raw_uci_data.COLUMNS_FILE
-    ingest_raw_uci_data.COLUMNS_FILE = TEST_COLUMNS
+    self.prev_column_names = ingest_raw_uci_data.COLUMN_NAMES
+    ingest_raw_uci_data.COLUMN_NAMES = TEST_COLUMNS
 
 
 def tearDown(self):
-    ingest_raw_uci_data.COLUMNS_FILE = self.prev_columns_file
+    ingest_raw_uci_data.COLUMNS_NAMES = self.prev_column_names
     shutil.rmtree(self.output_path, ignore_errors=True)
 
 

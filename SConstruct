@@ -1,5 +1,5 @@
 """
-Copyright 2020 Jerrad M. Genson
+Copyright 2020, 2021 Jerrad M. Genson
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -7,6 +7,7 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 """
 
+import json
 import subprocess
 from pathlib import Path
 
@@ -18,13 +19,19 @@ GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
 GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
 BUILD_DIR = GIT_ROOT / 'build'
 INGEST_DIR = BUILD_DIR / 'ingest'
+CFG_DIR = GIT_ROOT / 'cfg'
+MODEL_GEN_CONFIG = CFG_DIR / 'model_gen.json'
+PARAMETER_GRID = CFG_DIR / 'grid_search.json'
 
-# Number of folds (or "splits") to use in cross-validation.
-N_SPLITS = 20
+with MODEL_GEN_CONFIG.open() as model_gen_config_fp:
+    model_gen_config = json.load(model_gen_config_fp)
 
-# Columns to select from the datasets in INGEST_DIR.
-SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'restecg', 'thalach',
-                  'exang', 'oldpeak', 'target']
+training_dataset = str(BUILD_DIR / model_gen_config['training_dataset'])
+test_dataset = str(BUILD_DIR / model_gen_config['test_dataset'])
+validation_dataset = str(BUILD_DIR / model_gen_config['validation_dataset'])
+
+with PARAMETER_GRID.open() as parameter_grid_fp:
+    parameter_grid = parameter_grid_fp.read().strip()
 
 
 def build_ingest_raw_uci_data(target, source, env):
@@ -42,20 +49,28 @@ ingest_cleveland_data_builder = Builder(action=build_ingest_cleveland_data,
                                         src_suffix='.csv')
 
 def build_preprocess(target, source, env):
+    print(f'source: {source}')
+    print(f'target: {target}')
     return subprocess.call(['src/preprocess.R',
-                            BUILD_DIR.name,
+                            str(target[0]),
+                            str(target[1]),
+                            str(target[2]),
                             str(INGEST_DIR),
-                            '--random-seed', '1467756838',
-                            '--test-set', 'cleveland',
-                            '--columns'] + SUBSET_COLUMNS)
+                            '--random-state', str(model_gen_config['random_state']),
+                            '--test-samples-from', model_gen_config['test_samples_from'],
+                            '--features'] + model_gen_config['features'])
 
-preprocess_builder = Builder(action=build_preprocess,
-                             src_suffix='.csv')
+preprocess_builder = Builder(action=build_preprocess)
 
 def build_gen_model(target, source, env):
-    return gen_model.main([str(target[0]), str(source[0]),
-                           '--cross-validate', str(N_SPLITS),
-                           '--outlier-scores'])
+    return gen_model.main([str(target[0]), str(source[0]), str(source[1]),
+                           '--model', model_gen_config['model'],
+                           '--random-state', str(model_gen_config['random_state']),
+                           '--scoring', model_gen_config['scoring'],
+                           '--parameter-grid', parameter_grid,
+                           '--cross-validate', str(model_gen_config['cross_validation_folds']),
+                           '--outlier-scores',
+                           '--preprocessing'] + model_gen_config['preprocessing'])
 
 gen_model_builder = Builder(action=build_gen_model,
                             suffix='.dat',
@@ -71,4 +86,7 @@ env = Environment(BUILDERS=dict(
 Export('GIT_ROOT')
 Export('INGEST_DIR')
 Export('env')
+Export('training_dataset')
+Export('validation_dataset')
+Export('test_dataset')
 SConscript('src/SConscript', variant_dir=BUILD_DIR.name)

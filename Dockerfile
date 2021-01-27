@@ -6,7 +6,7 @@ RUN apt update
 RUN apt install git python3-pip -y
 RUN pip3 install -r requirements.txt
 ENV PYTHONPATH=/src
-RUN apt install r-base build-essential libcurl4-gnutls-dev libxml2-dev libssl-dev cloc -y
+RUN apt install r-base build-essential libcurl4-gnutls-dev libxml2-dev libssl-dev cloc libgit2-dev -y
 RUN R -e "install.packages('rcmdcheck')"
 RUN R -e "install.packages('devtools')"
 RUN R -e "devtools::install_version('argparser', version='0.6')"

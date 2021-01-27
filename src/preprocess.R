@@ -17,7 +17,7 @@
 # - Randomize the row order.
 # - Split data into test, train, and validation sets.
 #
-# Copyright 2020 Jerrad M. Genson
+# Copyright 2020, 2021 Jerrad M. Genson
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -29,15 +29,6 @@ library(mice)
 git_root <- system2('git', args=c('rev-parse', '--show-toplevel'), stdout=TRUE)
 source(file.path(git_root, "src/util.R"))
 
-# Name of the test dataset
-test_dataset_name <- "testing.csv"
-
-# Name of the training dataset
-training_dataset_name <- "training.csv"
-
-# Name of the validation dataset
-validation_dataset_name <- "validation.csv"
-
 
 parse_command_line <- function(argv) {
     # Parse the command line using argparse.
@@ -48,15 +39,21 @@ parse_command_line <- function(argv) {
     # Returns
     #  The output of parse_args().
     parser <- arg_parser("Stage 2 preprocessor")
-    parser <- add_argument(parser, "target",
-                           help = "Path of the directory to output the result of Stage 2 preprocessing.")
+    parser <- add_argument(parser, "training",
+                           help = "Path to write the training dataset to.")
+
+    parser <- add_argument(parser, "testing",
+                           help = "Path to write the test dataset to.")
+
+    parser <- add_argument(parser, "validation",
+                           help = "Path to write the validation dataset to.")
 
     parser <- add_argument(parser, "source",
-                           help = "Directory of CSV dataset files.")
+                           help = "Input directory of CSV data files.")
 
-    parser <- add_argument(parser, "--random-seed",
-                           default = 1,
-                           help = "Set the number number generator seed.")
+    parser <- add_argument(parser, "--random-state",
+                           default = 0,
+                           help = "State to initialize random number generators with.")
 
     parser <- add_argument(parser, "--classification-type",
                            default = "binary",
@@ -70,11 +67,11 @@ parse_command_line <- function(argv) {
                            default = 0.2,
                            help = "Fraction of data to use for validation as a real number between 0 and 1.")
 
-    parser <- add_argument(parser, "--columns",
+    parser <- add_argument(parser, "--features",
                            nargs = Inf,
-                           help = "Columns to select from the input datasets.")
+                           help = "Features to select from the input datasets.")
 
-    parser <- add_argument(parser, "--test-set",
+    parser <- add_argument(parser, "--test-samples-from",
                            default = "",
                            help = "Name of the dataset to sample test data from. Defaults to all datasets.")
 
@@ -83,15 +80,15 @@ parse_command_line <- function(argv) {
 
 
 command_line_arguments <- parse_command_line(commandArgs(trailingOnly = TRUE))
-set.seed(command_line_arguments$random_seed)
+set.seed(command_line_arguments$random_state)
 
 # Convert optional parameter from NA to NULL if it wasn't given.
-columns  <- if (!is.na(command_line_arguments$columns)) command_line_arguments$columns else NULL
+features  <- if (!is.na(command_line_arguments$features)) command_line_arguments$features else NULL
 
 # Read all CSV files from the given directory into a single dataframe.
 uci_dataset <- read_dir(command_line_arguments$source,
-                        columns = columns,
-                        test_set = command_line_arguments$test_set)
+                        features = features,
+                        test_samples_from = command_line_arguments$test_samples_from)
 
 # Remove rows where trestbps is 0.
 uci_dataset$df <- uci_dataset$df[uci_dataset$df$trestbps != 0, ]
@@ -103,7 +100,7 @@ uci_wo_multi_na_rows <- uci_dataset$df[rowSums(is.na(uci_dataset$df)) < 2, ]
 uci_wo_multi_na_rows$restecg <- as.factor(uci_wo_multi_na_rows$restecg)
 uci_wo_multi_na_rows$fbs <- as.factor(uci_wo_multi_na_rows$fbs)
 uci_mids <- mice(uci_wo_multi_na_rows,
-                 seed = command_line_arguments$random_seed,
+                 seed = command_line_arguments$random_state,
                  method = c("", "", "", "", "logreg", "polyreg", "", "", "pmm", ""),
                  visit = "monotone",
                  maxit = 20,
@@ -149,7 +146,7 @@ test_rows <- ceiling(nrow(imputed_dataset)
                         * command_line_arguments$test_fraction)
 
 
-if (command_line_arguments$test_set != "") {
+if (command_line_arguments$test_samples_from != "") {
 
 }
 
@@ -157,14 +154,14 @@ validation_rows <-
     ceiling(nrow(imputed_dataset)
             * command_line_arguments$validation_fraction)
 
-if (command_line_arguments$test_set != "") {
+if (command_line_arguments$test_samples_from != "") {
     # Check that the number of test rows doesn't exceed the number of rows in the
     # specified test dataset if one was given.
     original_test_set <- uci_dataset$df[1:uci_dataset$test_rows, ]
     original_test_rows <- nrow(original_test_set[(rowSums(is.na(original_test_set)) < 2), ])
     if (test_rows > original_test_rows) {
         stop(sprintf("Too few samples in %s to create test set.",
-                     command_line_arguments$test_set))
+                     command_line_arguments$test_samples_from))
     }
 
     # Sample test data before we shuffle the source dataframe to make
@@ -190,19 +187,16 @@ validation_data <- imputed_dataset[1:validation_rows, ]
 training_data <- imputed_dataset[(validation_rows + 1):nrow(imputed_dataset), ]
 
 # Write datasets to the filesystem.
-test_path <- file.path(command_line_arguments$target, test_dataset_name)
-write.csv(test_data, file = test_path, quote = FALSE, row.names = FALSE)
-validation_path <- file.path(command_line_arguments$target,
-                             validation_dataset_name)
+write.csv(test_data,
+          file = command_line_arguments$testing,
+          quote = FALSE,
+          row.names = FALSE)
 
 write.csv(validation_data,
-          file = validation_path,
+          file = command_line_arguments$validation,
           quote = FALSE, row.names = FALSE)
 
-training_path <- file.path(command_line_arguments$target,
-                           training_dataset_name)
-
 write.csv(training_data,
-          file = training_path,
+          file = command_line_arguments$training,
           quote = FALSE,
           row.names = FALSE)

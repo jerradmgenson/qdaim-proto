@@ -1,7 +1,7 @@
 """
 A common command line parser for ingest scripts.
 
-Copyright 2020 Jerrad M. Genson
+Copyright 2020, 2021 Jerrad M. Genson
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,13 +25,13 @@ def parse_command_line(argv):
 
     """
 
-    parser = argparse.ArgumentParser(description='Stage 1 preprocessor')
+    parser = argparse.ArgumentParser(description='Heart disease data ingester.')
     parser.add_argument('target',
                         type=Path,
-                        help='Path to output the result of preprocess_stage1.py.')
+                        help='Path to write the ingested CSV data file.')
 
     parser.add_argument('source',
                         type=Path,
-                        help='Raw dataset to preprocess.')
+                        help='Raw input dataset to ingest.')
 
     return parser.parse_args(argv)

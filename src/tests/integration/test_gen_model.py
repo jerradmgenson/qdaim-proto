@@ -1,7 +1,7 @@
 """
 Integration testcases for gen_model.py.
 
-Copyright 2020 Jerrad M. Genson
+Copyright 2020, 2021 Jerrad M. Genson
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -27,7 +27,8 @@ from tests.integration import test_preprocess
 
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
 GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
-TEST_DATA = GIT_ROOT / Path('src/tests/data')
+TEST_DATA = GIT_ROOT / 'src/tests/data'
+IRIS_DATASET = TEST_DATA / 'iris_dataset.csv'
 
 
 class GenModelTestCase(unittest.TestCase):
@@ -66,15 +67,6 @@ class ModelConfigTestCase(GenModelTestCase):
 
     """
 
-    LDA_STANDARD_CONFIG = TEST_DATA / Path('gen_model_config_lda_standard.json')
-    SVM_ROBUST_CONFIG = TEST_DATA / Path('gen_model_config_svm_robust.json')
-    RFC_CONFIG = TEST_DATA / Path('gen_model_config_rfc.json')
-    RRC_CONFIG = TEST_DATA / Path('gen_model_config_rrc.json')
-    LRC_CONFIG = TEST_DATA / Path('gen_model_config_lrc.json')
-    ETC_CONFIG = TEST_DATA / Path('gen_model_config_etc.json')
-    SGD_CONFIG = TEST_DATA / Path('gen_model_config_sgd.json')
-    DTC_CONFIG = TEST_DATA / Path('gen_model_config_dtc.json')
-
     def test_lda_with_standard_scaling(self):
         """
         Test generation of a linear discriminant analysis model with
@@ -83,7 +75,13 @@ class ModelConfigTestCase(GenModelTestCase):
         """
 
         exit_code = gen_model.main([str(self.output_path),
-                                    str(self.LDA_STANDARD_CONFIG)])
+                                    str(IRIS_DATASET),
+                                    str(IRIS_DATASET),
+                                    '--random-state', '3307259',
+                                    '--scoring', 'accuracy',
+                                    '--preprocessing', 'standard scaling',
+                                    '--print-hyperparameters',
+                                    '--model', 'lda'])
 
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
@@ -91,7 +89,7 @@ class ModelConfigTestCase(GenModelTestCase):
 
         self.assertIsInstance(model, sklearn.pipeline.Pipeline)
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'preprocessing')
+        self.assertEqual(model.steps[0][0], 'preprocessing1')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.preprocessing.StandardScaler)
 
@@ -115,7 +113,14 @@ class ModelConfigTestCase(GenModelTestCase):
         """
 
         exit_code = gen_model.main([str(self.output_path),
-                                    str(self.QDA_PCA_CONFIG)])
+                                    str(IRIS_DATASET),
+                                    str(IRIS_DATASET),
+                                    '--random-state', '3307259',
+                                    '--scoring', 'accuracy',
+                                    '--preprocessing', 'pca',
+                                    '--model', 'qda',
+                                    '--parameter-grid', '[{"preprocessing1__n_components": [4], "preprocessing1__whiten": [false]}]',
+                                    '--outlier-scores'])
 
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
@@ -123,7 +128,7 @@ class ModelConfigTestCase(GenModelTestCase):
 
         self.assertIsInstance(model, sklearn.pipeline.Pipeline)
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'preprocessing')
+        self.assertEqual(model.steps[0][0], 'preprocessing1')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.decomposition.PCA)
 
@@ -147,7 +152,13 @@ class ModelConfigTestCase(GenModelTestCase):
         """
 
         exit_code = gen_model.main([str(self.output_path),
-                                    str(self.SVM_ROBUST_CONFIG)])
+                                    str(IRIS_DATASET),
+                                    str(IRIS_DATASET),
+                                    '--random-state', '3307259',
+                                    '--scoring', 'accuracy',
+                                    '--preprocessing', 'robust scaling',
+                                    '--model', 'svm',
+                                    '--parameter-grid', '[{"model__C": [0.01, 0.1, 1, 10], "model__kernel": ["rbf", "linear", "sigmoid"]}, {"model__C": [0.01, 0.1, 1, 10], "model__kernel": ["poly"], "model__degree": [2, 3, 4]}]'])
 
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
@@ -155,7 +166,7 @@ class ModelConfigTestCase(GenModelTestCase):
 
         self.assertIsInstance(model, sklearn.pipeline.Pipeline)
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'preprocessing')
+        self.assertEqual(model.steps[0][0], 'preprocessing1')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.preprocessing.RobustScaler)
 
@@ -177,7 +188,12 @@ class ModelConfigTestCase(GenModelTestCase):
         """
 
         exit_code = gen_model.main([str(self.output_path),
-                                    str(self.RFC_CONFIG)])
+                                    str(IRIS_DATASET),
+                                    str(IRIS_DATASET),
+                                    '--random-state', '3307259',
+                                    '--scoring', 'accuracy',
+                                    '--model', 'rfc',
+                                    '--parameter-grid', '[{"model__n_estimators": [10], "model__max_features": ["sqrt"]}]'])
 
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
@@ -202,9 +218,14 @@ class ModelConfigTestCase(GenModelTestCase):
 
         """
 
-        gen_model.CONFIG_FILE_PATH = self.RRC_CONFIG
         exit_code = gen_model.main([str(self.output_path),
-                                    str(self.RRC_CONFIG)])
+                                    str(IRIS_DATASET),
+                                    str(IRIS_DATASET),
+                                    '--random-state', '3307259',
+                                    '--preprocessing', 'quantile transformer',
+                                    '--scoring', 'accuracy',
+                                    '--model', 'rrc',
+                                    '--parameter-grid', '[{"model__solver": ["saga"]}]'])
 
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
@@ -212,7 +233,7 @@ class ModelConfigTestCase(GenModelTestCase):
 
         self.assertIsInstance(model, sklearn.pipeline.Pipeline)
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'preprocessing')
+        self.assertEqual(model.steps[0][0], 'preprocessing1')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.preprocessing.QuantileTransformer)
 
@@ -236,7 +257,12 @@ class ModelConfigTestCase(GenModelTestCase):
         """
 
         exit_code = gen_model.main([str(self.output_path),
-                                    str(self.LRC_CONFIG)])
+                                    str(IRIS_DATASET),
+                                    str(IRIS_DATASET),
+                                    '--random-state', '3307259',
+                                    '--preprocessing', 'power transformer',
+                                    '--scoring', 'accuracy',
+                                    '--model', 'lrc'])
 
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
@@ -244,7 +270,7 @@ class ModelConfigTestCase(GenModelTestCase):
 
         self.assertIsInstance(model, sklearn.pipeline.Pipeline)
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'preprocessing')
+        self.assertEqual(model.steps[0][0], 'preprocessing1')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.preprocessing.PowerTransformer)
 
@@ -268,7 +294,13 @@ class ModelConfigTestCase(GenModelTestCase):
         """
 
         exit_code = gen_model.main([str(self.output_path),
-                                    str(self.ETC_CONFIG)])
+                                    str(IRIS_DATASET),
+                                    str(IRIS_DATASET),
+                                    '--random-state', '3307259',
+                                    '--preprocessing', 'normalize',
+                                    '--scoring', 'accuracy',
+                                    '--model', 'etc',
+                                    '--parameter-grid', '[{"model__n_estimators": [10], "model__max_features": ["sqrt"]}]'])
 
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
@@ -276,7 +308,7 @@ class ModelConfigTestCase(GenModelTestCase):
 
         self.assertIsInstance(model, sklearn.pipeline.Pipeline)
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'preprocessing')
+        self.assertEqual(model.steps[0][0], 'preprocessing1')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.preprocessing.Normalizer)
 
@@ -300,7 +332,12 @@ class ModelConfigTestCase(GenModelTestCase):
         """
 
         exit_code = gen_model.main([str(self.output_path),
-                                    str(self.SGD_CONFIG)])
+                                    str(IRIS_DATASET),
+                                    str(IRIS_DATASET),
+                                    '--random-state', '3307259',
+                                    '--preprocessing', 'standard scaling',
+                                    '--scoring', 'accuracy',
+                                    '--model', 'sgd'])
 
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
@@ -308,7 +345,7 @@ class ModelConfigTestCase(GenModelTestCase):
 
         self.assertIsInstance(model, sklearn.pipeline.Pipeline)
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'preprocessing')
+        self.assertEqual(model.steps[0][0], 'preprocessing1')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.preprocessing.StandardScaler)
 
@@ -332,7 +369,12 @@ class ModelConfigTestCase(GenModelTestCase):
         """
 
         exit_code = gen_model.main([str(self.output_path),
-                                    str(self.DTC_CONFIG)])
+                                    str(IRIS_DATASET),
+                                    str(IRIS_DATASET),
+                                    '--random-state', '3307259',
+                                    '--scoring', 'accuracy',
+                                    '--preprocessing', 'robust scaling',
+                                    '--model', 'dtc'])
 
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
@@ -340,7 +382,7 @@ class ModelConfigTestCase(GenModelTestCase):
 
         self.assertIsInstance(model, sklearn.pipeline.Pipeline)
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'preprocessing')
+        self.assertEqual(model.steps[0][0], 'preprocessing1')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.preprocessing.RobustScaler)
 
@@ -372,24 +414,20 @@ class GenModelIntegrationTestCase(GenModelTestCase):
         """
 
         test_preprocess.setUp(self)
-        with self.GEN_MODEL_CONFIG.open() as config_template_fp:
-            gen_model_config = json.load(config_template_fp)
-
-        gen_model_config['training_dataset'] = str(self.training_path)
-        gen_model_config['validation_dataset'] = str(self.validation_path)
-        config_tempfile_descriptor = tempfile.mkstemp()
-        os.close(config_tempfile_descriptor[0])
-        with open(config_tempfile_descriptor[1], 'w') as tmp_config_fp:
-            json.dump(gen_model_config, tmp_config_fp)
-
         subprocess.check_output([test_preprocess.PreprocessStage2Test.PREPROCESS,
-                                 str(self.output_directory),
+                                 str(self.training_path),
+                                 str(self.testing_path),
+                                 str(self.validation_path),
                                  str(test_ingest_raw_uci_data.INGESTED_DIR),
-                                 '--columns'] + test_preprocess.PreprocessStage2Test.SUBSET_COLUMNS)
+                                 '--features'] + test_preprocess.PreprocessStage2Test.SUBSET_COLUMNS)
 
-        gen_model.CONFIG_FILE_PATH = Path(config_tempfile_descriptor[1])
         exit_code = gen_model.main([str(self.output_path),
-                                    config_tempfile_descriptor[1]])
+                                    str(self.training_path),
+                                    str(self.testing_path),
+                                    '--random-state', '3307259',
+                                    '--scoring', 'accuracy',
+                                    '--preprocessing', 'robust scaling',
+                                    '--model', 'dtc'])
 
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
@@ -397,7 +435,7 @@ class GenModelIntegrationTestCase(GenModelTestCase):
 
         self.assertIsInstance(model, sklearn.pipeline.Pipeline)
         self.assertEqual(len(model.steps), 2)
-        self.assertEqual(model.steps[0][0], 'preprocessing')
+        self.assertEqual(model.steps[0][0], 'preprocessing1')
         self.assertIsInstance(model.steps[0][1],
                               sklearn.preprocessing.RobustScaler)
 
@@ -420,7 +458,6 @@ class ValidationCSVTestCase(GenModelTestCase):
 
     """
 
-    DTC_MODEL_CONFIG = TEST_DATA / Path('gen_model_config_dtc.json')
     QDA_MODEL_CONFIG = TEST_DATA / Path('gen_model_config_qda_pca.json')
 
     def test_dtc_validation(self):
@@ -430,7 +467,12 @@ class ValidationCSVTestCase(GenModelTestCase):
         """
 
         exit_code = gen_model.main([str(self.output_path),
-                                    str(self.DTC_MODEL_CONFIG)])
+                                    str(IRIS_DATASET),
+                                    str(IRIS_DATASET),
+                                    '--random-state', '3307259',
+                                    '--scoring', 'accuracy',
+                                    '--preprocessing', 'robust scaling',
+                                    '--model', 'dtc'])
 
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
@@ -456,7 +498,13 @@ class ValidationCSVTestCase(GenModelTestCase):
         """
 
         exit_code = gen_model.main([str(self.output_path),
-                                    str(self.QDA_MODEL_CONFIG)])
+                                    str(IRIS_DATASET),
+                                    str(IRIS_DATASET),
+                                    '--random-state', '3307259',
+                                    '--scoring', 'accuracy',
+                                    '--preprocessing', 'pca',
+                                    '--model', 'qda',
+                                    '--parameter-grid', '[{"preprocessing1__n_components": [4], "preprocessing1__whiten": [false]}]'])
 
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
@@ -489,9 +537,14 @@ class CrossValidationTestCase(GenModelTestCase):
         """
 
         exit_code = gen_model.main([str(self.output_path),
-                                    str(self.QDA_PCA_CONFIG),
-                                    '--cross-validate',
-                                    '5'])
+                                    str(IRIS_DATASET),
+                                    str(IRIS_DATASET),
+                                    '--random-state', '3307259',
+                                    '--scoring', 'accuracy',
+                                    '--preprocessing', 'pca',
+                                    '--model', 'qda',
+                                    '--parameter-grid', '[{"preprocessing1__n_components": [4], "preprocessing1__whiten": [false]}]',
+                                    '--cross-validate', '5'])
 
         self.assertEqual(exit_code, 0)
         with open(self.output_path, 'rb') as output_fp:
@@ -528,7 +581,13 @@ class OutliersTestCase(GenModelTestCase):
         """
 
         exit_code = gen_model.main([str(self.output_path),
-                                    str(self.QDA_PCA_CONFIG),
+                                    str(IRIS_DATASET),
+                                    str(IRIS_DATASET),
+                                    '--random-state', '3307259',
+                                    '--scoring', 'accuracy',
+                                    '--preprocessing', 'pca',
+                                    '--model', 'qda',
+                                    '--parameter-grid', '[{"preprocessing1__n_components": [4], "preprocessing1__whiten": [false]}]',
                                     '--outlier-scores'])
 
         self.assertEqual(exit_code, 0)
