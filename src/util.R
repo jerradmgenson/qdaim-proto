@@ -3,7 +3,7 @@
 # includes a function for reading all csv files from a directory into a
 # common dataframe.
 #
-# Copyright 2020 Jerrad M. Genson
+# Copyright 2020, 2021 Jerrad M. Genson
 #
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this

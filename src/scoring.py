@@ -3,7 +3,7 @@ A library of functions for scoring models. This includes functions for
 calculating individual scoring metrics and generating reports that aggregate
 all applicable model scores.
 
-Copyright 2020 Jerrad M. Genson
+Copyright 2020, 2021 Jerrad M. Genson
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -72,7 +72,7 @@ def score_model(model, input_data, target_data):
         raise ValueError('target_data must have dimensions N x 1.')
 
     predictions = model.predict(input_data)
-    
+
     assert len(predictions) == len(target_data)
     assert np.ndim(predictions) == 1
 
