@@ -1,5 +1,8 @@
 [
   {
-	    "model__solver": ["svd", "lsqr", "eigen"]
+	    "model__radius": [1, 2, 3, 4, 5, 10, 20, 40, 80],
+	    "model__weights": ["uniform", "distance"],
+	    "model__p": [1, 2],
+	    "model__outlier_label": [-1]
 	}
 ]
