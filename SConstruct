@@ -69,7 +69,8 @@ def build_gen_model(target, source, env):
                            '--scoring', model_gen_config['scoring'],
                            '--parameter-grid', parameter_grid,
                            '--cross-validate', str(model_gen_config['cross_validation_folds']),
-                           '--outlier-scores'])                           
+                           '--outlier-scores',
+                           '--preprocessing'] + model_gen_config['preprocessing'])
 
 gen_model_builder = Builder(action=build_gen_model,
                             suffix='.dat',
