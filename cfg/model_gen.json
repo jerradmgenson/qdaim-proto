@@ -1,8 +1,8 @@
 {
     "cross_validation_folds": 20,
     "features": ["age", "sex", "cp", "trestbps", "fbs", "restecg", "thalach", "exang", "oldpeak", "target"],
-    "model": "gbc",
-    "preprocessing": ["robust scaling"],
+    "model": "rfc",
+    "preprocessing": ["robust scaling", "isomap"],
     "random_state": 3307259,
     "scoring": "informedness",
     "training_dataset": "training.csv",
