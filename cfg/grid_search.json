@@ -1,10 +1,7 @@
 [
   {
-      "preprocessing2__n_clusters": [null],
-      "preprocessing2__compute_full_tree": [true],
-      "preprocessing2__affinity": ["euclidean", "manhattan"],
-      "preprocessing2__distance_threshold": [0.05, 0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4],
-      "preprocessing2__linkage": ["complete", "average", "single"],
+      "preprocessing2__n_components": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      "preprocessing2__init": ["pca", "identity", "random"],
 	    "model__n_estimators": [50, 100, 200, 400],
       "model__max_depth": [null, 2, 4, 8],
 	    "model__bootstrap": [false, true],
