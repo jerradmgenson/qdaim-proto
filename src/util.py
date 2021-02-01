@@ -31,6 +31,8 @@ from sklearn import ensemble
 from sklearn import discriminant_analysis
 from sklearn import manifold
 from sklearn import naive_bayes
+from sklearn import cluster
+from sklearn import neighbors
 
 import scoring
 
@@ -84,6 +86,10 @@ PREPROCESSING_METHODS = {
     'pca': sklearn.decomposition.PCA,
     'ica': sklearn.decomposition.FastICA,
     'isomap': manifold.Isomap,
+    'lle': manifold.LocallyLinearEmbedding,
+    'feature agglomeration': cluster.FeatureAgglomeration,
+    'nca': neighbors.NeighborhoodComponentsAnalysis,
+    'factor analysis': sklearn.decomposition.FactorAnalysis,
 }
 
 # Stores values from the configuration file.
