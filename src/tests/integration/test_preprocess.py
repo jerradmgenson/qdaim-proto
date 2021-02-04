@@ -46,7 +46,7 @@ class PreprocessStage2Test(unittest.TestCase):
     EXPECTED_TOTAL_ROWS = 19
     EXPECTED_TOTAL_ROWS_RAW_UCI = 9
     SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'restecg', 'thalach',
-                      'exang', 'oldpeak', 'target']
+                      'exang', 'oldpeak', 'chol', 'target']
 
     MISSING_VALUES_INGEST_DIR = TEST_DATA / 'imputation_ingest'
     EXPECTED_TOTAL_ROWS_SINGLE_IMPUTATION = 13
