@@ -49,7 +49,7 @@ class PreprocessStage2Test(unittest.TestCase):
                       'exang', 'oldpeak', 'chol', 'target']
 
     MISSING_VALUES_INGEST_DIR = TEST_DATA / 'imputation_ingest'
-    EXPECTED_TOTAL_ROWS_SINGLE_IMPUTATION = 13
+    EXPECTED_TOTAL_ROWS_SINGLE_IMPUTATION = 10
     TEST_SET_INGEST_DIR = TEST_DATA / 'test_set_ingest'
     EXPECTED_TESTING_ROWS_TEST_SET = 4
     EXPECTED_TOTAL_ROWS_TEST_SET = 17
@@ -288,7 +288,7 @@ class PreprocessStage2Test(unittest.TestCase):
 
         training_dataset = pd.read_csv(self.training_path)
         training_nans = training_dataset.isnull().sum().sum()
-        self.assertEqual(training_nans, 0)
+        self.assertEqual(training_nans, 2)
 
         validation_dataset = pd.read_csv(self.validation_path)
         validation_nans = validation_dataset.isnull().sum().sum()
