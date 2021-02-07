@@ -43,16 +43,16 @@ class PreprocessStage2Test(unittest.TestCase):
     MULTICLASS_TRAINING_DATASET = TEST_DATA / 'multiclass_training_dataset.csv'
     MULTICLASS_VALIDATION_DATASET = TEST_DATA / 'multiclass_validation_dataset.csv'
     PREPROCESS = GIT_ROOT / 'src/preprocess.R'
-    EXPECTED_TOTAL_ROWS = 19
-    EXPECTED_TOTAL_ROWS_RAW_UCI = 9
+    EXPECTED_TOTAL_ROWS = 17
+    EXPECTED_TOTAL_ROWS_RAW_UCI = 7
     SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'restecg', 'thalach',
-                      'exang', 'oldpeak', 'target']
+                      'exang', 'oldpeak', 'chol', 'target']
 
     MISSING_VALUES_INGEST_DIR = TEST_DATA / 'imputation_ingest'
-    EXPECTED_TOTAL_ROWS_SINGLE_IMPUTATION = 13
+    EXPECTED_TOTAL_ROWS_SINGLE_IMPUTATION = 10
     TEST_SET_INGEST_DIR = TEST_DATA / 'test_set_ingest'
     EXPECTED_TESTING_ROWS_TEST_SET = 4
-    EXPECTED_TOTAL_ROWS_TEST_SET = 19
+    EXPECTED_TOTAL_ROWS_TEST_SET = 17
 
     def setUp(self):
         setUp(self)
@@ -288,7 +288,7 @@ class PreprocessStage2Test(unittest.TestCase):
 
         training_dataset = pd.read_csv(self.training_path)
         training_nans = training_dataset.isnull().sum().sum()
-        self.assertEqual(training_nans, 0)
+        self.assertEqual(training_nans, 2)
 
         validation_dataset = pd.read_csv(self.validation_path)
         validation_nans = validation_dataset.isnull().sum().sum()

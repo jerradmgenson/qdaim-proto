@@ -25,6 +25,7 @@
 
 library(argparser)
 library(mice)
+library(naniar)
 
 git_root <- system2('git', args=c('rev-parse', '--show-toplevel'), stdout=TRUE)
 source(file.path(git_root, "src/util.R"))
@@ -90,6 +91,9 @@ uci_dataset <- read_dir(command_line_arguments$source,
                         features = features,
                         test_samples_from = command_line_arguments$test_samples_from)
 
+# Convert chol values = 0 to NA.
+uci_dataset$df <- replace_with_na(uci_dataset$df, replace = list(chol = 0))
+
 # Remove rows where trestbps is 0.
 uci_dataset$df <- uci_dataset$df[uci_dataset$df$trestbps != 0, ]
 
@@ -101,9 +105,9 @@ uci_wo_multi_na_rows$restecg <- as.factor(uci_wo_multi_na_rows$restecg)
 uci_wo_multi_na_rows$fbs <- as.factor(uci_wo_multi_na_rows$fbs)
 uci_mids <- mice(uci_wo_multi_na_rows,
                  seed = command_line_arguments$random_state,
-                 method = c("", "", "", "", "logreg", "polyreg", "", "", "pmm", ""),
+                 method = c("", "", "", "", "logreg", "polyreg", "", "", "pmm", "pmm", ""),
                  visit = "monotone",
-                 maxit = 20,
+                 maxit = 60,
                  m = 1,
                  print = FALSE)
 
