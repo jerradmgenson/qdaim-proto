@@ -1,46 +1,5 @@
 [
   {
-    "preprocessing2__n_neighbors": [3, 5, 10, 15, 20, 40, 80],
-    "preprocessing2__n_components": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    "preprocessing2__p": [1, 2],
-    "model__penalty": ["l1"],
-    "model__C": [0.01, 0.1, 1, 10],
-    "model__fit_intercept": [false, true],
-    "model__class_weight": ["balanced"],
-    "model__solver": ["liblinear", "saga"],
-    "model__random_state": [3307259]
-  },
-  {
-    "preprocessing2__n_neighbors": [3, 5, 10, 15, 20, 40, 80],
-    "preprocessing2__n_components": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    "preprocessing2__p": [1, 2],    
-    "model__penalty": ["l2", "none"],
-    "model__C": [0.01, 0.1, 1, 10],
-    "model__fit_intercept": [false, true],
-    "model__class_weight": ["balanced"],
-    "model__solver": ["sag", "saga"],
-    "model__random_state": [3307259]
-  },
-  {
-    "preprocessing2__n_neighbors": [3, 5, 10, 15, 20, 40, 80],
-    "preprocessing2__n_components": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    "preprocessing2__p": [1, 2],    
-    "model__penalty": ["l2", "none"],
-    "model__C": [0.01, 0.1, 1, 10],
-    "model__fit_intercept": [false, true],
-    "model__class_weight": ["balanced"],
-    "model__solver": ["newton-cg", "lbfgs"]
-  },
-  {
-    "preprocessing2__n_neighbors": [3, 5, 10, 15, 20, 40, 80],
-    "preprocessing2__n_components": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    "preprocessing2__p": [1, 2],   
-    "model__penalty": ["elasticnet"],
-    "model__C": [0.01, 0.1, 1, 10],
-    "model__fit_intercept": [false, true],
-    "model__class_weight": ["balanced"],
-    "model__solver": ["saga"],
-    "model__l1_ratio": [0, 0.25, 0.5, 0.75, 1],
-    "model__random_state": [3307259]
-  }
+	    "model__solver": ["svd", "lsqr", "eigen"]
+	}
 ]
