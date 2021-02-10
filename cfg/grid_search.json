@@ -1,8 +1,12 @@
+
 [
   {
       "preprocessing2__n_neighbors": [3, 5, 10, 15, 20, 40, 80],
       "preprocessing2__n_components": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
       "preprocessing2__p": [1, 2],
-	    "model__solver": ["svd", "lsqr", "eigen"]
+	    "model__radius": [1, 2, 3, 4, 5, 10, 20, 40, 80],
+	    "model__weights": ["uniform", "distance"],
+	    "model__p": [1, 2],
+	    "model__outlier_label": [-1]
 	}
 ]
