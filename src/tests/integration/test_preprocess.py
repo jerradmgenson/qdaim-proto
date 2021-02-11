@@ -31,20 +31,9 @@ class PreprocessStage2Test(unittest.TestCase):
     GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
     GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
     TEST_DATA = GIT_ROOT / 'src/tests/data'
-    BINARY_TESTING_DATASET1 = TEST_DATA / 'binary_testing_dataset1.csv'
-    BINARY_TRAINING_DATASET1 = TEST_DATA / 'binary_training_dataset1.csv'
-    BINARY_VALIDATION_DATASET1 = TEST_DATA / 'binary_validation_dataset1.csv'
-    BINARY_TESTING_DATASET2 = TEST_DATA / 'binary_testing_dataset2.csv'
-    BINARY_TRAINING_DATASET2 = TEST_DATA / 'binary_training_dataset2.csv'
-    TERNARY_TESTING_DATASET = TEST_DATA / 'ternary_testing_dataset.csv'
-    TERNARY_TRAINING_DATASET = TEST_DATA / 'ternary_training_dataset.csv'
-    TERNARY_VALIDATION_DATASET = TEST_DATA / 'ternary_validation_dataset.csv'
-    MULTICLASS_TESTING_DATASET = TEST_DATA / 'multiclass_testing_dataset.csv'
-    MULTICLASS_TRAINING_DATASET = TEST_DATA / 'multiclass_training_dataset.csv'
-    MULTICLASS_VALIDATION_DATASET = TEST_DATA / 'multiclass_validation_dataset.csv'
     PREPROCESS = GIT_ROOT / 'src/preprocess.R'
     EXPECTED_TOTAL_ROWS = 17
-    EXPECTED_TOTAL_ROWS_RAW_UCI = 7
+    EXPECTED_TOTAL_ROWS_RAW_UCI = 9
     SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'restecg', 'thalach',
                       'exang', 'oldpeak', 'chol', 'target']
 
@@ -52,7 +41,7 @@ class PreprocessStage2Test(unittest.TestCase):
     EXPECTED_TOTAL_ROWS_SINGLE_IMPUTATION = 10
     TEST_SET_INGEST_DIR = TEST_DATA / 'test_set_ingest'
     EXPECTED_TESTING_ROWS_TEST_SET = 4
-    EXPECTED_TOTAL_ROWS_TEST_SET = 17
+    EXPECTED_TOTAL_ROWS_TEST_SET = 19
 
     def setUp(self):
         setUp(self)
@@ -118,17 +107,8 @@ class PreprocessStage2Test(unittest.TestCase):
                                '--features'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
-        expected_testing_dataset = pd.read_csv(self.TERNARY_TESTING_DATASET)
-        self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
-
         actual_training_dataset = pd.read_csv(self.training_path)
-        expected_training_dataset = pd.read_csv(self.TERNARY_TRAINING_DATASET)
-        self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
-
         actual_validation_dataset = pd.read_csv(self.validation_path)
-        expected_validation_dataset = pd.read_csv(self.TERNARY_VALIDATION_DATASET)
-        self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
-
         total_rows = (len(actual_testing_dataset)
                       + len(actual_training_dataset)
                       + len(actual_validation_dataset))
@@ -160,17 +140,8 @@ class PreprocessStage2Test(unittest.TestCase):
                                '--features'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
-        expected_testing_dataset = pd.read_csv(self.MULTICLASS_TESTING_DATASET)
-        self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
-
         actual_training_dataset = pd.read_csv(self.training_path)
-        expected_training_dataset = pd.read_csv(self.MULTICLASS_TRAINING_DATASET)
-        self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
-
         actual_validation_dataset = pd.read_csv(self.validation_path)
-        expected_validation_dataset = pd.read_csv(self.MULTICLASS_VALIDATION_DATASET)
-        self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
-
         total_rows = (len(actual_testing_dataset)
                       + len(actual_training_dataset)
                       + len(actual_validation_dataset))
@@ -215,13 +186,7 @@ class PreprocessStage2Test(unittest.TestCase):
                                '--features'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
-        expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET2)
-        self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
-
         actual_training_dataset = pd.read_csv(self.training_path)
-        expected_training_dataset = pd.read_csv(self.BINARY_TRAINING_DATASET2)
-        self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
-
         total_rows = len(actual_testing_dataset) + len(actual_training_dataset)
         self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS)
 
@@ -288,7 +253,7 @@ class PreprocessStage2Test(unittest.TestCase):
 
         training_dataset = pd.read_csv(self.training_path)
         training_nans = training_dataset.isnull().sum().sum()
-        self.assertEqual(training_nans, 2)
+        self.assertEqual(training_nans, 0)
 
         validation_dataset = pd.read_csv(self.validation_path)
         validation_nans = validation_dataset.isnull().sum().sum()
