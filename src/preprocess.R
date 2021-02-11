@@ -97,13 +97,13 @@ uci_dataset$df <- replace_with_na(uci_dataset$df, replace = list(chol = 0))
 # Remove rows where trestbps is 0.
 uci_dataset$df <- uci_dataset$df[uci_dataset$df$trestbps != 0, ]
 
-# Remove rows containing more than one NA.
-uci_wo_multi_na_rows <- uci_dataset$df[rowSums(is.na(uci_dataset$df)) < 2, ]
+# Remove rows containing only NA.
+uci_dataset$df <- uci_dataset$df[rowSums(is.na(uci_dataset$df)) != ncol(uci_dataset$df), ]
 
 # Impute missing data using single imputation.
-uci_wo_multi_na_rows$restecg <- as.factor(uci_wo_multi_na_rows$restecg)
-uci_wo_multi_na_rows$fbs <- as.factor(uci_wo_multi_na_rows$fbs)
-uci_mids <- mice(uci_wo_multi_na_rows,
+uci_dataset$df$restecg <- as.factor(uci_dataset$df$restecg)
+uci_dataset$df$fbs <- as.factor(uci_dataset$df$fbs)
+uci_mids <- mice(uci_dataset$df,
                  seed = command_line_arguments$random_state,
                  method = c("", "", "", "", "logreg", "polyreg", "", "", "pmm", "pmm", ""),
                  visit = "monotone",
