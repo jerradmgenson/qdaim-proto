@@ -32,13 +32,13 @@ class PreprocessStage2Test(unittest.TestCase):
     GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
     TEST_DATA = GIT_ROOT / 'src/tests/data'
     PREPROCESS = GIT_ROOT / 'src/preprocess.R'
-    EXPECTED_TOTAL_ROWS = 17
+    EXPECTED_TOTAL_ROWS = 19
     EXPECTED_TOTAL_ROWS_RAW_UCI = 9
     SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'restecg', 'thalach',
                       'exang', 'oldpeak', 'chol', 'target']
 
     MISSING_VALUES_INGEST_DIR = TEST_DATA / 'imputation_ingest'
-    EXPECTED_TOTAL_ROWS_SINGLE_IMPUTATION = 10
+    EXPECTED_TOTAL_ROWS_SINGLE_IMPUTATION = 14
     TEST_SET_INGEST_DIR = TEST_DATA / 'test_set_ingest'
     EXPECTED_TESTING_ROWS_TEST_SET = 4
     EXPECTED_TOTAL_ROWS_TEST_SET = 19
@@ -65,17 +65,8 @@ class PreprocessStage2Test(unittest.TestCase):
                                '--features'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
-        expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET1)
-        self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
-
         actual_training_dataset = pd.read_csv(self.training_path)
-        expected_training_dataset = pd.read_csv(self.BINARY_TRAINING_DATASET1)
-        self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
-
         actual_validation_dataset = pd.read_csv(self.validation_path)
-        expected_validation_dataset = pd.read_csv(self.BINARY_VALIDATION_DATASET1)
-        self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
-
         total_rows = (len(actual_testing_dataset)
                       + len(actual_training_dataset)
                       + len(actual_validation_dataset))
