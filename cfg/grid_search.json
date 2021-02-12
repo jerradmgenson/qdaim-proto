@@ -1,5 +1,34 @@
 [
   {
-	    "model__solver": ["svd", "lsqr", "eigen"]
-	}
+    "model__penalty": ["l1"],
+    "model__C": [0.01, 0.1, 1, 10],
+    "model__fit_intercept": [false, true],
+    "model__class_weight": ["balanced"],
+    "model__solver": ["liblinear", "saga"],
+    "model__random_state": [3307259]
+  },
+  {
+    "model__penalty": ["l2", "none"],
+    "model__C": [0.01, 0.1, 1, 10],
+    "model__fit_intercept": [false, true],
+    "model__class_weight": ["balanced"],
+    "model__solver": ["sag", "saga"],
+    "model__random_state": [3307259]
+  },
+  {
+    "model__penalty": ["l2", "none"],
+    "model__C": [0.01, 0.1, 1, 10],
+    "model__fit_intercept": [false, true],
+    "model__class_weight": ["balanced"],
+    "model__solver": ["newton-cg", "lbfgs"]
+  },
+  {
+    "model__penalty": ["elasticnet"],
+    "model__C": [0.01, 0.1, 1, 10],
+    "model__fit_intercept": [false, true],
+    "model__class_weight": ["balanced"],
+    "model__solver": ["saga"],
+    "model__l1_ratio": [0, 0.25, 0.5, 0.75, 1],
+    "model__random_state": [3307259]
+  }
 ]
