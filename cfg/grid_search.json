@@ -1,7 +1,7 @@
 [
   {
-      "preprocessing1__n_components": [1, 2, 3, 4, 5, 6, 7, 8, 9],
-      "preprocessing1__whiten": [false, true],
+      "preprocessing2__n_components": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+      "preprocessing2__svd_method": ["lapack"],
 	    "model__radius": [1, 2, 3, 4, 5, 10, 20, 40, 80],
 	    "model__weights": ["uniform", "distance"],
 	    "model__p": [1, 2],
