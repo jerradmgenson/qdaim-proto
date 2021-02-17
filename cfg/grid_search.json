@@ -1,7 +1,10 @@
 [
   {
-      "preprocessing2__n_components": [1, 2, 3, 4, 5, 6, 7, 8, 9],
-      "preprocessing2__svd_method": ["lapack"],
+      "preprocessing2__n_clusters": [null],
+      "preprocessing2__compute_full_tree": [true],
+      "preprocessing2__affinity": ["euclidean", "manhattan"],
+      "preprocessing2__distance_threshold": [0.05, 0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4],
+      "preprocessing2__linkage": ["complete", "average", "single"],
 	    "model__loss": ["deviance", "exponential"],
 	    "model__learning_rate": [0.001, 0.01, 0.1, 1, 10],
 	    "model__subsample": [0.7, 0.8, 0.9, 1.0],
