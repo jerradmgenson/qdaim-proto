@@ -70,6 +70,7 @@ def build_gen_model(target, source, env):
                            '--parameter-grid', parameter_grid,
                            '--cross-validate', str(model_gen_config['cross_validation_folds']),
                            '--outlier-scores',
+                           '--print-hyperparameters',
                            '--preprocessing'] + model_gen_config['preprocessing'])
 
 gen_model_builder = Builder(action=build_gen_model,
