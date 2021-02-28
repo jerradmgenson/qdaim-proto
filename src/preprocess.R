@@ -78,7 +78,11 @@ parse_command_line <- function(argv) {
 
     parser <- add_argument(parser, "--impute-missing-data",
                            flag = TRUE,
-                           help = "If present, preprocess.R will impute missing values in the training and validation datasets.")
+                           help = "Impute missing values in the training and validation datasets.")
+
+    parser <- add_argument(parser, "--impute-multiple-nas",
+                           flag = TRUE,
+                           help = "Impute rows with multiples missing values. This flag has no effect if --impute-missing-data is not also present.")
 
     parse_args(parser, argv = argv)
 }
@@ -101,8 +105,10 @@ uci_dataset$df <- replace_with_na(uci_dataset$df, replace = list(chol = 0))
 # Remove rows where trestbps is 0.
 uci_dataset$df <- uci_dataset$df[uci_dataset$df$trestbps != 0, ]
 
-# Remove rows containing more than one NA.
-uci_dataset$df <- uci_dataset$df[rowSums(is.na(uci_dataset$df)) < 2, ]
+if (!command_line_arguments$impute_multiple_nas) {
+    # Remove rows containing more than one NA.
+    uci_dataset$df <- uci_dataset$df[rowSums(is.na(uci_dataset$df)) < 2, ]
+}
 
 # Set aside testing data before performing imputation
 test_rows <- ceiling(nrow(uci_dataset$df)
@@ -132,7 +138,7 @@ if (command_line_arguments$test_samples_from != "") {
     # Shuffle souce dataframe before sampling test data.
     uci_dataset$df <- uci_dataset$df[sample(nrow(uci_dataset$df)), ]
     indices_wo_nas <- which(complete.cases(uci_dataset$df))
-    test_indices <- indices_wo_nas[1:test_rows, ]
+    test_indices <- indices_wo_nas[1:test_rows]
     test_data <- uci_dataset$df[test_indices, ]
 
     # Remove test samples from the source dataframe.
@@ -151,14 +157,16 @@ if (command_line_arguments$impute_missing_data) {
                      m = 1,
                      print = FALSE)
 
-    complete_dataset <- complete(uci_mids, 1)
-    complete_dataset$restecg <- as.numeric(complete_dataset$restecg)
-    complete_dataset$fbs <- as.numeric(complete_dataset$fbs)
+    uci_wo_test_data <- complete(uci_mids, 1)
+    uci_wo_test_data$restecg <- as.numeric(uci_wo_test_data$restecg)
+    uci_wo_test_data$fbs <- as.numeric(uci_wo_test_data$fbs)
 
-} else {
-    complete_dataset <- na.omit(uci_wo_test_data)
-    rownames(complete_dataset) <- NULL
 }
+
+complete_dataset <- na.omit(uci_wo_test_data)
+
+# Remove empty rows.
+rownames(complete_dataset) <- NULL
 
 # Convert chest pain to a binary class.
 complete_dataset$cp[complete_dataset$cp != 4] <- 1
