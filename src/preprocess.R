@@ -131,10 +131,12 @@ if (command_line_arguments$test_samples_from != "") {
 } else {
     # Shuffle souce dataframe before sampling test data.
     uci_dataset$df <- uci_dataset$df[sample(nrow(uci_dataset$df)), ]
-    test_data <- uci_dataset$df[1:test_rows, ]
+    indices_wo_nas <- which(complete.cases(uci_dataset$df))
+    test_indices <- indices_wo_nas[1:test_rows, ]
+    test_data <- uci_dataset$df[test_indices, ]
 
     # Remove test samples from the source dataframe.
-    uci_wo_test_data <- uci_dataset$df[(test_rows + 1):nrow(uci_dataset$df), ]
+    uci_wo_test_data <- uci_dataset$df[-test_indices, ]
 }
 
 if (command_line_arguments$impute_missing_data) {
