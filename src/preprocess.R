@@ -156,7 +156,6 @@ parse_command_line <- function(argv) {
 }
 
 
-
 multi_na.omit <- function(df) {
     # Omit rows from the dataframe, df, that contain more than one NA.
     # Return a copy of the dataframe without the multiple NA rows.
