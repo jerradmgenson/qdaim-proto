@@ -56,9 +56,9 @@ def build_preprocess(target, source, env):
                             str(target[1]),
                             str(target[2]),
                             str(INGEST_DIR),
+			    model_gen_config['test_pool'],
+			    '--impute-missing',
                             '--random-state', str(model_gen_config['random_state']),
-                            '--test-samples-from', model_gen_config['test_samples_from'],
-			    '--impute-missing-data',
                             '--features'] + model_gen_config['features'])
 
 preprocess_builder = Builder(action=build_preprocess)

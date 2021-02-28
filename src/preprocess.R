@@ -52,6 +52,9 @@ parse_command_line <- function(argv) {
     parser <- add_argument(parser, "source",
                            help = "Input directory of CSV data files.")
 
+    parser <- add_argument(parser, "test-pool",
+                           help = "Name of the dataset to draw the test data from.")
+
     parser <- add_argument(parser, "--random-state",
                            default = 0,
                            help = "State to initialize random number generators with.")
@@ -72,19 +75,23 @@ parse_command_line <- function(argv) {
                            nargs = Inf,
                            help = "Features to select from the input datasets.")
 
-    parser <- add_argument(parser, "--test-samples-from",
-                           default = "",
-                           help = "Name of the dataset to sample test data from. Defaults to all datasets.")
-
-    parser <- add_argument(parser, "--impute-missing-data",
+    parser <- add_argument(parser, "--impute-missing",
                            flag = TRUE,
-                           help = "Impute missing values in the training and validation datasets.")
+                           help = "Impute rows with single NAs in the training and validation datasets.")
 
-    parser <- add_argument(parser, "--impute-multiple-nas",
+    parser <- add_argument(parser, "--impute-multiple",
                            flag = TRUE,
-                           help = "Impute rows with multiples missing values. This flag has no effect if --impute-missing-data is not also present.")
+                           help = "Impute rows with multiple NAs in the training and validation datasets. --impute-missing has no effect when --impute-multiple is present.")
 
     parse_args(parser, argv = argv)
+}
+
+
+
+multi_na.omit <- function(df) {
+    # Omit rows from the dataframe, df, that contain more than one NA.
+    # Return a copy of the dataframe without the multiple NA rows.
+    df[rowSums(is.na(df)) < 2, ]
 }
 
 
@@ -97,100 +104,123 @@ features  <- if (!is.na(command_line_arguments$features)) command_line_arguments
 # Read all CSV files from the given directory into a single dataframe.
 uci_dataset <- read_dir(command_line_arguments$source,
                         features = features,
-                        test_samples_from = command_line_arguments$test_samples_from)
-
-# Convert chol values = 0 to NA.
-uci_dataset$df <- replace_with_na(uci_dataset$df, replace = list(chol = 0))
+                        test_pool = command_line_arguments$test_pool)
 
 # Remove rows where trestbps is 0.
-uci_dataset$df <- uci_dataset$df[uci_dataset$df$trestbps != 0, ]
+uci_dataset$df <- subset(uci_dataset$df, uci_dataset$df$trestbps != 0)
+cat("Omitted rows where trestbps == 0\n")
 
-if (!command_line_arguments$impute_multiple_nas) {
-    # Remove rows containing more than one NA.
-    uci_dataset$df <- uci_dataset$df[rowSums(is.na(uci_dataset$df)) < 2, ]
-}
+# Convert chol values == 0 to NA.
+uci_dataset$df <- replace_with_na(uci_dataset$df, replace = list(chol = 0))
+cat("Treating chol == 0 as NA\n")
 
-# Set aside testing data before performing imputation
-test_rows <- ceiling(nrow(uci_dataset$df)
-                     * command_line_arguments$test_fraction)
+# Calculate number of rows to use for testing and validation.
+if (command_line_arguments$impute_multiple) {
+    total_rows <- nrow(uci_dataset$df)
 
-if (command_line_arguments$test_samples_from != "") {
-    # Check that the number of test rows doesn't exceed the number of rows in the
-    # specified test dataset if one was given.
-    original_test_set <- uci_dataset$df[1:uci_dataset$test_rows, ]
-    original_test_rows <- nrow(original_test_set[(rowSums(is.na(original_test_set)) < 2), ])
-    if (test_rows > original_test_rows) {
-        stop(sprintf("Too few samples in %s to create test set.",
-                     command_line_arguments$test_samples_from))
-    }
-
-    # Sample test data before we shuffle the source dataframe to make
-    # sure we sample from the correct dataset.
-    test_data <- uci_dataset$df[1:test_rows, ]
-
-    # Remove test samples from the source dataframe.
-    uci_wo_test_data <- uci_dataset$df[(test_rows + 1):nrow(uci_dataset$df), ]
-
-    # Now shuffle the source dataframe.
-    uci_wo_test_data <- uci_wo_test_data[sample(nrow(uci_wo_test_data)), ]
+} else if (command_line_arguments$impute_missing) {
+    total_rows <- nrow(multi_na.omit(uci_dataset$df))
 
 } else {
-    # Shuffle souce dataframe before sampling test data.
-    uci_dataset$df <- uci_dataset$df[sample(nrow(uci_dataset$df)), ]
-    indices_wo_nas <- which(complete.cases(uci_dataset$df))
-    test_indices <- indices_wo_nas[1:test_rows]
-    test_data <- uci_dataset$df[test_indices, ]
-
-    # Remove test samples from the source dataframe.
-    uci_wo_test_data <- uci_dataset$df[-test_indices, ]
+    total_rows <- nrow(na.omit(uci_dataset$df))
 }
 
-if (command_line_arguments$impute_missing_data) {
+test_rows <- ceiling(total_rows * command_line_arguments$test_fraction)
+validation_rows <- ceiling(total_rows * command_line_arguments$validation_fraction)
+
+# Check that the number of test rows doesn't exceed the number of rows in the
+# specified test dataset if one was given.
+original_test_set <- uci_dataset$df[1:uci_dataset$test_rows, ]
+original_test_rows <- nrow(na.omit(original_test_set))
+if (test_rows > original_test_rows) {
+    stop(sprintf("Too few samples in %s to create test set.",
+                 command_line_arguments$test_pool))
+}
+
+# Sample test data before we shuffle the source dataframe to make
+# sure we sample from the correct dataset.
+test_data <- uci_dataset$df[1:test_rows, ]
+cat(sprintf("Constructed testing dataset from %s data\n",
+            command_line_arguments$test_pool))
+
+# Remove test samples from the source dataframe.
+uci_dataset$df <- uci_dataset$df[(test_rows + 1):nrow(uci_dataset$df), ]
+
+# Now shuffle the source dataframe.
+uci_dataset$df <- uci_dataset$df[sample(nrow(uci_dataset$df)), ]
+cat("Shuffled remaining data\n")
+
+if (!command_line_arguments$impute_multiple) {
+    uci_dataset$df <- multi_na.omit(uci_dataset$df)
+    cat("Omitted rows with multiple NAs\n")
+}
+
+if (command_line_arguments$impute_missing || command_line_arguments$impute_multiple) {
     # Impute missing data using single imputation.
-    uci_wo_test_data$restecg <- as.factor(uci_wo_test_data$restecg)
-    uci_wo_test_data$fbs <- as.factor(uci_wo_test_data$fbs)
-    uci_mids <- mice(uci_wo_test_data,
+    cat("Imputing missing data...\n")
+    cat(sprintf("NAs before imputation: %d\n", sum(!complete.cases(uci_dataset$df))))
+    uci_dataset$df$restecg <- as.factor(uci_dataset$df$restecg)
+    uci_dataset$df$fbs <- as.factor(uci_dataset$df$fbs)
+    uci_mids <- mice(uci_dataset$df,
                      seed = command_line_arguments$random_state,
-                     method = c("", "", "", "", "logreg", "polyreg", "", "", "pmm", "pmm", ""),
+                     method = c("", "", "", "pmm", "logreg", "polyreg", "", "", "pmm", "pmm", ""),
                      visit = "monotone",
                      maxit = 60,
                      m = 1,
                      print = FALSE)
 
-    uci_wo_test_data <- complete(uci_mids, 1)
-    uci_wo_test_data$restecg <- as.numeric(uci_wo_test_data$restecg)
-    uci_wo_test_data$fbs <- as.numeric(uci_wo_test_data$fbs)
-
+    uci_dataset$df <- complete(uci_mids, 1)
+    uci_dataset$df$restecg <- as.numeric(uci_dataset$df$restecg)
+    uci_dataset$df$fbs <- as.numeric(uci_dataset$df$fbs)
+    cat("Imputation complete\n")
+    cat(sprintf("NAs after imputation: %d\n", sum(!complete.cases(uci_dataset$df))))
 }
 
-complete_dataset <- na.omit(uci_wo_test_data)
-
-# Remove empty rows.
-rownames(complete_dataset) <- NULL
+if (sum(!complete.cases(uci_dataset$df)) > 0) {
+    uci_dataset$df <- na.omit(uci_dataset$df)
+    cat("Omitted remaining rows with NAs\n")
+}
 
 # Convert chest pain to a binary class.
-complete_dataset$cp[complete_dataset$cp != 4] <- 1
-complete_dataset$cp[complete_dataset$cp == 4] <- -1
+uci_dataset$df$cp[uci_dataset$df$cp != 4] <- 1
+uci_dataset$df$cp[uci_dataset$df$cp == 4] <- -1
+test_data$cp[test_data$cp != 4] <- 1
+test_data$cp[test_data$cp == 4] <- -1
+cat("Converted cp to binary class\n")
 
 # Convert resting ECG to a binary class.
-complete_dataset$restecg[complete_dataset$restecg != 1] <- -1
+uci_dataset$df$restecg[uci_dataset$df$restecg != 1] <- -1
+test_data$restecg[test_data$restecg != 1] <- -1
+cat("Converted restecg to binary class\n")
 
 # Rescale binary/ternary classes to range from -1 to 1.
-complete_dataset$sex[complete_dataset$sex == 0] <- -1
-complete_dataset$exang[complete_dataset$exang == 0] <- -1
-complete_dataset$fbs[complete_dataset$fbs == 1] <- -1
-complete_dataset$fbs[complete_dataset$fbs == 2] <- 1
+uci_dataset$df$sex[uci_dataset$df$sex == 0] <- -1
+test_data$sex[test_data$sex == 0] <- -1
+uci_dataset$df$exang[uci_dataset$df$exang == 0] <- -1
+test_data$exang[test_data$exang == 0] <- -1
+uci_dataset$df$fbs[uci_dataset$df$fbs == 1] <- -1
+uci_dataset$df$fbs[uci_dataset$df$fbs == 2] <- 1
+test_data$fbs[test_data$fbs == 1] <- -1
+test_data$fbs[test_data$fbs == 2] <- 1
+cat("Rescaled binary and ternary classes to have range (-1, 1)\n")
 
 if (command_line_arguments$classification_type == "binary") {
     # Convert target (heart disease class) to a binary class.
-    complete_dataset$target[complete_dataset$target != 0] <- 1
-    complete_dataset$target[complete_dataset$target == 0] <- -1
+    uci_dataset$df$target[uci_dataset$df$target != 0] <- 1
+    uci_dataset$df$target[uci_dataset$df$target == 0] <- -1
+    test_data$target[test_data$target != 0] <- 1
+    test_data$target[test_data$target == 0] <- -1
+    cat("Converted target to binary class\n")
 
 } else if (command_line_arguments$classification_type == "ternary") {
     # Convert target to a ternary class.
-    complete_dataset$target[complete_dataset$target == 0] <- -1
-    complete_dataset$target[complete_dataset$target == 1] <- 0
-    complete_dataset$target[complete_dataset$target > 1] <- 1
+    uci_dataset$df$target[uci_dataset$df$target == 0] <- -1
+    uci_dataset$df$target[uci_dataset$df$target == 1] <- 0
+    uci_dataset$df$target[uci_dataset$df$target > 1] <- 1
+    test_data$target[test_data$target == 0] <- -1
+    test_data$target[test_data$target == 1] <- 0
+    test_data$target[test_data$target > 1] <- 1
+    cat("Converted target to ternary class\n")
 
 } else if (command_line_arguments$classification_type != "multiclass") {
     # Invalid classification type.
@@ -198,12 +228,8 @@ if (command_line_arguments$classification_type == "binary") {
                  command_line_arguments$classification_type))
 }
 
-validation_rows <-
-    ceiling(nrow(complete_dataset)
-            * command_line_arguments$validation_fraction)
-
-validation_data <- complete_dataset[1:validation_rows, ]
-training_data <- complete_dataset[(validation_rows + 1):nrow(complete_dataset), ]
+validation_data <- uci_dataset$df[1:validation_rows, ]
+training_data <- uci_dataset$df[(validation_rows + 1):nrow(uci_dataset$df), ]
 
 # Write datasets to the filesystem.
 write.csv(test_data,
@@ -219,3 +245,10 @@ write.csv(training_data,
           file = command_line_arguments$training,
           quote = FALSE,
           row.names = FALSE)
+
+cat(sprintf("Wrote testing data to %s\n", command_line_arguments$testing))
+cat(sprintf("Testing samples: %d\n", nrow(test_data)))
+cat(sprintf("Wrote validation data to %s\n", command_line_arguments$validation))
+cat(sprintf("Validation samples: %d\n", nrow(validation_data)))
+cat(sprintf("Wrote training data to %s\n", command_line_arguments$training))
+cat(sprintf("Training samples: %d\n", nrow(training_data)))
