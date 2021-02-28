@@ -72,7 +72,7 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
-                               '',
+                               'cleveland1',
                                '--random-state', RANDOM_SEED,
                                '--features'] + self.SUBSET_COLUMNS)
 
@@ -114,7 +114,7 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
-                               '',
+                               'cleveland1',
                                '--random-state', RANDOM_SEED,
                                '--classification-type', 'ternary',
                                '--features'] + self.SUBSET_COLUMNS)
@@ -157,7 +157,7 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
-                               '',
+                               'cleveland1',
                                '--random-state', RANDOM_SEED,
                                '--classification-type', 'multiclass',
                                '--features'] + self.SUBSET_COLUMNS)
@@ -200,6 +200,7 @@ class PreprocessStage2Test(unittest.TestCase):
                                    str(self.testing_path),
                                    str(self.validation_path),
                                    str(test_ingest_raw_uci_data.INGESTED_DIR),
+                                   'cleveland1',
                                    '--classification-type', 'invalid'])
 
     def test_training_testing_datasets(self):
@@ -213,7 +214,7 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
-                               '',
+                               'cleveland1',
                                '--random-state', RANDOM_SEED,
                                '--validation-fraction', '0',
                                '--features'] + self.SUBSET_COLUMNS)
@@ -249,7 +250,7 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                str(self.output_path),
-                               '',
+                               'cleveland1',
                                '--random-state', RANDOM_SEED,
                                '--features'] + self.SUBSET_COLUMNS)
 
@@ -284,7 +285,7 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                str(self.MISSING_VALUES_INGEST_DIR),
-                               '',
+                               'cleveland1',
                                '--random-state', RANDOM_SEED,
                                '--features'] + self.SUBSET_COLUMNS)
 
@@ -318,7 +319,7 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                self.TEST_SET_INGEST_DIR,
-                               '',
+                               'cleveland1',
                                '--random-state', RANDOM_SEED,
                                '--test-samples-from', 'cleveland',
                                '--features'] + self.SUBSET_COLUMNS)
@@ -356,7 +357,7 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                self.TEST_SET_INGEST_DIR,
-                               '',
+                               'cleveland1',
                                '--random-state', RANDOM_SEED,
                                '--test-samples-from', 'ingest_raw_uci_data1',
                                '--features'] + self.SUBSET_COLUMNS)
@@ -397,8 +398,8 @@ class PreprocessStage2Test(unittest.TestCase):
                                    str(self.testing_path),
                                    str(self.validation_path),
                                    self.TEST_SET_INGEST_DIR,
+                                   'cleveland1',
                                    '--random-state', RANDOM_SEED,
-                                   '--test-samples-from', 'ingest_raw_uci_data2',
                                    '--features'] + self.SUBSET_COLUMNS)
 
 
