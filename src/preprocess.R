@@ -100,6 +100,39 @@ uci_dataset$df <- uci_dataset$df[uci_dataset$df$trestbps != 0, ]
 # Remove rows containing more than one NA.
 uci_wo_multi_na_rows <- uci_dataset$df[rowSums(is.na(uci_dataset$df)) < 2, ]
 
+# Set aside testing data before performing imputation
+test_rows <- ceiling(nrow(imputed_dataset)
+                     * command_line_arguments$test_fraction)
+
+if (command_line_arguments$test_samples_from != "") {
+    # Check that the number of test rows doesn't exceed the number of rows in the
+    # specified test dataset if one was given.
+    original_test_set <- uci_dataset$df[1:uci_dataset$test_rows, ]
+    original_test_rows <- nrow(original_test_set[(rowSums(is.na(original_test_set)) < 2), ])
+    if (test_rows > original_test_rows) {
+        stop(sprintf("Too few samples in %s to create test set.",
+                     command_line_arguments$test_samples_from))
+    }
+
+    # Sample test data before we shuffle the source dataframe to make
+    # sure we sample from the correct dataset.
+    test_data <- uci_wo_multi_na_rows[1:test_rows, ]
+
+    # Remove test samples from the source dataframe.
+    uci_wo_multi_na_rows <- uci_wo_multi_na_rows[(test_rows + 1):nrow(uci_wo_multi_na_rows), ]
+
+    # Now shuffle the source dataframe.
+    uci_wo_multi_na_rows <- uci_wo_multi_na_rows[sample(nrow(uci_wo_multi_na_rows)), ]
+
+} else {
+    # Shuffle souce dataframe before sampling test data.
+    uci_wo_multi_na_rows <- uci_wo_multi_na_rows[sample(nrow(uci_wo_multi_na_rows)), ]
+    test_data <- uci_wo_multi_na_rows[1:test_rows, ]
+
+    # Remove test samples from the source dataframe.
+    uci_wo_multi_na_rows <- uci_wo_multi_na_rows[(test_rows + 1):nrow(uci_wo_multi_na_rows), ]
+}
+
 # Impute missing data using single imputation.
 uci_wo_multi_na_rows$restecg <- as.factor(uci_wo_multi_na_rows$restecg)
 uci_wo_multi_na_rows$fbs <- as.factor(uci_wo_multi_na_rows$fbs)
@@ -145,47 +178,9 @@ if (command_line_arguments$classification_type == "binary") {
                  command_line_arguments$classification_type))
 }
 
-# Split dataset into test, training, and validation sets.
-test_rows <- ceiling(nrow(imputed_dataset)
-                        * command_line_arguments$test_fraction)
-
-
-if (command_line_arguments$test_samples_from != "") {
-
-}
-
 validation_rows <-
     ceiling(nrow(imputed_dataset)
             * command_line_arguments$validation_fraction)
-
-if (command_line_arguments$test_samples_from != "") {
-    # Check that the number of test rows doesn't exceed the number of rows in the
-    # specified test dataset if one was given.
-    original_test_set <- uci_dataset$df[1:uci_dataset$test_rows, ]
-    original_test_rows <- nrow(original_test_set[(rowSums(is.na(original_test_set)) < 2), ])
-    if (test_rows > original_test_rows) {
-        stop(sprintf("Too few samples in %s to create test set.",
-                     command_line_arguments$test_samples_from))
-    }
-
-    # Sample test data before we shuffle the source dataframe to make
-    # sure we sample from the correct dataset.
-    test_data <- imputed_dataset[1:test_rows, ]
-
-    # Remove test samples from the source dataframe.
-    imputed_dataset <- imputed_dataset[(test_rows + 1):nrow(imputed_dataset), ]
-
-    # Now shuffle the source dataframe.
-    imputed_dataset <- imputed_dataset[sample(nrow(imputed_dataset)), ]
-
-} else {
-    # Shuffle souce dataframe before sampling test data.
-    imputed_dataset <- imputed_dataset[sample(nrow(imputed_dataset)), ]
-    test_data <- imputed_dataset[1:test_rows, ]
-
-    # Remove test samples from the source dataframe.
-    imputed_dataset <- imputed_dataset[(test_rows + 1):nrow(imputed_dataset), ]
-}
 
 validation_data <- imputed_dataset[1:validation_rows, ]
 training_data <- imputed_dataset[(validation_rows + 1):nrow(imputed_dataset), ]
