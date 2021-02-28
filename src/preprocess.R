@@ -76,6 +76,10 @@ parse_command_line <- function(argv) {
                            default = "",
                            help = "Name of the dataset to sample test data from. Defaults to all datasets.")
 
+    parser <- add_argument(parser, "--impute-missing-data",
+                           flag = TRUE,
+                           help = "If present, preprocess.R will impute missing values in the training and validation datasets.")
+
     parse_args(parser, argv = argv)
 }
 
@@ -98,10 +102,10 @@ uci_dataset$df <- replace_with_na(uci_dataset$df, replace = list(chol = 0))
 uci_dataset$df <- uci_dataset$df[uci_dataset$df$trestbps != 0, ]
 
 # Remove rows containing more than one NA.
-uci_wo_multi_na_rows <- uci_dataset$df[rowSums(is.na(uci_dataset$df)) < 2, ]
+uci_dataset$df <- uci_dataset$df[rowSums(is.na(uci_dataset$df)) < 2, ]
 
 # Set aside testing data before performing imputation
-test_rows <- ceiling(nrow(uci_wo_multi_na_rows)
+test_rows <- ceiling(nrow(uci_dataset$df)
                      * command_line_arguments$test_fraction)
 
 if (command_line_arguments$test_samples_from != "") {
@@ -116,61 +120,67 @@ if (command_line_arguments$test_samples_from != "") {
 
     # Sample test data before we shuffle the source dataframe to make
     # sure we sample from the correct dataset.
-    test_data <- uci_wo_multi_na_rows[1:test_rows, ]
+    test_data <- uci_dataset$df[1:test_rows, ]
 
     # Remove test samples from the source dataframe.
-    uci_wo_multi_na_rows <- uci_wo_multi_na_rows[(test_rows + 1):nrow(uci_wo_multi_na_rows), ]
+    uci_wo_test_data <- uci_dataset$df[(test_rows + 1):nrow(uci_dataset$df), ]
 
     # Now shuffle the source dataframe.
-    uci_wo_multi_na_rows <- uci_wo_multi_na_rows[sample(nrow(uci_wo_multi_na_rows)), ]
+    uci_wo_test_data <- uci_wo_test_data[sample(nrow(uci_wo_test_data)), ]
 
 } else {
     # Shuffle souce dataframe before sampling test data.
-    uci_wo_multi_na_rows <- uci_wo_multi_na_rows[sample(nrow(uci_wo_multi_na_rows)), ]
-    test_data <- uci_wo_multi_na_rows[1:test_rows, ]
+    uci_dataset$df <- uci_dataset$df[sample(nrow(uci_dataset$df)), ]
+    test_data <- uci_dataset$df[1:test_rows, ]
 
     # Remove test samples from the source dataframe.
-    uci_wo_multi_na_rows <- uci_wo_multi_na_rows[(test_rows + 1):nrow(uci_wo_multi_na_rows), ]
+    uci_wo_test_data <- uci_dataset$df[(test_rows + 1):nrow(uci_dataset$df), ]
 }
 
-# Impute missing data using single imputation.
-uci_wo_multi_na_rows$restecg <- as.factor(uci_wo_multi_na_rows$restecg)
-uci_wo_multi_na_rows$fbs <- as.factor(uci_wo_multi_na_rows$fbs)
-uci_mids <- mice(uci_wo_multi_na_rows,
-                 seed = command_line_arguments$random_state,
-                 method = c("", "", "", "", "logreg", "polyreg", "", "", "pmm", "pmm", ""),
-                 visit = "monotone",
-                 maxit = 60,
-                 m = 1,
-                 print = FALSE)
+if (command_line_arguments$impute_missing_data) {
+    # Impute missing data using single imputation.
+    uci_wo_test_data$restecg <- as.factor(uci_wo_test_data$restecg)
+    uci_wo_test_data$fbs <- as.factor(uci_wo_test_data$fbs)
+    uci_mids <- mice(uci_wo_test_data,
+                     seed = command_line_arguments$random_state,
+                     method = c("", "", "", "", "logreg", "polyreg", "", "", "pmm", "pmm", ""),
+                     visit = "monotone",
+                     maxit = 60,
+                     m = 1,
+                     print = FALSE)
 
-imputed_dataset <- complete(uci_mids, 1)
-imputed_dataset$restecg <- as.numeric(imputed_dataset$restecg)
-imputed_dataset$fbs <- as.numeric(imputed_dataset$fbs)
+    complete_dataset <- complete(uci_mids, 1)
+    complete_dataset$restecg <- as.numeric(complete_dataset$restecg)
+    complete_dataset$fbs <- as.numeric(complete_dataset$fbs)
+
+} else {
+    complete_dataset <- na.omit(uci_wo_test_data)
+    rownames(complete_dataset) <- NULL
+}
 
 # Convert chest pain to a binary class.
-imputed_dataset$cp[imputed_dataset$cp != 4] <- 1
-imputed_dataset$cp[imputed_dataset$cp == 4] <- -1
+complete_dataset$cp[complete_dataset$cp != 4] <- 1
+complete_dataset$cp[complete_dataset$cp == 4] <- -1
 
 # Convert resting ECG to a binary class.
-imputed_dataset$restecg[imputed_dataset$restecg != 1] <- -1
+complete_dataset$restecg[complete_dataset$restecg != 1] <- -1
 
 # Rescale binary/ternary classes to range from -1 to 1.
-imputed_dataset$sex[imputed_dataset$sex == 0] <- -1
-imputed_dataset$exang[imputed_dataset$exang == 0] <- -1
-imputed_dataset$fbs[imputed_dataset$fbs == 1] <- -1
-imputed_dataset$fbs[imputed_dataset$fbs == 2] <- 1
+complete_dataset$sex[complete_dataset$sex == 0] <- -1
+complete_dataset$exang[complete_dataset$exang == 0] <- -1
+complete_dataset$fbs[complete_dataset$fbs == 1] <- -1
+complete_dataset$fbs[complete_dataset$fbs == 2] <- 1
 
 if (command_line_arguments$classification_type == "binary") {
     # Convert target (heart disease class) to a binary class.
-    imputed_dataset$target[imputed_dataset$target != 0] <- 1
-    imputed_dataset$target[imputed_dataset$target == 0] <- -1
+    complete_dataset$target[complete_dataset$target != 0] <- 1
+    complete_dataset$target[complete_dataset$target == 0] <- -1
 
 } else if (command_line_arguments$classification_type == "ternary") {
     # Convert target to a ternary class.
-    imputed_dataset$target[imputed_dataset$target == 0] <- -1
-    imputed_dataset$target[imputed_dataset$target == 1] <- 0
-    imputed_dataset$target[imputed_dataset$target > 1] <- 1
+    complete_dataset$target[complete_dataset$target == 0] <- -1
+    complete_dataset$target[complete_dataset$target == 1] <- 0
+    complete_dataset$target[complete_dataset$target > 1] <- 1
 
 } else if (command_line_arguments$classification_type != "multiclass") {
     # Invalid classification type.
@@ -179,11 +189,11 @@ if (command_line_arguments$classification_type == "binary") {
 }
 
 validation_rows <-
-    ceiling(nrow(imputed_dataset)
+    ceiling(nrow(complete_dataset)
             * command_line_arguments$validation_fraction)
 
-validation_data <- imputed_dataset[1:validation_rows, ]
-training_data <- imputed_dataset[(validation_rows + 1):nrow(imputed_dataset), ]
+validation_data <- complete_dataset[1:validation_rows, ]
+training_data <- complete_dataset[(validation_rows + 1):nrow(complete_dataset), ]
 
 # Write datasets to the filesystem.
 write.csv(test_data,
