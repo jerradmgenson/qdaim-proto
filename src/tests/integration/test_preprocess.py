@@ -399,6 +399,7 @@ class PreprocessStage2Test(unittest.TestCase):
                                    str(self.validation_path),
                                    self.TEST_SET_INGEST_DIR,
                                    'cleveland1',
+                                   '--test-fraction', 0.1,
                                    '--random-state', RANDOM_SEED,
                                    '--features'] + self.SUBSET_COLUMNS)
 
