@@ -101,7 +101,7 @@ uci_dataset$df <- uci_dataset$df[uci_dataset$df$trestbps != 0, ]
 uci_wo_multi_na_rows <- uci_dataset$df[rowSums(is.na(uci_dataset$df)) < 2, ]
 
 # Set aside testing data before performing imputation
-test_rows <- ceiling(nrow(imputed_dataset)
+test_rows <- ceiling(nrow(uci_wo_multi_na_rows)
                      * command_line_arguments$test_fraction)
 
 if (command_line_arguments$test_samples_from != "") {
