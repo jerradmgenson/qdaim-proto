@@ -51,7 +51,7 @@ class PreprocessStage2Test(unittest.TestCase):
     MISSING_VALUES_INGEST_DIR = TEST_DATA / 'imputation_ingest'
     EXPECTED_TOTAL_ROWS_SINGLE_IMPUTATION = 10
     TEST_SET_INGEST_DIR = TEST_DATA / 'test_set_ingest'
-    EXPECTED_TESTING_ROWS_TEST_SET = 4
+    EXPECTED_TESTING_ROWS_TEST_SET = 3
     EXPECTED_TOTAL_ROWS_TEST_SET = 17
 
     def setUp(self):
