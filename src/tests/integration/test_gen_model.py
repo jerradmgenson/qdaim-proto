@@ -419,6 +419,8 @@ class GenModelIntegrationTestCase(GenModelTestCase):
                                  str(self.testing_path),
                                  str(self.validation_path),
                                  str(test_ingest_raw_uci_data.INGESTED_DIR),
+                                 'ingest_raw_uci_data1',
+                                 '--test-fraction', '0.15',
                                  '--features'] + test_preprocess.PreprocessStage2Test.SUBSET_COLUMNS)
 
         exit_code = gen_model.main([str(self.output_path),
