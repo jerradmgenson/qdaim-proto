@@ -261,7 +261,7 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                str(self.MISSING_VALUES_INGEST_DIR),
-                               'cleveland1',
+                               'imputation',
                                '--test-fraction', '0.15',
                                '--random-state', RANDOM_SEED,
                                '--features'] + self.SUBSET_COLUMNS)
