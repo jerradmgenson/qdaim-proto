@@ -108,21 +108,14 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.validation_path),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
                                'cleveland1',
+                               '--test-fraction', '0.15',
                                '--random-state', RANDOM_SEED,
                                '--classification-type', 'ternary',
                                '--features'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
-        expected_testing_dataset = pd.read_csv(self.TERNARY_TESTING_DATASET)
-        self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
-
         actual_training_dataset = pd.read_csv(self.training_path)
-        expected_training_dataset = pd.read_csv(self.TERNARY_TRAINING_DATASET)
-        self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
-
         actual_validation_dataset = pd.read_csv(self.validation_path)
-        expected_validation_dataset = pd.read_csv(self.TERNARY_VALIDATION_DATASET)
-        self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
 
         total_rows = (len(actual_testing_dataset)
                       + len(actual_training_dataset)
@@ -151,21 +144,14 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.validation_path),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
                                'cleveland1',
+                               '--test-fraction', '0.15',
                                '--random-state', RANDOM_SEED,
                                '--classification-type', 'multiclass',
                                '--features'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
-        expected_testing_dataset = pd.read_csv(self.MULTICLASS_TESTING_DATASET)
-        self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
-
         actual_training_dataset = pd.read_csv(self.training_path)
-        expected_training_dataset = pd.read_csv(self.MULTICLASS_TRAINING_DATASET)
-        self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
-
         actual_validation_dataset = pd.read_csv(self.validation_path)
-        expected_validation_dataset = pd.read_csv(self.MULTICLASS_VALIDATION_DATASET)
-        self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
 
         total_rows = (len(actual_testing_dataset)
                       + len(actual_training_dataset)
@@ -208,17 +194,13 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.validation_path),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
                                'cleveland1',
+                               '--test-fraction', '0.15',
                                '--random-state', RANDOM_SEED,
                                '--validation-fraction', '0',
                                '--features'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
-        expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET2)
-        self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
-
         actual_training_dataset = pd.read_csv(self.training_path)
-        expected_training_dataset = pd.read_csv(self.BINARY_TRAINING_DATASET2)
-        self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
 
         total_rows = len(actual_testing_dataset) + len(actual_training_dataset)
         self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS)
@@ -244,6 +226,7 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.validation_path),
                                str(self.output_path),
                                'cleveland1',
+                               '--test-fraction', '0.15',
                                '--random-state', RANDOM_SEED,
                                '--features'] + self.SUBSET_COLUMNS)
 
@@ -279,6 +262,7 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.validation_path),
                                str(self.MISSING_VALUES_INGEST_DIR),
                                'cleveland1',
+                               '--test-fraction', '0.15',
                                '--random-state', RANDOM_SEED,
                                '--features'] + self.SUBSET_COLUMNS)
 
@@ -302,7 +286,7 @@ class PreprocessStage2Test(unittest.TestCase):
 
     def test_test_set_with_first_dataset(self):
         """
-        Test preprocess.R with the --test-samples-from option on a dataset whose
+        Test preprocess.R with the test-pool argument as a dataset whose
         name is first in alphabetical order.
 
         """
@@ -312,9 +296,9 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                self.TEST_SET_INGEST_DIR,
-                               'cleveland1',
+                               'cleveland',
+                               '--test-fraction', '0.15',
                                '--random-state', RANDOM_SEED,
-                               '--test-samples-from', 'cleveland',
                                '--features'] + self.SUBSET_COLUMNS)
 
         testing_dataset = pd.read_csv(self.testing_path)
