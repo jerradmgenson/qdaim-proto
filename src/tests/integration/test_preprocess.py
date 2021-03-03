@@ -78,16 +78,8 @@ class PreprocessStage2Test(unittest.TestCase):
                                '--features'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
-        expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET1)
-        self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
-
         actual_training_dataset = pd.read_csv(self.training_path)
-        expected_training_dataset = pd.read_csv(self.BINARY_TRAINING_DATASET1)
-        self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
-
         actual_validation_dataset = pd.read_csv(self.validation_path)
-        expected_validation_dataset = pd.read_csv(self.BINARY_VALIDATION_DATASET1)
-        self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
 
         total_rows = (len(actual_testing_dataset)
                       + len(actual_training_dataset)
