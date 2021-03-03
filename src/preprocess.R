@@ -96,7 +96,7 @@ Preprocessing steps performed by this script include:
 
 - Split data into test, train, and validation sets."
 
-git_root <- system2("git", args=c("rev-parse", "--show-toplevel"), stdout=TRUE)
+git_root <- system2("git", args = c("rev-parse", "--show-toplevel"), stdout = TRUE)
 source(file.path(git_root, "src/util.R"))
 
 
@@ -208,7 +208,7 @@ if (test_rows > original_test_rows) {
     stop(sprintf("Too few samples in %s to create test set. Need %d samples but only found %d.",
                  command_line_arguments$test_pool,
                  test_rows,
-                 origin_test_rows))
+                 original_test_rows))
 }
 
 ## Sample test data before we shuffle the source dataframe to make
