@@ -44,7 +44,7 @@ class PreprocessStage2Test(unittest.TestCase):
     MULTICLASS_VALIDATION_DATASET = TEST_DATA / 'multiclass_validation_dataset.csv'
     PREPROCESS = GIT_ROOT / 'src/preprocess.R'
     EXPECTED_TOTAL_ROWS = 16
-    EXPECTED_TOTAL_ROWS_RAW_UCI = 7
+    EXPECTED_TOTAL_ROWS_RAW_UCI = 6
     SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'restecg', 'thalach',
                       'exang', 'oldpeak', 'chol', 'target']
 
