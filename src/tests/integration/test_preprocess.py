@@ -266,9 +266,12 @@ class PreprocessStage2Test(unittest.TestCase):
                                '--random-state', RANDOM_SEED,
                                '--features'] + self.SUBSET_COLUMNS)
 
+        original_dataset = pd.read_csv(self.MISSING_VALUES_INGEST_DIR / 'imputation.csv')
+        original_dataset = original_dataset[self.SUBSET_COLUMNS]
         testing_dataset = pd.read_csv(self.testing_path)
+        original_nans = original_dataset.isnull().sum().sum()
         testing_nans = testing_dataset.isnull().sum().sum()
-        self.assertEqual(testing_nans, 0)
+        self.assertGreater(original_nans, testing_nans)
 
         training_dataset = pd.read_csv(self.training_path)
         training_nans = training_dataset.isnull().sum().sum()
