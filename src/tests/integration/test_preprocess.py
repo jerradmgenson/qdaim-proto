@@ -275,7 +275,7 @@ class PreprocessStage2Test(unittest.TestCase):
 
         training_dataset = pd.read_csv(self.training_path)
         training_nans = training_dataset.isnull().sum().sum()
-        self.assertEqual(training_nans, 2)
+        self.assertEqual(training_nans, 0)
 
         validation_dataset = pd.read_csv(self.validation_path)
         validation_nans = validation_dataset.isnull().sum().sum()
