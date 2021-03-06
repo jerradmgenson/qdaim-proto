@@ -253,9 +253,10 @@ if (command_line_arguments$impute_missing || command_line_arguments$impute_multi
     cat(sprintf("NAs after imputation: %d\n", sum(!complete.cases(uci_dataset$df))))
 }
 
-if (sum(!complete.cases(uci_dataset$df)) > 0) {
+nan_count <- sum(!complete.cases(uci_dataset$df))
+if (nan_count > 0) {
     uci_dataset$df <- na.omit(uci_dataset$df)
-    cat("Omitted remaining NAs\n")
+    cat(sprintf("Omitted %d remaining NAs\n", nan_count))
 }
 
 ## Convert chest pain to a binary class.
