@@ -240,7 +240,7 @@ if (command_line_arguments$impute_missing || command_line_arguments$impute_multi
     uci_dataset$df$fbs <- as.factor(uci_dataset$df$fbs)
     uci_mids <- mice(uci_dataset$df,
                      seed = command_line_arguments$random_state,
-                     method = c("", "", "", "pmm", "logreg", "polyreg", "", "", "pmm", "pmm", ""),
+                     method = c("", "", "", "", "logreg", "polyreg", "", "", "pmm", "pmm", ""),
                      visit = "monotone",
                      maxit = 60,
                      m = 1,

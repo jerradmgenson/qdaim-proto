@@ -250,9 +250,9 @@ class PreprocessStage2Test(unittest.TestCase):
 
         test_ingest_raw_uci_data.tearDown(self)
 
-    def test_single_imputation(self):
+    def test_impute_missing(self):
         """
-        Test that single imputation works as expected.
+        Test that the --impute-missing flag works as expected.
 
         """
 
@@ -287,6 +287,44 @@ class PreprocessStage2Test(unittest.TestCase):
                       + len(validation_dataset))
 
         self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_SINGLE_IMPUTATION)
+
+    def test_impute_multiple(self):
+        """
+        Test that the --impute-multiple flag works as expected.
+
+        """
+
+        subprocess.check_call([str(self.PREPROCESS),
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
+                               str(self.MISSING_VALUES_INGEST_DIR),
+                               'imputation',
+                               '--impute-multiple',
+                               '--test-fraction', '0.15',
+                               '--random-state', "2",
+                               '--features'] + self.SUBSET_COLUMNS)
+
+        original_dataset = pd.read_csv(self.MISSING_VALUES_INGEST_DIR / 'imputation.csv')
+        original_dataset = original_dataset[self.SUBSET_COLUMNS]
+        testing_dataset = pd.read_csv(self.testing_path)
+        original_nans = original_dataset.isnull().sum().sum()
+        testing_nans = testing_dataset.isnull().sum().sum()
+        self.assertGreater(original_nans, testing_nans)
+
+        training_dataset = pd.read_csv(self.training_path)
+        training_nans = training_dataset.isnull().sum().sum()
+        self.assertEqual(training_nans, 0)
+
+        validation_dataset = pd.read_csv(self.validation_path)
+        validation_nans = validation_dataset.isnull().sum().sum()
+        self.assertEqual(validation_nans, 0)
+
+        total_rows = (len(testing_dataset)
+                      + len(training_dataset)
+                      + len(validation_dataset))
+
+        self.assertEqual(total_rows, 13)
 
     def test_test_set_with_first_dataset(self):
         """
