@@ -49,7 +49,8 @@ class PreprocessStage2Test(unittest.TestCase):
                       'exang', 'oldpeak', 'chol', 'target']
 
     MISSING_VALUES_INGEST_DIR = TEST_DATA / 'imputation_ingest'
-    EXPECTED_TOTAL_ROWS_SINGLE_IMPUTATION = 10
+    EXPECTED_TOTAL_ROWS_IMPUTE_MISSING = 10
+    EXPECTED_TOTAL_ROWS_IMPUTE_MULTIPLE = 13
     TEST_SET_INGEST_DIR = TEST_DATA / 'test_set_ingest'
     EXPECTED_TESTING_ROWS_TEST_SET = 3
     EXPECTED_TOTAL_ROWS_TEST_SET = 16
@@ -286,7 +287,7 @@ class PreprocessStage2Test(unittest.TestCase):
                       + len(training_dataset)
                       + len(validation_dataset))
 
-        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_SINGLE_IMPUTATION)
+        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_IMPUTE_MISSING)
 
     def test_impute_multiple(self):
         """
@@ -324,7 +325,47 @@ class PreprocessStage2Test(unittest.TestCase):
                       + len(training_dataset)
                       + len(validation_dataset))
 
-        self.assertEqual(total_rows, 13)
+        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_IMPUTE_MULTIPLE)
+
+    def test_impute_multiple_and_impute_missing(self):
+        """
+        Test that combining --impute-multiple with --impute-missing
+        works as expected.
+
+        """
+
+        subprocess.check_call([str(self.PREPROCESS),
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
+                               str(self.MISSING_VALUES_INGEST_DIR),
+                               'imputation',
+                               '--impute-multiple',
+                               '--impute-missing',
+                               '--test-fraction', '0.15',
+                               '--random-state', "2",
+                               '--features'] + self.SUBSET_COLUMNS)
+
+        original_dataset = pd.read_csv(self.MISSING_VALUES_INGEST_DIR / 'imputation.csv')
+        original_dataset = original_dataset[self.SUBSET_COLUMNS]
+        testing_dataset = pd.read_csv(self.testing_path)
+        original_nans = original_dataset.isnull().sum().sum()
+        testing_nans = testing_dataset.isnull().sum().sum()
+        self.assertGreater(original_nans, testing_nans)
+
+        training_dataset = pd.read_csv(self.training_path)
+        training_nans = training_dataset.isnull().sum().sum()
+        self.assertEqual(training_nans, 0)
+
+        validation_dataset = pd.read_csv(self.validation_path)
+        validation_nans = validation_dataset.isnull().sum().sum()
+        self.assertEqual(validation_nans, 0)
+
+        total_rows = (len(testing_dataset)
+                      + len(training_dataset)
+                      + len(validation_dataset))
+
+        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_IMPUTE_MULTIPLE)
 
     def test_test_set_with_first_dataset(self):
         """
