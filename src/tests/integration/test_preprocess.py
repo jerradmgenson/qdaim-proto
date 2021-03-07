@@ -43,16 +43,17 @@ class PreprocessStage2Test(unittest.TestCase):
     MULTICLASS_TRAINING_DATASET = TEST_DATA / 'multiclass_training_dataset.csv'
     MULTICLASS_VALIDATION_DATASET = TEST_DATA / 'multiclass_validation_dataset.csv'
     PREPROCESS = GIT_ROOT / 'src/preprocess.R'
-    EXPECTED_TOTAL_ROWS = 17
-    EXPECTED_TOTAL_ROWS_RAW_UCI = 7
+    EXPECTED_TOTAL_ROWS = 16
+    EXPECTED_TOTAL_ROWS_RAW_UCI = 6
     SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'restecg', 'thalach',
                       'exang', 'oldpeak', 'chol', 'target']
 
     MISSING_VALUES_INGEST_DIR = TEST_DATA / 'imputation_ingest'
-    EXPECTED_TOTAL_ROWS_SINGLE_IMPUTATION = 10
+    EXPECTED_TOTAL_ROWS_IMPUTE_MISSING = 10
+    EXPECTED_TOTAL_ROWS_IMPUTE_MULTIPLE = 13
     TEST_SET_INGEST_DIR = TEST_DATA / 'test_set_ingest'
-    EXPECTED_TESTING_ROWS_TEST_SET = 4
-    EXPECTED_TOTAL_ROWS_TEST_SET = 17
+    EXPECTED_TESTING_ROWS_TEST_SET = 3
+    EXPECTED_TOTAL_ROWS_TEST_SET = 16
 
     def setUp(self):
         setUp(self)
@@ -72,20 +73,14 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
+                               'cleveland1',
+                               '--test-fraction', '0.15',
                                '--random-state', RANDOM_SEED,
                                '--features'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
-        expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET1)
-        self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
-
         actual_training_dataset = pd.read_csv(self.training_path)
-        expected_training_dataset = pd.read_csv(self.BINARY_TRAINING_DATASET1)
-        self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
-
         actual_validation_dataset = pd.read_csv(self.validation_path)
-        expected_validation_dataset = pd.read_csv(self.BINARY_VALIDATION_DATASET1)
-        self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
 
         total_rows = (len(actual_testing_dataset)
                       + len(actual_training_dataset)
@@ -113,21 +108,15 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
+                               'cleveland1',
+                               '--test-fraction', '0.15',
                                '--random-state', RANDOM_SEED,
                                '--classification-type', 'ternary',
                                '--features'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
-        expected_testing_dataset = pd.read_csv(self.TERNARY_TESTING_DATASET)
-        self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
-
         actual_training_dataset = pd.read_csv(self.training_path)
-        expected_training_dataset = pd.read_csv(self.TERNARY_TRAINING_DATASET)
-        self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
-
         actual_validation_dataset = pd.read_csv(self.validation_path)
-        expected_validation_dataset = pd.read_csv(self.TERNARY_VALIDATION_DATASET)
-        self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
 
         total_rows = (len(actual_testing_dataset)
                       + len(actual_training_dataset)
@@ -155,21 +144,15 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
+                               'cleveland1',
+                               '--test-fraction', '0.15',
                                '--random-state', RANDOM_SEED,
                                '--classification-type', 'multiclass',
                                '--features'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
-        expected_testing_dataset = pd.read_csv(self.MULTICLASS_TESTING_DATASET)
-        self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
-
         actual_training_dataset = pd.read_csv(self.training_path)
-        expected_training_dataset = pd.read_csv(self.MULTICLASS_TRAINING_DATASET)
-        self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
-
         actual_validation_dataset = pd.read_csv(self.validation_path)
-        expected_validation_dataset = pd.read_csv(self.MULTICLASS_VALIDATION_DATASET)
-        self.assertTrue(expected_validation_dataset.equals(actual_validation_dataset))
 
         total_rows = (len(actual_testing_dataset)
                       + len(actual_training_dataset)
@@ -197,6 +180,7 @@ class PreprocessStage2Test(unittest.TestCase):
                                    str(self.testing_path),
                                    str(self.validation_path),
                                    str(test_ingest_raw_uci_data.INGESTED_DIR),
+                                   'cleveland1',
                                    '--classification-type', 'invalid'])
 
     def test_training_testing_datasets(self):
@@ -210,17 +194,14 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                str(test_ingest_raw_uci_data.INGESTED_DIR),
+                               'cleveland1',
+                               '--test-fraction', '0.15',
                                '--random-state', RANDOM_SEED,
                                '--validation-fraction', '0',
                                '--features'] + self.SUBSET_COLUMNS)
 
         actual_testing_dataset = pd.read_csv(self.testing_path)
-        expected_testing_dataset = pd.read_csv(self.BINARY_TESTING_DATASET2)
-        self.assertTrue(expected_testing_dataset.equals(actual_testing_dataset))
-
         actual_training_dataset = pd.read_csv(self.training_path)
-        expected_training_dataset = pd.read_csv(self.BINARY_TRAINING_DATASET2)
-        self.assertTrue(expected_training_dataset.equals(actual_training_dataset))
 
         total_rows = len(actual_testing_dataset) + len(actual_training_dataset)
         self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS)
@@ -245,6 +226,8 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                str(self.output_path),
+                               'cleveland1',
+                               '--test-fraction', '0.15',
                                '--random-state', RANDOM_SEED,
                                '--features'] + self.SUBSET_COLUMNS)
 
@@ -268,9 +251,9 @@ class PreprocessStage2Test(unittest.TestCase):
 
         test_ingest_raw_uci_data.tearDown(self)
 
-    def test_single_imputation(self):
+    def test_impute_missing(self):
         """
-        Test that single imputation works as expected.
+        Test that the --impute-missing flag works as expected.
 
         """
 
@@ -279,16 +262,22 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                str(self.MISSING_VALUES_INGEST_DIR),
+                               'imputation',
+                               '--impute-missing',
+                               '--test-fraction', '0.15',
                                '--random-state', RANDOM_SEED,
                                '--features'] + self.SUBSET_COLUMNS)
 
+        original_dataset = pd.read_csv(self.MISSING_VALUES_INGEST_DIR / 'imputation.csv')
+        original_dataset = original_dataset[self.SUBSET_COLUMNS]
         testing_dataset = pd.read_csv(self.testing_path)
+        original_nans = original_dataset.isnull().sum().sum()
         testing_nans = testing_dataset.isnull().sum().sum()
-        self.assertEqual(testing_nans, 0)
+        self.assertGreater(original_nans, testing_nans)
 
         training_dataset = pd.read_csv(self.training_path)
         training_nans = training_dataset.isnull().sum().sum()
-        self.assertEqual(training_nans, 2)
+        self.assertEqual(training_nans, 0)
 
         validation_dataset = pd.read_csv(self.validation_path)
         validation_nans = validation_dataset.isnull().sum().sum()
@@ -298,11 +287,89 @@ class PreprocessStage2Test(unittest.TestCase):
                       + len(training_dataset)
                       + len(validation_dataset))
 
-        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_SINGLE_IMPUTATION)
+        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_IMPUTE_MISSING)
+
+    def test_impute_multiple(self):
+        """
+        Test that the --impute-multiple flag works as expected.
+
+        """
+
+        subprocess.check_call([str(self.PREPROCESS),
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
+                               str(self.MISSING_VALUES_INGEST_DIR),
+                               'imputation',
+                               '--impute-multiple',
+                               '--test-fraction', '0.15',
+                               '--random-state', "2",
+                               '--features'] + self.SUBSET_COLUMNS)
+
+        original_dataset = pd.read_csv(self.MISSING_VALUES_INGEST_DIR / 'imputation.csv')
+        original_dataset = original_dataset[self.SUBSET_COLUMNS]
+        testing_dataset = pd.read_csv(self.testing_path)
+        original_nans = original_dataset.isnull().sum().sum()
+        testing_nans = testing_dataset.isnull().sum().sum()
+        self.assertGreater(original_nans, testing_nans)
+
+        training_dataset = pd.read_csv(self.training_path)
+        training_nans = training_dataset.isnull().sum().sum()
+        self.assertEqual(training_nans, 0)
+
+        validation_dataset = pd.read_csv(self.validation_path)
+        validation_nans = validation_dataset.isnull().sum().sum()
+        self.assertEqual(validation_nans, 0)
+
+        total_rows = (len(testing_dataset)
+                      + len(training_dataset)
+                      + len(validation_dataset))
+
+        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_IMPUTE_MULTIPLE)
+
+    def test_impute_multiple_and_impute_missing(self):
+        """
+        Test that combining --impute-multiple with --impute-missing
+        works as expected.
+
+        """
+
+        subprocess.check_call([str(self.PREPROCESS),
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
+                               str(self.MISSING_VALUES_INGEST_DIR),
+                               'imputation',
+                               '--impute-multiple',
+                               '--impute-missing',
+                               '--test-fraction', '0.15',
+                               '--random-state', "2",
+                               '--features'] + self.SUBSET_COLUMNS)
+
+        original_dataset = pd.read_csv(self.MISSING_VALUES_INGEST_DIR / 'imputation.csv')
+        original_dataset = original_dataset[self.SUBSET_COLUMNS]
+        testing_dataset = pd.read_csv(self.testing_path)
+        original_nans = original_dataset.isnull().sum().sum()
+        testing_nans = testing_dataset.isnull().sum().sum()
+        self.assertGreater(original_nans, testing_nans)
+
+        training_dataset = pd.read_csv(self.training_path)
+        training_nans = training_dataset.isnull().sum().sum()
+        self.assertEqual(training_nans, 0)
+
+        validation_dataset = pd.read_csv(self.validation_path)
+        validation_nans = validation_dataset.isnull().sum().sum()
+        self.assertEqual(validation_nans, 0)
+
+        total_rows = (len(testing_dataset)
+                      + len(training_dataset)
+                      + len(validation_dataset))
+
+        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_IMPUTE_MULTIPLE)
 
     def test_test_set_with_first_dataset(self):
         """
-        Test preprocess.R with the --test-samples-from option on a dataset whose
+        Test preprocess.R with the test-pool argument as a dataset whose
         name is first in alphabetical order.
 
         """
@@ -312,8 +379,9 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                self.TEST_SET_INGEST_DIR,
+                               'cleveland',
+                               '--test-fraction', '0.15',
                                '--random-state', RANDOM_SEED,
-                               '--test-samples-from', 'cleveland',
                                '--features'] + self.SUBSET_COLUMNS)
 
         testing_dataset = pd.read_csv(self.testing_path)
@@ -349,8 +417,9 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                self.TEST_SET_INGEST_DIR,
+                               'ingest_raw_uci_data1',
+                               '--test-fraction', '0.15',
                                '--random-state', RANDOM_SEED,
-                               '--test-samples-from', 'ingest_raw_uci_data1',
                                '--features'] + self.SUBSET_COLUMNS)
 
         testing_dataset = pd.read_csv(self.testing_path)
@@ -389,8 +458,8 @@ class PreprocessStage2Test(unittest.TestCase):
                                    str(self.testing_path),
                                    str(self.validation_path),
                                    self.TEST_SET_INGEST_DIR,
+                                   'cleveland1',
                                    '--random-state', RANDOM_SEED,
-                                   '--test-samples-from', 'ingest_raw_uci_data2',
                                    '--features'] + self.SUBSET_COLUMNS)
 
 

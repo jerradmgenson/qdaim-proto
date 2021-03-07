@@ -1,45 +1,114 @@
 #!/usr/bin/Rscript
 
-# Perform preprocessing activities that occur after feature selection.
-# Ergo, this script is designed to be run after (and informed by) the
-# Feature Selection notebook. The input of this script is the output
-# of preprocess_stage1.py. The output of this script is the input of
-# gen_model.py.
-#
-# Preprocessing steps performed by this script include:
-# - Discard all rows where trestbps is equal to 0.
-# - Discard all rows containing more than one NA.
-# - Impute remaining missing values using mice.
-# - Convert cp to a binary class.
-# - Convert restecg to a binary class.
-# - Optionally convert target to a binary or ternary class.
-# - Rescale binary and ternary classes to range from -1 to 1.
-# - Randomize the row order.
-# - Split data into test, train, and validation sets.
-#
-# Copyright 2020, 2021 Jerrad M. Genson
-#
-# This Source Code Form is subject to the terms of the Mozilla Public
-# License, v. 2.0. If a copy of the MPL was not distributed with this
-# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+## usage: preprocess.R [--] [--help] [--impute-missing]
+##        [--impute-multiple] [--opts OPTS] [--random-state RANDOM-STATE]
+##        [--classification-type CLASSIFICATION-TYPE] [--test-fraction
+##        TEST-FRACTION] [--validation-fraction VALIDATION-FRACTION]
+##        [--features FEATURES] training testing validation source
+##        test-pool
+
+## Clean, standardize, and impute missing data so that it can be modelled.
+
+## Copyright 2020, 2021 Jerrad M. Genson
+
+## This Source Code Form is subject to the terms of the Mozilla Public
+## License, v. 2.0. If a copy of the MPL was not distributed with this
+## file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+## Preprocessing steps performed by this script include:
+
+## - Omit all rows where trestbps is equal to 0.
+
+## - Omit rows containing NA or impute them using mice.
+
+## - Convert cp to a binary class.
+
+## - Convert restecg to a binary class.
+
+## - Optionally convert target to a binary or ternary class.
+
+## - Rescale binary and ternary classes to range from -1 to 1.
+
+## - Randomize row order.
+
+## - Split data into test, train, and validation sets.
+
+## positional arguments:
+##   training                   Path to write the training dataset to.
+##   testing                    Path to write the test dataset to.
+##   validation                 Path to write the validation dataset to.
+##   source                     Input directory of CSV data files.
+##   test-pool                  Name of the dataset to draw the test data
+##                              from.
+
+## flags:
+##   -h, --help                 show this help message and exit
+##   -i, --impute-missing       Impute rows with single NAs in the
+##                              training and validation datasets.
+##   --impute-multiple          Impute rows with multiple NAs in the
+##                              training and validation datasets.
+##                              --impute-missing has no effect when
+##                              --impute-multiple is present.
+
+## optional arguments:
+##   -x, --opts                 RDS file containing argument values
+##   -r, --random-state         State to initialize random number
+##                              generators with. [default: 0]
+##   -c, --classification-type  Classification type. Possible values:
+##                              'binary', 'ternary', 'multiclass'
+##                              [default: binary]
+##   -t, --test-fraction        Fraction of data to use for testing as a
+##                              real number between 0 and 1. [default:
+##                              0.2]
+##   -v, --validation-fraction  Fraction of data to use for validation as
+##                              a real number between 0 and 1. [default:
+##                              0.2]
+##   -f, --features             Features to select from the input
+##                              datasets.
 
 library(argparser)
 library(mice)
 library(naniar)
 
-git_root <- system2('git', args=c('rev-parse', '--show-toplevel'), stdout=TRUE)
+help_text <- "Clean, standardize, and impute missing data so that it can be modelled.
+
+Copyright 2020, 2021 Jerrad M. Genson
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+Preprocessing steps performed by this script include:
+
+- Omit all rows where trestbps is equal to 0.
+
+- Omit rows containing NA or impute them using mice.
+
+- Convert cp to a binary class.
+
+- Convert restecg to a binary class.
+
+- Optionally convert target to a binary or ternary class.
+
+- Rescale binary and ternary classes to range from -1 to 1.
+
+- Randomize row order.
+
+- Split data into test, train, and validation sets."
+
+git_root <- system2("git", args = c("rev-parse", "--show-toplevel"), stdout = TRUE)
 source(file.path(git_root, "src/util.R"))
 
 
 parse_command_line <- function(argv) {
-    # Parse the command line using argparse.
-    #
-    # Args
-    #  argv: A list of command line arguments, excluding the program name.
-    #
-    # Returns
-    #  The output of parse_args().
-    parser <- arg_parser("Stage 2 preprocessor")
+    ## Parse the command line using argparse.
+    ##
+    ## Args
+    ##  argv: A list of command line arguments, excluding the program name.
+    ##
+    ## Returns
+    ##  The output of parse_args().
+    parser <- arg_parser(help_text)
     parser <- add_argument(parser, "training",
                            help = "Path to write the training dataset to.")
 
@@ -51,6 +120,9 @@ parse_command_line <- function(argv) {
 
     parser <- add_argument(parser, "source",
                            help = "Input directory of CSV data files.")
+
+    parser <- add_argument(parser, "test-pool",
+                           help = "Name of the dataset to draw the test data from.")
 
     parser <- add_argument(parser, "--random-state",
                            default = 0,
@@ -72,125 +144,174 @@ parse_command_line <- function(argv) {
                            nargs = Inf,
                            help = "Features to select from the input datasets.")
 
-    parser <- add_argument(parser, "--test-samples-from",
-                           default = "",
-                           help = "Name of the dataset to sample test data from. Defaults to all datasets.")
+    parser <- add_argument(parser, "--impute-missing",
+                           flag = TRUE,
+                           help = "Impute rows with single NAs in the training and validation datasets.")
+
+    parser <- add_argument(parser, "--impute-multiple",
+                           flag = TRUE,
+                           help = "Impute rows with multiple NAs in the training and validation datasets. --impute-missing has no effect when --impute-multiple is present.")
 
     parse_args(parser, argv = argv)
+}
+
+
+multi_na.omit <- function(df) {
+    ## Omit rows from the dataframe, df, that contain more than one NA.
+    ## Return a copy of the dataframe without the multiple NA rows.
+    df[rowSums(is.na(df)) < 2, ]
 }
 
 
 command_line_arguments <- parse_command_line(commandArgs(trailingOnly = TRUE))
 set.seed(command_line_arguments$random_state)
 
-# Convert optional parameter from NA to NULL if it wasn't given.
+## Convert optional parameter from NA to NULL if it wasn't given.
 features  <- if (!is.na(command_line_arguments$features)) command_line_arguments$features else NULL
 
-# Read all CSV files from the given directory into a single dataframe.
+## Read all CSV files from the given directory into a single dataframe.
 uci_dataset <- read_dir(command_line_arguments$source,
                         features = features,
-                        test_samples_from = command_line_arguments$test_samples_from)
+                        test_pool = command_line_arguments$test_pool)
 
-# Convert chol values = 0 to NA.
+cat(sprintf("Read %d rows from source datasets\n", nrow(uci_dataset$df)))
+
+## Remove rows where trestbps is 0.
+trestbps0_rows <- sum(uci_dataset$df$trestbps == 0, na.rm = TRUE)
+uci_dataset$df <- subset(uci_dataset$df, uci_dataset$df$trestbps != 0)
+cat(sprintf("Omitted %d rows where trestbps is 0\n", trestbps0_rows))
+
+## Convert chol values == 0 to NA.
+chol0_rows <- sum(uci_dataset$df$chol == 0, na.rm = TRUE)
 uci_dataset$df <- replace_with_na(uci_dataset$df, replace = list(chol = 0))
+cat(sprintf("Replaced %d rows where chol is 0 with NA\n", chol0_rows))
 
-# Remove rows where trestbps is 0.
-uci_dataset$df <- uci_dataset$df[uci_dataset$df$trestbps != 0, ]
+## Calculate number of rows to use for testing and validation.
+if (command_line_arguments$impute_multiple) {
+    total_rows <- nrow(uci_dataset$df)
 
-# Remove rows containing more than one NA.
-uci_wo_multi_na_rows <- uci_dataset$df[rowSums(is.na(uci_dataset$df)) < 2, ]
+} else if (command_line_arguments$impute_missing) {
+    total_rows <- nrow(multi_na.omit(uci_dataset$df))
 
-# Impute missing data using single imputation.
-uci_wo_multi_na_rows$restecg <- as.factor(uci_wo_multi_na_rows$restecg)
-uci_wo_multi_na_rows$fbs <- as.factor(uci_wo_multi_na_rows$fbs)
-uci_mids <- mice(uci_wo_multi_na_rows,
-                 seed = command_line_arguments$random_state,
-                 method = c("", "", "", "", "logreg", "polyreg", "", "", "pmm", "pmm", ""),
-                 visit = "monotone",
-                 maxit = 60,
-                 m = 1,
-                 print = FALSE)
+} else {
+    total_rows <- nrow(na.omit(uci_dataset$df))
+}
 
-imputed_dataset <- complete(uci_mids, 1)
-imputed_dataset$restecg <- as.numeric(imputed_dataset$restecg)
-imputed_dataset$fbs <- as.numeric(imputed_dataset$fbs)
+test_rows <- ceiling(total_rows * command_line_arguments$test_fraction)
+validation_rows <- ceiling(total_rows * command_line_arguments$validation_fraction)
 
-# Convert chest pain to a binary class.
-imputed_dataset$cp[imputed_dataset$cp != 4] <- 1
-imputed_dataset$cp[imputed_dataset$cp == 4] <- -1
+## Check that the number of test rows doesn't exceed the number of rows in the
+## specified test dataset if one was given.
+original_test_set <- uci_dataset$df[1:uci_dataset$test_rows, ]
+original_test_rows <- nrow(na.omit(original_test_set))
+if (test_rows > original_test_rows) {
+    stop(sprintf("Too few samples in %s to create test set. Need %d samples but only found %d.",
+                 command_line_arguments$test_pool,
+                 test_rows,
+                 original_test_rows))
+}
 
-# Convert resting ECG to a binary class.
-imputed_dataset$restecg[imputed_dataset$restecg != 1] <- -1
+## Sample test data before we shuffle the source dataframe to make
+## sure we sample from the correct dataset.
+test_data <- uci_dataset$df[1:test_rows, ]
+cat(sprintf("Constructed testing dataset from %s data with %d samples\n",
+            command_line_arguments$test_pool,
+            test_rows))
 
-# Rescale binary/ternary classes to range from -1 to 1.
-imputed_dataset$sex[imputed_dataset$sex == 0] <- -1
-imputed_dataset$exang[imputed_dataset$exang == 0] <- -1
-imputed_dataset$fbs[imputed_dataset$fbs == 1] <- -1
-imputed_dataset$fbs[imputed_dataset$fbs == 2] <- 1
+## Remove test samples from the source dataframe.
+uci_dataset$df <- uci_dataset$df[(test_rows + 1):nrow(uci_dataset$df), ]
+
+## Now shuffle the source dataframe.
+uci_dataset$df <- uci_dataset$df[sample(nrow(uci_dataset$df)), ]
+cat("Shuffled remaining data\n")
+
+if (!command_line_arguments$impute_multiple) {
+    rows_before <- nrow(uci_dataset$df)
+    uci_dataset$df <- multi_na.omit(uci_dataset$df)
+    rows_after <- nrow(uci_dataset$df)
+    cat(sprintf("Omitted %d rows with multiple NAs\n", rows_before - rows_after))
+}
+
+if (command_line_arguments$impute_missing || command_line_arguments$impute_multiple) {
+    ## Impute missing data using single imputation.
+    cat("Imputing missing data...\n")
+    cat(sprintf("NAs before imputation: %d\n", sum(!complete.cases(uci_dataset$df))))
+    uci_dataset$df$restecg <- as.factor(uci_dataset$df$restecg)
+    uci_dataset$df$fbs <- as.factor(uci_dataset$df$fbs)
+    uci_mids <- mice(uci_dataset$df,
+                     seed = command_line_arguments$random_state,
+                     method = c("", "", "", "", "logreg", "polyreg", "", "", "pmm", "pmm", ""),
+                     visit = "monotone",
+                     maxit = 60,
+                     m = 1,
+                     print = FALSE)
+
+    uci_dataset$df <- complete(uci_mids, 1)
+    uci_dataset$df$restecg <- as.numeric(uci_dataset$df$restecg)
+    uci_dataset$df$fbs <- as.numeric(uci_dataset$df$fbs)
+    cat("Imputation complete\n")
+    cat(sprintf("NAs after imputation: %d\n", sum(!complete.cases(uci_dataset$df))))
+}
+
+nan_count <- sum(!complete.cases(uci_dataset$df))
+if (nan_count > 0) {
+    uci_dataset$df <- na.omit(uci_dataset$df)
+    cat(sprintf("Omitted %d remaining NAs\n", nan_count))
+}
+
+## Convert chest pain to a binary class.
+uci_dataset$df$cp[uci_dataset$df$cp != 4] <- 1
+uci_dataset$df$cp[uci_dataset$df$cp == 4] <- -1
+test_data$cp[test_data$cp != 4] <- 1
+test_data$cp[test_data$cp == 4] <- -1
+cat("Converted cp to binary class\n")
+
+## Convert resting ECG to a binary class.
+uci_dataset$df$restecg[uci_dataset$df$restecg != 1] <- -1
+test_data$restecg[test_data$restecg != 1] <- -1
+cat("Converted restecg to binary class\n")
+
+## Rescale binary/ternary classes to range from -1 to 1.
+uci_dataset$df$sex[uci_dataset$df$sex == 0] <- -1
+test_data$sex[test_data$sex == 0] <- -1
+uci_dataset$df$exang[uci_dataset$df$exang == 0] <- -1
+test_data$exang[test_data$exang == 0] <- -1
+uci_dataset$df$fbs[uci_dataset$df$fbs == 1] <- -1
+uci_dataset$df$fbs[uci_dataset$df$fbs == 2] <- 1
+test_data$fbs[test_data$fbs == 1] <- -1
+test_data$fbs[test_data$fbs == 2] <- 1
+cat("Rescaled binary and ternary classes to have range (-1, 1)\n")
 
 if (command_line_arguments$classification_type == "binary") {
-    # Convert target (heart disease class) to a binary class.
-    imputed_dataset$target[imputed_dataset$target != 0] <- 1
-    imputed_dataset$target[imputed_dataset$target == 0] <- -1
+    ## Convert target (heart disease class) to a binary class.
+    uci_dataset$df$target[uci_dataset$df$target != 0] <- 1
+    uci_dataset$df$target[uci_dataset$df$target == 0] <- -1
+    test_data$target[test_data$target != 0] <- 1
+    test_data$target[test_data$target == 0] <- -1
+    cat("Converted target to binary class\n")
 
 } else if (command_line_arguments$classification_type == "ternary") {
-    # Convert target to a ternary class.
-    imputed_dataset$target[imputed_dataset$target == 0] <- -1
-    imputed_dataset$target[imputed_dataset$target == 1] <- 0
-    imputed_dataset$target[imputed_dataset$target > 1] <- 1
+    ## Convert target to a ternary class.
+    uci_dataset$df$target[uci_dataset$df$target == 0] <- -1
+    uci_dataset$df$target[uci_dataset$df$target == 1] <- 0
+    uci_dataset$df$target[uci_dataset$df$target > 1] <- 1
+    test_data$target[test_data$target == 0] <- -1
+    test_data$target[test_data$target == 1] <- 0
+    test_data$target[test_data$target > 1] <- 1
+    cat("Converted target to ternary class\n")
 
 } else if (command_line_arguments$classification_type != "multiclass") {
-    # Invalid classification type.
+    ## Invalid classification type.
     stop(sprintf("Unknown classification type `%s`.",
                  command_line_arguments$classification_type))
 }
 
-# Split dataset into test, training, and validation sets.
-test_rows <- ceiling(nrow(imputed_dataset)
-                        * command_line_arguments$test_fraction)
+validation_data <- uci_dataset$df[1:validation_rows, ]
+cat(sprintf("Samples in validation dataset: %d\n", validation_rows))
+training_data <- uci_dataset$df[(validation_rows + 1):nrow(uci_dataset$df), ]
+cat(sprintf("Samples in training dataset: %d\n", nrow(training_data)))
 
-
-if (command_line_arguments$test_samples_from != "") {
-
-}
-
-validation_rows <-
-    ceiling(nrow(imputed_dataset)
-            * command_line_arguments$validation_fraction)
-
-if (command_line_arguments$test_samples_from != "") {
-    # Check that the number of test rows doesn't exceed the number of rows in the
-    # specified test dataset if one was given.
-    original_test_set <- uci_dataset$df[1:uci_dataset$test_rows, ]
-    original_test_rows <- nrow(original_test_set[(rowSums(is.na(original_test_set)) < 2), ])
-    if (test_rows > original_test_rows) {
-        stop(sprintf("Too few samples in %s to create test set.",
-                     command_line_arguments$test_samples_from))
-    }
-
-    # Sample test data before we shuffle the source dataframe to make
-    # sure we sample from the correct dataset.
-    test_data <- imputed_dataset[1:test_rows, ]
-
-    # Remove test samples from the source dataframe.
-    imputed_dataset <- imputed_dataset[(test_rows + 1):nrow(imputed_dataset), ]
-
-    # Now shuffle the source dataframe.
-    imputed_dataset <- imputed_dataset[sample(nrow(imputed_dataset)), ]
-
-} else {
-    # Shuffle souce dataframe before sampling test data.
-    imputed_dataset <- imputed_dataset[sample(nrow(imputed_dataset)), ]
-    test_data <- imputed_dataset[1:test_rows, ]
-
-    # Remove test samples from the source dataframe.
-    imputed_dataset <- imputed_dataset[(test_rows + 1):nrow(imputed_dataset), ]
-}
-
-validation_data <- imputed_dataset[1:validation_rows, ]
-training_data <- imputed_dataset[(validation_rows + 1):nrow(imputed_dataset), ]
-
-# Write datasets to the filesystem.
+## Write datasets to the filesystem.
 write.csv(test_data,
           file = command_line_arguments$testing,
           quote = FALSE,
@@ -204,3 +325,9 @@ write.csv(training_data,
           file = command_line_arguments$training,
           quote = FALSE,
           row.names = FALSE)
+
+cat(sprintf("Wrote testing data to %s\n", command_line_arguments$testing))
+cat(sprintf("Wrote validation data to %s\n", command_line_arguments$validation))
+cat(sprintf("Wrote training data to %s\n", command_line_arguments$training))
+cat(sprintf("Total samples written in all datasets: %d\n",
+            test_rows + validation_rows + nrow(training_data)))

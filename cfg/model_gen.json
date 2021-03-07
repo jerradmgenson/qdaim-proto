@@ -6,7 +6,7 @@
     "random_state": 3307259,
     "scoring": "informedness",
     "training_dataset": "training.csv",
+    "validation_dataset": "validation.csv",
     "test_dataset": "test.csv",
-    "test_samples_from": "cleveland",
-    "validation_dataset": "validation.csv"
+    "test_pool": "cleveland"
 }

@@ -9,13 +9,13 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-read_dir <- function(path, features = NULL, test_samples_from = "") {
+read_dir <- function(path, features = NULL, test_pool = "") {
     # Read all CSV files in a directory into a common dataframe.
     # Args:
     #   path: Path to the directory to read from.
     #   features: The features to select from the input datasets.
     #             Defaults to all available features.
-    #   test_samples_from: The dataset to use as the testing set. If given,
+    #   test_pool: The dataset to use as the testing set. If given,
     #             `read_dir` will place this data at the beginning of
     #             the dataframe. It should be the name of the file
     #             without the '.csv' extension.
@@ -34,7 +34,7 @@ read_dir <- function(path, features = NULL, test_samples_from = "") {
         if (!is.null(features)) {
             data_subset <- data_subset[features]
         }
-        test_set_match <- test_samples_from == unlist(strsplit(csv_file, split = ".csv"))
+        test_set_match <- test_pool == unlist(strsplit(csv_file, split = ".csv"))
         if (is.null(df)) {
             df <- data_subset
             test_rows <- ifelse(test_set_match, nrow(data_subset), test_rows)
