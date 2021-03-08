@@ -462,6 +462,60 @@ class PreprocessStage2Test(unittest.TestCase):
                                    '--random-state', RANDOM_SEED,
                                    '--features'] + self.SUBSET_COLUMNS)
 
+    def test_test_pool_is_constructed_from_correct_dataset1(self):
+        """
+        Test that the preprocessor constructs the test pool from the correct dataset.
+
+        """
+
+        subprocess.check_call([str(self.PREPROCESS),
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
+                               self.TEST_SET_INGEST_DIR,
+                               'cleveland',
+                               '--test-fraction', '0.15',
+                               '--random-state', RANDOM_SEED,
+                               '--features'] + self.SUBSET_COLUMNS)
+
+        testing_dataset = pd.read_csv(self.testing_path)
+        testing_dataset = testing_dataset[['age', 'trestbps', 'thalach']]
+        testing_dataset = set(testing_dataset.itertuples(index=False))
+
+        cleveland_dataset = pd.read_csv(self.TEST_SET_INGEST_DIR / 'cleveland.csv')
+        cleveland_dataset = cleveland_dataset[['age', 'trestbps', 'thalach']]
+        cleveland_dataset = set(cleveland_dataset.itertuples(index=False))
+
+        self.assertTrue(testing_dataset <= cleveland_dataset)
+        self.assertTrue(testing_dataset)
+
+    def test_test_pool_is_constructed_from_correct_dataset2(self):
+        """
+        Test that the preprocessor constructs the test pool from the correct dataset.
+
+        """
+
+        subprocess.check_call([str(self.PREPROCESS),
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
+                               str(test_ingest_raw_uci_data.INGESTED_DIR),
+                               'cleveland1',
+                               '--test-fraction', '0.15',
+                               '--random-state', RANDOM_SEED,
+                               '--features'] + self.SUBSET_COLUMNS)
+
+        testing_dataset = pd.read_csv(self.testing_path)
+        testing_dataset = testing_dataset[['age', 'trestbps', 'thalach']]
+        testing_dataset = set(testing_dataset.itertuples(index=False))
+
+        cleveland1_dataset = pd.read_csv(test_ingest_raw_uci_data.INGESTED_DIR / 'cleveland1.csv')
+        cleveland1_dataset = cleveland1_dataset[['age', 'trestbps', 'thalach']]
+        cleveland1_dataset = set(cleveland1_dataset.itertuples(index=False))
+
+        self.assertTrue(testing_dataset <= cleveland1_dataset)
+        self.assertTrue(testing_dataset)
+
 
 # Define setUp and tearDown functions outside of the class so that they are
 # callable from other TestCase classes.
