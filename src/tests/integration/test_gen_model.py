@@ -551,10 +551,10 @@ class CrossValidationTestCase(GenModelTestCase):
         with open(self.output_path, 'rb') as output_fp:
             model = pickle.load(output_fp)
 
-        self.assertAlmostEqual(model.validation['cross_validation_mean']['accuracy'], 0.9666666666666667)
-        self.assertAlmostEqual(model.validation['cross_validation_std']['accuracy'], 0.0)
-        self.assertAlmostEqual(model.validation['cross_validation_mean']['informedness'], 0.9555335968379446)
-        self.assertAlmostEqual(model.validation['cross_validation_std']['informedness'], 0.006849386311628791)
+        self.assertAlmostEqual(model.validation['cross_validation_mean']['accuracy'], 0.9766666666666666)
+        self.assertAlmostEqual(model.validation['cross_validation_std']['accuracy'], 0.013333333333333324)
+        self.assertAlmostEqual(model.validation['cross_validation_mean']['informedness'], 0.9650697519490425)
+        self.assertAlmostEqual(model.validation['cross_validation_std']['informedness'], 0.018730169839678307)
 
         with self.assertRaises(AttributeError):
             model.median_sensitivity
