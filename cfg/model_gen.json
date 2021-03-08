@@ -1,12 +1,12 @@
 {
     "cross_validation_folds": 20,
-    "features": ["age", "sex", "cp", "trestbps", "fbs", "restecg", "thalach", "exang", "oldpeak", "target"],
-    "model": "lda",
-    "preprocessing": ["robust scaling"],
-    "random_state": 35223,
+    "features": ["age", "sex", "cp", "trestbps", "fbs", "restecg", "thalach", "exang", "oldpeak", "chol", "target"],
+    "model": "knn",
+    "preprocessing": ["robust scaling", "factor analysis"],
+    "random_state": 3307259,
     "scoring": "informedness",
     "training_dataset": "training.csv",
+    "validation_dataset": "validation.csv",
     "test_dataset": "test.csv",
-    "test_samples_from": "cleveland",
-    "validation_dataset": "validation.csv"
+    "test_pool": "cleveland"
 }
