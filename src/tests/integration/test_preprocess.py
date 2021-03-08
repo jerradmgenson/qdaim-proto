@@ -53,7 +53,6 @@ class PreprocessStage2Test(unittest.TestCase):
     EXPECTED_TOTAL_ROWS_IMPUTE_MULTIPLE = 13
     TEST_SET_INGEST_DIR = TEST_DATA / 'test_set_ingest'
     EXPECTED_TESTING_ROWS_TEST_SET = 3
-    EXPECTED_TOTAL_ROWS_TEST_SET = 16
 
     def setUp(self):
         setUp(self)
@@ -226,7 +225,7 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                str(self.output_path),
-                               'cleveland1',
+                               'dataset2',
                                '--test-fraction', '0.15',
                                '--random-state', RANDOM_SEED,
                                '--features'] + self.SUBSET_COLUMNS)
@@ -394,7 +393,7 @@ class PreprocessStage2Test(unittest.TestCase):
                       + len(training_dataset)
                       + len(validation_dataset))
 
-        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_TEST_SET)
+        self.assertEqual(total_rows, 16)
 
         cleveland_dataset = pd.read_csv(self.TEST_SET_INGEST_DIR / 'cleveland.csv')
         cleveland_subset = frozenset(cleveland_dataset[['age', 'trestbps', 'thalach', 'oldpeak']].apply(tuple, axis=1))
@@ -407,8 +406,8 @@ class PreprocessStage2Test(unittest.TestCase):
 
     def test_test_set_with_second_dataset(self):
         """
-        Test preprocess.R with the --test-samples-from option on a dataset whose
-        name is second in alphabetical order.
+        Test preprocess.R with a test-pool dataset whose name is second
+        in alphabetical order.
 
         """
 
@@ -425,14 +424,13 @@ class PreprocessStage2Test(unittest.TestCase):
         testing_dataset = pd.read_csv(self.testing_path)
         training_dataset = pd.read_csv(self.training_path)
         validation_dataset = pd.read_csv(self.validation_path)
-        self.assertEqual(len(testing_dataset),
-                         self.EXPECTED_TESTING_ROWS_TEST_SET)
+        self.assertEqual(len(testing_dataset), 3)
 
         total_rows = (len(testing_dataset)
                       + len(training_dataset)
                       + len(validation_dataset))
 
-        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_TEST_SET)
+        self.assertEqual(total_rows, 16)
 
         ingest_raw_uci_data1_dataset = pd.read_csv(self.TEST_SET_INGEST_DIR / 'ingest_raw_uci_data1.csv')
         ingest_raw_uci_data1_subset = \
