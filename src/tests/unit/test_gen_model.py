@@ -11,7 +11,6 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 import unittest
 import random
-import subprocess
 from unittest.mock import patch, Mock
 
 import sklearn
@@ -164,11 +163,11 @@ class CrossValidateTest(unittest.TestCase):
                                            new_callable=lambda: lambda x: x)
 
         with sklearn_clone_patch:
-            median_scores, mad_scores = gen_model.cross_validate(model,
-                                                                 datasets,
-                                                                 2)
+            mean_scores, std_scores = gen_model.cross_validate(model,
+                                                               datasets,
+                                                               2)
 
-        self.assertEqual(median_scores,
+        self.assertEqual(mean_scores,
                          dict(accuracy=1.0,
                               informedness=1.0,
                               mcc=1.0,
@@ -183,12 +182,12 @@ class CrossValidateTest(unittest.TestCase):
                               lr_minus=0.0,
                               roc_auc=1.0))
 
-        self.assertTrue(np.isnan(mad_scores['dor']))
-        self.assertTrue(np.isnan(mad_scores['lr_plus']))
-        mad_scores_sans_nan = mad_scores.copy()
-        del mad_scores_sans_nan['dor']
-        del mad_scores_sans_nan['lr_plus']
-        self.assertEqual(mad_scores_sans_nan,
+        self.assertTrue(np.isnan(std_scores['dor']))
+        self.assertTrue(np.isnan(std_scores['lr_plus']))
+        std_scores_sans_nan = std_scores.copy()
+        del std_scores_sans_nan['dor']
+        del std_scores_sans_nan['lr_plus']
+        self.assertEqual(std_scores_sans_nan,
                          dict(accuracy=0.0,
                               informedness=0.0,
                               mcc=0.0,
@@ -221,11 +220,11 @@ class CrossValidateTest(unittest.TestCase):
                                            new_callable=lambda: lambda x: x)
 
         with sklearn_clone_patch:
-            median_scores, mad_scores = gen_model.cross_validate(model,
-                                                                 datasets,
-                                                                 2)
+            mean_scores, std_scores = gen_model.cross_validate(model,
+                                                               datasets,
+                                                               2)
 
-        self.assertEqual(median_scores,
+        self.assertEqual(mean_scores,
                          dict(accuracy=0.0,
                               informedness=-1.0,
                               mcc=0.0,
@@ -234,7 +233,7 @@ class CrossValidateTest(unittest.TestCase):
                               f1_score=0.0,
                               ami=-1.1845850666627777e-15))
 
-        self.assertEqual(mad_scores,
+        self.assertEqual(std_scores,
                          dict(accuracy=0.0,
                               informedness=0.0,
                               mcc=0.0,
@@ -266,42 +265,42 @@ class CrossValidateTest(unittest.TestCase):
                                            new_callable=lambda: lambda x: x)
 
         with sklearn_clone_patch:
-            median_scores, mad_scores = gen_model.cross_validate(model,
-                                                                 datasets,
-                                                                 50)
+            mean_scores, std_scores = gen_model.cross_validate(model,
+                                                               datasets,
+                                                               50)
 
-        expected_median_scores = dict(accuracy=0.4975,
-                                      informedness=-0.50171875,
-                                      mcc=0.0,
-                                      precision=1.0,
-                                      recall=0.495,
-                                      f1_score=0.6615078803758534,
-                                      ami=5.184292427413571e-15,
-                                      sensitivity=0.495,
-                                      specificity=0.0,
-                                      lr_plus=0.496875,
-                                      lr_minus=np.inf,
-                                      dor=0.9452974770681903,
-                                      roc_auc=0.4929404761904762)
+        expected_mean_scores = dict(accuracy=0.49706874999999995,
+                                    informedness=-0.4428856547619047,
+                                    mcc=-0.0005713309266253083,
+                                    precision=0.749681863984859,
+                                    recall=0.39775059523809525,
+                                    f1_score=0.5138277793680612,
+                                    ami=8.732226401394425e-07,
+                                    sensitivity=0.39775059523809525,
+                                    specificity=0.15936375,
+                                    lr_plus=0.45754621749640234,
+                                    lr_minus=np.inf,
+                                    dor=0.9892374662516746,
+                                    roc_auc=0.49821081349206353)
 
-        for score_x, score_y in zip(median_scores.values(), expected_median_scores.values()):
+        for score_x, score_y in zip(mean_scores.values(), expected_mean_scores.values()):
             self.assertAlmostEqual(score_x, score_y)
 
-        expected_mad_scores = dict(accuracy=0.007968749999999997,
-                                   informedness=0.009531249999999991,
-                                   mcc=0.0,
-                                   precision=0.0,
-                                   recall=0.00927083333333334,
-                                   f1_score=0.010489296852607799,
-                                   ami=1.995059231561136e-15,
-                                   sensitivity=0.00927083333333334,
-                                   specificity=0.0,
-                                   lr_plus=0.011249999999999982,
+        expected_std_scores = dict(accuracy=0.009596119414247612,
+                                   informedness=0.16263163186215157,
+                                   mcc=0.0062919037761621655,
+                                   precision=0.40496126855295866,
+                                   recall=0.1990578418605485,
+                                   f1_score=0.2629204584544332,
+                                   ami=4.2895303058646736e-05,
+                                   sensitivity=0.1990578418605485,
+                                   specificity=0.23252480939205714,
+                                   lr_plus=0.27901530609632763,
                                    lr_minus=np.nan,
-                                   dor=0.025665399623180152,
-                                   roc_auc=0.003409226190476178)
+                                   dor=0.08301786282215477,
+                                   roc_auc=0.010206351677346874)
 
-        for score_x, score_y in zip(mad_scores.values(), expected_mad_scores.values()):
+        for score_x, score_y in zip(std_scores.values(), expected_std_scores.values()):
             if np.isnan(score_x) and np.isnan(score_y):
                 continue
 
@@ -346,42 +345,42 @@ class CrossValidateTest(unittest.TestCase):
                                            new_callable=lambda: lambda x: x)
 
         with sklearn_clone_patch:
-            median_scores, mad_scores = gen_model.cross_validate(model,
-                                                                 datasets,
-                                                                 10)
+            mean_scores, std_scores = gen_model.cross_validate(model,
+                                                               datasets,
+                                                               10)
 
-        expected_median_scores = dict(accuracy=0.5625,
-                                      informedness=0.0,
-                                      mcc=0.0,
-                                      precision=0.4375,
-                                      recall=0.53125,
-                                      f1_score=0.5227272727272727,
-                                      ami=0.011661702327125191,
-                                      sensitivity=0.5,
-                                      specificity=0.0,
-                                      lr_plus=1.0,
-                                      lr_minus=np.inf,
-                                      roc_auc=0.5,
-                                      dor=1.9142857142857144)
+        expected_mean_scores = dict(accuracy=0.5,
+                                    informedness=-0.34375,
+                                    mcc=0.025197631533948477,
+                                    precision=0.4392857142857142,
+                                    recall=0.50625,
+                                    f1_score=0.4578787878787879,
+                                    ami=0.3999086931741586,
+                                    sensitivity=0.4375,
+                                    specificity=0.3125,
+                                    lr_plus=np.inf,
+                                    lr_minus=np.inf,
+                                    roc_auc=0.525,
+                                    dor=1.9142857142857144)
 
-        for score_a, score_b in zip(median_scores.values(), expected_median_scores.values()):
+        for score_a, score_b in zip(mean_scores.values(), expected_mean_scores.values()):
             self.assertAlmostEqual(score_a, score_b)
 
-        expected_mad_scores = dict(accuracy=0.375,
-                                   informedness=0.125,
-                                   mcc=0.0,
-                                   precision=0.4375,
-                                   recall=0.46875,
-                                   f1_score=0.4772727272727273,
-                                   ami=0.02377993878345713,
-                                   sensitivity=0.5,
-                                   specificity=0.0,
-                                   lr_plus=0.8,
+        expected_std_scores = dict(accuracy=0.3791437722025775,
+                                   informedness=0.5144399260360728,
+                                   mcc=0.07559289460184543,
+                                   precision=0.4049439366588104,
+                                   recall=0.44760648174484696,
+                                   f1_score=0.41013435949389265,
+                                   ami=0.49008792670920576,
+                                   sensitivity=0.4185967203475372,
+                                   specificity=0.385275875185561,
+                                   lr_plus=np.nan,
                                    lr_minus=np.nan,
-                                   roc_auc=0.0,
+                                   roc_auc=0.049999999999999996,
                                    dor=0.9142857142857144)
 
-        for score_a, score_b in zip(mad_scores.values(), expected_mad_scores.values()):
+        for score_a, score_b in zip(std_scores.values(), expected_std_scores.values()):
             if np.isnan(score_a) and np.isnan(score_b):
                 continue
 

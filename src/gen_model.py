@@ -80,7 +80,6 @@ import sys
 import datetime
 
 import numpy as np
-from scipy.stats import median_abs_deviation
 import pandas as pd
 import sklearn
 from sklearn.pipeline import Pipeline
@@ -144,24 +143,24 @@ def main(argv):
 
     model.validation['scores'] = model_scores
     if command_line_arguments.cross_validate:
-        median_scores, mad_scores = cross_validate(model,
-                                                   datasets,
-                                                   command_line_arguments.cross_validate)
+        mean_scores, std_scores = cross_validate(model,
+                                                 datasets,
+                                                 command_line_arguments.cross_validate)
 
         print(f'\n{command_line_arguments.cross_validate}-fold cross-validation scores:')
-        for metric, median_score, mad_score in zip(mad_scores, median_scores.values(), mad_scores.values()):
-            if median_score:
-                median_msg = '{metric:20} {score:.4}'.format(metric='median ' + metric + ':',
-                                                             score=median_score)
+        for metric, mean_score, std_score in zip(std_scores, mean_scores.values(), std_scores.values()):
+            if mean_score:
+                mean_msg = '{metric:20} {score:.4}'.format(metric='mean ' + metric + ':',
+                                                           score=mean_score)
 
-                mad_msg = '{metric:20} {score:.4}'.format(metric='mad ' + metric + ':',
-                                                          score=mad_score)
+                std_msg = '{metric:20} {score:.4}'.format(metric='std ' + metric + ':',
+                                                          score=std_score)
 
-                print(median_msg)
-                print(mad_msg)
+                print(mean_msg)
+                print(std_msg)
 
-        model.validation['cross_validation_median'] = median_scores
-        model.validation['cross_validation_mad'] = mad_scores
+        model.validation['cross_validation_mean'] = mean_scores
+        model.validation['cross_validation_std'] = std_scores
 
     if command_line_arguments.outlier_scores:
         outlier_scores = outliers.score(model, datasets,
@@ -300,9 +299,9 @@ def cross_validate(model, datasets, n_splits):
       n_splits: Number of splits (or folds) to use in cross-validation.
 
     Returns:
-     A 2-tuple of Scores objects, where the first element is the median of all
-     the models' scores, and the second element is the median absolute deviation
-     of all the models' scores.
+     A 2-tuple of Scores objects, where the first element is the mean of all
+     the models' scores, and the second element is the standard deviation of
+     all the models' scores.
 
     """
 
@@ -335,14 +334,14 @@ def cross_validate(model, datasets, n_splits):
             else:
                 scores_lists[metric] = [score]
 
-    median_scores = dict()
-    mad_scores = dict()
+    mean_scores = dict()
+    std_scores = dict()
     for metric, score_list in scores_lists.items():
         assert len(score_list) <= n_splits
-        median_scores[metric] = np.median(score_list)
-        mad_scores[metric] = median_abs_deviation(score_list)
+        mean_scores[metric] = np.mean(score_list)
+        std_scores[metric] = np.std(score_list)
 
-    return median_scores, mad_scores
+    return mean_scores, std_scores
 
 
 if __name__ == '__main__':  # pragma: no cover
