@@ -244,7 +244,9 @@ if (command_line_arguments$impute_missing || command_line_arguments$impute_multi
     cat("Imputing missing data...\n")
     cat(sprintf("NAs before imputation: %d\n", sum(!complete.cases(uci_dataset$df))))
     uci_dataset$df$restecg <- as.factor(uci_dataset$df$restecg)
+    cat("HERE1\n")
     uci_dataset$df$fbs <- as.factor(uci_dataset$df$fbs)
+    cat("HERE2\n")
     uci_mids <- mice(uci_dataset$df,
                      seed = command_line_arguments$random_state,
                      method = c("", "", "", "", "logreg", "polyreg", "", "", "pmm", "pmm", ""),
@@ -253,8 +255,11 @@ if (command_line_arguments$impute_missing || command_line_arguments$impute_multi
                      m = 1,
                      print = FALSE)
 
+    cat("HERE3\n")
     uci_dataset$df <- complete(uci_mids, 1)
+    cat("HERE4\n")
     uci_dataset$df$restecg <- as.numeric(uci_dataset$df$restecg)
+    cat("HERE5\n")
     uci_dataset$df$fbs <- as.numeric(uci_dataset$df$fbs)
     cat("Imputation complete\n")
     cat(sprintf("NAs after imputation: %d\n", sum(!complete.cases(uci_dataset$df))))
