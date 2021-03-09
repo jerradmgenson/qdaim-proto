@@ -228,7 +228,6 @@ cat(sprintf("Constructed testing dataset from %s data with %d samples\n",
 all_indices <- as.numeric(rownames(uci_dataset$test))
 non_test_indices <- setdiff(all_indices, test_indices)
 uci_dataset$df <- rbind(uci_dataset$df, uci_dataset$test[non_test_indices,])
-uci_dataset$test <- NULL
 
 ## Now shuffle the source dataframe.
 uci_dataset$df <- uci_dataset$df[sample(nrow(uci_dataset$df)), ]
@@ -315,10 +314,38 @@ if (command_line_arguments$classification_type == "binary") {
                  command_line_arguments$classification_type))
 }
 
-validation_data <- uci_dataset$df[1:validation_rows, ]
-cat(sprintf("Samples in validation dataset: %d\n", validation_rows))
-training_data <- uci_dataset$df[(validation_rows + 1):nrow(uci_dataset$df), ]
-cat(sprintf("Samples in training dataset: %d\n", nrow(training_data)))
+if (validation_rows > 0) {
+    validation_data <- uci_dataset$df[1:validation_rows, ]
+    training_data <- uci_dataset$df[(validation_rows + 1):nrow(uci_dataset$df), ]
+} else {
+    validation_data <- uci_dataset$df[FALSE, ]
+    training_data <- uci_dataset$df
+}
+
+## Perform sanity checks on the datasets before writing them to disk.
+## Check that each dataset is distinct from all other datasets.
+distinct <- function(df1, df2) {
+    intersect_df <- intersect(df1, df2)
+    ## We have to check the dimensions also due to a bug in R.
+    ## Sometimes intersect returns garbage on dataframes.
+    (nrow(intersect_df) == 0) || (all(dim(df1) != dim(intersect_df)))
+}
+
+stopifnot(distinct(training_data, test_data))
+stopifnot(distinct(training_data, validation_data))
+stopifnot(distinct(validation_data, test_data))
+
+## Check that none of the datasets contain NAs.
+stopifnot(sum(!complete.cases(training_data)) == 0)
+stopifnot(sum(!complete.cases(validation_data)) == 0)
+stopifnot(sum(!complete.cases(test_data)) == 0)
+
+## Check that testing data was drawn exclusively from the test pool.
+stopifnot(nrow(union(test_data, uci_dataset$test)) == nrow(uci_dataset$test))
+
+## Check that the datasets contain the number of samples expected.
+stopifnot(nrow(test_data) == test_rows)
+stopifnot(nrow(validation_data) == validation_rows)
 
 ## Write datasets to the filesystem.
 write.csv(test_data,
