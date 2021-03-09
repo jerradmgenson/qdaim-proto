@@ -218,14 +218,16 @@ if (test_rows > original_test_rows) {
 
 ## Sample test data before we shuffle the source dataframe to make
 ## sure we sample from the correct dataset.
-test_rows_selector <- complete.cases(uci_dataset$test) & (as.numeric(rownames(uci_dataset$test)) <= test_rows)
-test_data <- uci_dataset$test[test_rows_selector,]
+test_indices <- which(rowSums(is.na(uci_dataset$test)) == 0)[1:test_rows]
+test_data <- uci_dataset$test[test_indices, ]
 cat(sprintf("Constructed testing dataset from %s data with %d samples\n",
             command_line_arguments$test_pool,
             test_rows))
 
 ## Merge remaining samples from test pool into the main dataframe.
-uci_dataset$df <- rbind(uci_dataset$df, uci_dataset$test[!test_rows_selector,])
+all_indices <- as.numeric(rownames(uci_dataset$test))
+non_test_indices <- setdiff(all_indices, test_indices)
+uci_dataset$df <- rbind(uci_dataset$df, uci_dataset$test[non_test_indices,])
 uci_dataset$test <- NULL
 
 ## Now shuffle the source dataframe.
@@ -244,9 +246,7 @@ if (command_line_arguments$impute_missing || command_line_arguments$impute_multi
     cat("Imputing missing data...\n")
     cat(sprintf("NAs before imputation: %d\n", sum(!complete.cases(uci_dataset$df))))
     uci_dataset$df$restecg <- as.factor(uci_dataset$df$restecg)
-    cat("HERE1\n")
     uci_dataset$df$fbs <- as.factor(uci_dataset$df$fbs)
-    cat("HERE2\n")
     uci_mids <- mice(uci_dataset$df,
                      seed = command_line_arguments$random_state,
                      method = c("", "", "", "", "logreg", "polyreg", "", "", "pmm", "pmm", ""),
@@ -255,11 +255,8 @@ if (command_line_arguments$impute_missing || command_line_arguments$impute_multi
                      m = 1,
                      print = FALSE)
 
-    cat("HERE3\n")
     uci_dataset$df <- complete(uci_mids, 1)
-    cat("HERE4\n")
     uci_dataset$df$restecg <- as.numeric(uci_dataset$df$restecg)
-    cat("HERE5\n")
     uci_dataset$df$fbs <- as.numeric(uci_dataset$df$fbs)
     cat("Imputation complete\n")
     cat(sprintf("NAs after imputation: %d\n", sum(!complete.cases(uci_dataset$df))))

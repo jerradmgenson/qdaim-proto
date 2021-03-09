@@ -49,10 +49,8 @@ class PreprocessStage2Test(unittest.TestCase):
                       'exang', 'oldpeak', 'chol', 'target']
 
     MISSING_VALUES_INGEST_DIR = TEST_DATA / 'imputation_ingest'
-    EXPECTED_TOTAL_ROWS_IMPUTE_MISSING = 10
     EXPECTED_TOTAL_ROWS_IMPUTE_MULTIPLE = 13
     TEST_SET_INGEST_DIR = TEST_DATA / 'test_set_ingest'
-    EXPECTED_TESTING_ROWS_TEST_SET = 3
 
     def setUp(self):
         setUp(self)
@@ -286,7 +284,7 @@ class PreprocessStage2Test(unittest.TestCase):
                       + len(training_dataset)
                       + len(validation_dataset))
 
-        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_IMPUTE_MISSING)
+        self.assertEqual(total_rows, 8)
 
     def test_impute_multiple(self):
         """
@@ -386,8 +384,7 @@ class PreprocessStage2Test(unittest.TestCase):
         testing_dataset = pd.read_csv(self.testing_path)
         training_dataset = pd.read_csv(self.training_path)
         validation_dataset = pd.read_csv(self.validation_path)
-        self.assertEqual(len(testing_dataset),
-                         self.EXPECTED_TESTING_ROWS_TEST_SET)
+        self.assertEqual(len(testing_dataset), 3)
 
         total_rows = (len(testing_dataset)
                       + len(training_dataset)
