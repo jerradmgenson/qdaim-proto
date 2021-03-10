@@ -174,27 +174,33 @@ uci_dataset <- read_dir(command_line_arguments$source,
                         features = features,
                         test_pool = command_line_arguments$test_pool)
 
-cat(sprintf("Read %d rows from source datasets\n", nrow(uci_dataset$df)))
+source_datasets_rows <- nrow(uci_dataset$df) + nrow(uci_dataset$test)
+cat(sprintf("Read %d rows from source datasets\n", source_datasets_rows))
+stopifnot(nrow(uci_dataset$test) > 0)
 
 ## Remove rows where trestbps is 0.
 trestbps0_rows <- sum(uci_dataset$df$trestbps == 0, na.rm = TRUE)
+trestbps0_rows <- trestbps0_rows + sum(uci_dataset$test$trestbps == 0, na.rm = TRUE)
 uci_dataset$df <- subset(uci_dataset$df, uci_dataset$df$trestbps != 0)
+uci_dataset$test <- subset(uci_dataset$test, uci_dataset$test$trestbps != 0)
 cat(sprintf("Omitted %d rows where trestbps is 0\n", trestbps0_rows))
 
 ## Convert chol values == 0 to NA.
 chol0_rows <- sum(uci_dataset$df$chol == 0, na.rm = TRUE)
+chol0_rows <- chol0_rows + sum(uci_dataset$test$chol == 0, na.rm = TRUE)
 uci_dataset$df <- replace_with_na(uci_dataset$df, replace = list(chol = 0))
+uci_dataset$test <- replace_with_na(uci_dataset$test, replace = list(chol = 0))
 cat(sprintf("Replaced %d rows where chol is 0 with NA\n", chol0_rows))
 
 ## Calculate number of rows to use for testing and validation.
 if (command_line_arguments$impute_multiple) {
-    total_rows <- nrow(uci_dataset$df)
+    total_rows <- nrow(uci_dataset$df) + nrow(uci_dataset$test)
 
 } else if (command_line_arguments$impute_missing) {
-    total_rows <- nrow(multi_na.omit(uci_dataset$df))
+    total_rows <- nrow(multi_na.omit(uci_dataset$df)) + nrow(multi_na.omit(uci_dataset$test))
 
 } else {
-    total_rows <- nrow(na.omit(uci_dataset$df))
+    total_rows <- nrow(na.omit(uci_dataset$df)) + nrow(na.omit(uci_dataset$test))
 }
 
 test_rows <- ceiling(total_rows * command_line_arguments$test_fraction)
@@ -202,8 +208,7 @@ validation_rows <- ceiling(total_rows * command_line_arguments$validation_fracti
 
 ## Check that the number of test rows doesn't exceed the number of rows in the
 ## specified test dataset if one was given.
-original_test_set <- uci_dataset$df[1:uci_dataset$test_rows, ]
-original_test_rows <- nrow(na.omit(original_test_set))
+original_test_rows <- nrow(na.omit(uci_dataset$test))
 if (test_rows > original_test_rows) {
     stop(sprintf("Too few samples in %s to create test set. Need %d samples but only found %d.",
                  command_line_arguments$test_pool,
@@ -213,13 +218,16 @@ if (test_rows > original_test_rows) {
 
 ## Sample test data before we shuffle the source dataframe to make
 ## sure we sample from the correct dataset.
-test_data <- uci_dataset$df[1:test_rows, ]
+test_indices <- which(rowSums(is.na(uci_dataset$test)) == 0)[1:test_rows]
+test_data <- uci_dataset$test[test_indices, ]
 cat(sprintf("Constructed testing dataset from %s data with %d samples\n",
             command_line_arguments$test_pool,
             test_rows))
 
-## Remove test samples from the source dataframe.
-uci_dataset$df <- uci_dataset$df[(test_rows + 1):nrow(uci_dataset$df), ]
+## Merge remaining samples from test pool into the main dataframe.
+all_indices <- as.numeric(rownames(uci_dataset$test))
+non_test_indices <- setdiff(all_indices, test_indices)
+uci_dataset$df <- rbind(uci_dataset$df, uci_dataset$test[non_test_indices,])
 
 ## Now shuffle the source dataframe.
 uci_dataset$df <- uci_dataset$df[sample(nrow(uci_dataset$df)), ]
@@ -306,10 +314,38 @@ if (command_line_arguments$classification_type == "binary") {
                  command_line_arguments$classification_type))
 }
 
-validation_data <- uci_dataset$df[1:validation_rows, ]
-cat(sprintf("Samples in validation dataset: %d\n", validation_rows))
-training_data <- uci_dataset$df[(validation_rows + 1):nrow(uci_dataset$df), ]
-cat(sprintf("Samples in training dataset: %d\n", nrow(training_data)))
+if (validation_rows > 0) {
+    validation_data <- uci_dataset$df[1:validation_rows, ]
+    training_data <- uci_dataset$df[(validation_rows + 1):nrow(uci_dataset$df), ]
+} else {
+    validation_data <- uci_dataset$df[FALSE, ]
+    training_data <- uci_dataset$df
+}
+
+## Perform sanity checks on the datasets before writing them to disk.
+## Check that each dataset is distinct from all other datasets.
+distinct <- function(df1, df2) {
+    intersect_df <- intersect(df1, df2)
+    ## We have to check the dimensions also due to a bug in R.
+    ## Sometimes intersect returns garbage on dataframes.
+    (nrow(intersect_df) == 0) || (all(dim(df1) != dim(intersect_df)))
+}
+
+stopifnot(distinct(training_data, test_data))
+stopifnot(distinct(training_data, validation_data))
+stopifnot(distinct(validation_data, test_data))
+
+## Check that none of the datasets contain NAs.
+stopifnot(sum(!complete.cases(training_data)) == 0)
+stopifnot(sum(!complete.cases(validation_data)) == 0)
+stopifnot(sum(!complete.cases(test_data)) == 0)
+
+## Check that testing data was drawn exclusively from the test pool.
+stopifnot(nrow(union(test_data, uci_dataset$test)) == nrow(uci_dataset$test))
+
+## Check that the datasets contain the number of samples expected.
+stopifnot(nrow(test_data) == test_rows)
+stopifnot(nrow(validation_data) == validation_rows)
 
 ## Write datasets to the filesystem.
 write.csv(test_data,

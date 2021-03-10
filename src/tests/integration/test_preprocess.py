@@ -49,11 +49,8 @@ class PreprocessStage2Test(unittest.TestCase):
                       'exang', 'oldpeak', 'chol', 'target']
 
     MISSING_VALUES_INGEST_DIR = TEST_DATA / 'imputation_ingest'
-    EXPECTED_TOTAL_ROWS_IMPUTE_MISSING = 10
     EXPECTED_TOTAL_ROWS_IMPUTE_MULTIPLE = 13
     TEST_SET_INGEST_DIR = TEST_DATA / 'test_set_ingest'
-    EXPECTED_TESTING_ROWS_TEST_SET = 3
-    EXPECTED_TOTAL_ROWS_TEST_SET = 16
 
     def setUp(self):
         setUp(self)
@@ -81,6 +78,10 @@ class PreprocessStage2Test(unittest.TestCase):
         actual_testing_dataset = pd.read_csv(self.testing_path)
         actual_training_dataset = pd.read_csv(self.training_path)
         actual_validation_dataset = pd.read_csv(self.validation_path)
+
+        self.assertEqual(actual_testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_validation_dataset.isna().sum().sum(), 0)
 
         total_rows = (len(actual_testing_dataset)
                       + len(actual_training_dataset)
@@ -118,6 +119,10 @@ class PreprocessStage2Test(unittest.TestCase):
         actual_training_dataset = pd.read_csv(self.training_path)
         actual_validation_dataset = pd.read_csv(self.validation_path)
 
+        self.assertEqual(actual_testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_validation_dataset.isna().sum().sum(), 0)
+
         total_rows = (len(actual_testing_dataset)
                       + len(actual_training_dataset)
                       + len(actual_validation_dataset))
@@ -153,6 +158,10 @@ class PreprocessStage2Test(unittest.TestCase):
         actual_testing_dataset = pd.read_csv(self.testing_path)
         actual_training_dataset = pd.read_csv(self.training_path)
         actual_validation_dataset = pd.read_csv(self.validation_path)
+
+        self.assertEqual(actual_testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_validation_dataset.isna().sum().sum(), 0)
 
         total_rows = (len(actual_testing_dataset)
                       + len(actual_training_dataset)
@@ -203,6 +212,9 @@ class PreprocessStage2Test(unittest.TestCase):
         actual_testing_dataset = pd.read_csv(self.testing_path)
         actual_training_dataset = pd.read_csv(self.training_path)
 
+        self.assertEqual(actual_testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_training_dataset.isna().sum().sum(), 0)
+
         total_rows = len(actual_testing_dataset) + len(actual_training_dataset)
         self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS)
 
@@ -226,7 +238,7 @@ class PreprocessStage2Test(unittest.TestCase):
                                str(self.testing_path),
                                str(self.validation_path),
                                str(self.output_path),
-                               'cleveland1',
+                               'dataset2',
                                '--test-fraction', '0.15',
                                '--random-state', RANDOM_SEED,
                                '--features'] + self.SUBSET_COLUMNS)
@@ -234,6 +246,10 @@ class PreprocessStage2Test(unittest.TestCase):
         actual_testing_dataset = pd.read_csv(self.testing_path)
         actual_training_dataset = pd.read_csv(self.training_path)
         actual_validation_dataset = pd.read_csv(self.validation_path)
+
+        self.assertEqual(actual_testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_validation_dataset.isna().sum().sum(), 0)
 
         total_rows = (len(actual_testing_dataset)
                       + len(actual_training_dataset)
@@ -268,26 +284,19 @@ class PreprocessStage2Test(unittest.TestCase):
                                '--random-state', RANDOM_SEED,
                                '--features'] + self.SUBSET_COLUMNS)
 
-        original_dataset = pd.read_csv(self.MISSING_VALUES_INGEST_DIR / 'imputation.csv')
-        original_dataset = original_dataset[self.SUBSET_COLUMNS]
         testing_dataset = pd.read_csv(self.testing_path)
-        original_nans = original_dataset.isnull().sum().sum()
-        testing_nans = testing_dataset.isnull().sum().sum()
-        self.assertGreater(original_nans, testing_nans)
-
         training_dataset = pd.read_csv(self.training_path)
-        training_nans = training_dataset.isnull().sum().sum()
-        self.assertEqual(training_nans, 0)
-
         validation_dataset = pd.read_csv(self.validation_path)
-        validation_nans = validation_dataset.isnull().sum().sum()
-        self.assertEqual(validation_nans, 0)
+
+        self.assertEqual(testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(validation_dataset.isna().sum().sum(), 0)
 
         total_rows = (len(testing_dataset)
                       + len(training_dataset)
                       + len(validation_dataset))
 
-        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_IMPUTE_MISSING)
+        self.assertEqual(total_rows, 8)
 
     def test_impute_multiple(self):
         """
@@ -306,20 +315,13 @@ class PreprocessStage2Test(unittest.TestCase):
                                '--random-state', "2",
                                '--features'] + self.SUBSET_COLUMNS)
 
-        original_dataset = pd.read_csv(self.MISSING_VALUES_INGEST_DIR / 'imputation.csv')
-        original_dataset = original_dataset[self.SUBSET_COLUMNS]
         testing_dataset = pd.read_csv(self.testing_path)
-        original_nans = original_dataset.isnull().sum().sum()
-        testing_nans = testing_dataset.isnull().sum().sum()
-        self.assertGreater(original_nans, testing_nans)
-
         training_dataset = pd.read_csv(self.training_path)
-        training_nans = training_dataset.isnull().sum().sum()
-        self.assertEqual(training_nans, 0)
-
         validation_dataset = pd.read_csv(self.validation_path)
-        validation_nans = validation_dataset.isnull().sum().sum()
-        self.assertEqual(validation_nans, 0)
+
+        self.assertEqual(testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(validation_dataset.isna().sum().sum(), 0)
 
         total_rows = (len(testing_dataset)
                       + len(training_dataset)
@@ -346,20 +348,13 @@ class PreprocessStage2Test(unittest.TestCase):
                                '--random-state', "2",
                                '--features'] + self.SUBSET_COLUMNS)
 
-        original_dataset = pd.read_csv(self.MISSING_VALUES_INGEST_DIR / 'imputation.csv')
-        original_dataset = original_dataset[self.SUBSET_COLUMNS]
         testing_dataset = pd.read_csv(self.testing_path)
-        original_nans = original_dataset.isnull().sum().sum()
-        testing_nans = testing_dataset.isnull().sum().sum()
-        self.assertGreater(original_nans, testing_nans)
-
         training_dataset = pd.read_csv(self.training_path)
-        training_nans = training_dataset.isnull().sum().sum()
-        self.assertEqual(training_nans, 0)
-
         validation_dataset = pd.read_csv(self.validation_path)
-        validation_nans = validation_dataset.isnull().sum().sum()
-        self.assertEqual(validation_nans, 0)
+
+        self.assertEqual(testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(validation_dataset.isna().sum().sum(), 0)
 
         total_rows = (len(testing_dataset)
                       + len(training_dataset)
@@ -387,14 +382,17 @@ class PreprocessStage2Test(unittest.TestCase):
         testing_dataset = pd.read_csv(self.testing_path)
         training_dataset = pd.read_csv(self.training_path)
         validation_dataset = pd.read_csv(self.validation_path)
-        self.assertEqual(len(testing_dataset),
-                         self.EXPECTED_TESTING_ROWS_TEST_SET)
 
+        self.assertEqual(testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(validation_dataset.isna().sum().sum(), 0)
+
+        self.assertEqual(len(testing_dataset), 3)
         total_rows = (len(testing_dataset)
                       + len(training_dataset)
                       + len(validation_dataset))
 
-        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_TEST_SET)
+        self.assertEqual(total_rows, 16)
 
         cleveland_dataset = pd.read_csv(self.TEST_SET_INGEST_DIR / 'cleveland.csv')
         cleveland_subset = frozenset(cleveland_dataset[['age', 'trestbps', 'thalach', 'oldpeak']].apply(tuple, axis=1))
@@ -407,8 +405,8 @@ class PreprocessStage2Test(unittest.TestCase):
 
     def test_test_set_with_second_dataset(self):
         """
-        Test preprocess.R with the --test-samples-from option on a dataset whose
-        name is second in alphabetical order.
+        Test preprocess.R with a test-pool dataset whose name is second
+        in alphabetical order.
 
         """
 
@@ -425,14 +423,17 @@ class PreprocessStage2Test(unittest.TestCase):
         testing_dataset = pd.read_csv(self.testing_path)
         training_dataset = pd.read_csv(self.training_path)
         validation_dataset = pd.read_csv(self.validation_path)
-        self.assertEqual(len(testing_dataset),
-                         self.EXPECTED_TESTING_ROWS_TEST_SET)
 
+        self.assertEqual(testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(validation_dataset.isna().sum().sum(), 0)
+
+        self.assertEqual(len(testing_dataset), 3)
         total_rows = (len(testing_dataset)
                       + len(training_dataset)
                       + len(validation_dataset))
 
-        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS_TEST_SET)
+        self.assertEqual(total_rows, 16)
 
         ingest_raw_uci_data1_dataset = pd.read_csv(self.TEST_SET_INGEST_DIR / 'ingest_raw_uci_data1.csv')
         ingest_raw_uci_data1_subset = \
@@ -461,6 +462,60 @@ class PreprocessStage2Test(unittest.TestCase):
                                    'cleveland1',
                                    '--random-state', RANDOM_SEED,
                                    '--features'] + self.SUBSET_COLUMNS)
+
+    def test_test_pool_is_constructed_from_correct_dataset1(self):
+        """
+        Test that the preprocessor constructs the test pool from the correct dataset.
+
+        """
+
+        subprocess.check_call([str(self.PREPROCESS),
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
+                               self.TEST_SET_INGEST_DIR,
+                               'cleveland',
+                               '--test-fraction', '0.15',
+                               '--random-state', RANDOM_SEED,
+                               '--features'] + self.SUBSET_COLUMNS)
+
+        testing_dataset = pd.read_csv(self.testing_path)
+        testing_dataset = testing_dataset[['age', 'trestbps', 'thalach']]
+        testing_dataset = set(testing_dataset.itertuples(index=False))
+
+        cleveland_dataset = pd.read_csv(self.TEST_SET_INGEST_DIR / 'cleveland.csv')
+        cleveland_dataset = cleveland_dataset[['age', 'trestbps', 'thalach']]
+        cleveland_dataset = set(cleveland_dataset.itertuples(index=False))
+
+        self.assertTrue(testing_dataset <= cleveland_dataset)
+        self.assertTrue(testing_dataset)
+
+    def test_test_pool_is_constructed_from_correct_dataset2(self):
+        """
+        Test that the preprocessor constructs the test pool from the correct dataset.
+
+        """
+
+        subprocess.check_call([str(self.PREPROCESS),
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
+                               str(test_ingest_raw_uci_data.INGESTED_DIR),
+                               'cleveland1',
+                               '--test-fraction', '0.15',
+                               '--random-state', RANDOM_SEED,
+                               '--features'] + self.SUBSET_COLUMNS)
+
+        testing_dataset = pd.read_csv(self.testing_path)
+        testing_dataset = testing_dataset[['age', 'trestbps', 'thalach']]
+        testing_dataset = set(testing_dataset.itertuples(index=False))
+
+        cleveland1_dataset = pd.read_csv(test_ingest_raw_uci_data.INGESTED_DIR / 'cleveland1.csv')
+        cleveland1_dataset = cleveland1_dataset[['age', 'trestbps', 'thalach']]
+        cleveland1_dataset = set(cleveland1_dataset.itertuples(index=False))
+
+        self.assertTrue(testing_dataset <= cleveland1_dataset)
+        self.assertTrue(testing_dataset)
 
 
 # Define setUp and tearDown functions outside of the class so that they are

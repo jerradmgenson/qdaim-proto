@@ -413,14 +413,14 @@ class GenModelIntegrationTestCase(GenModelTestCase):
         """
 
         test_preprocess.setUp(self)
-        subprocess.check_output([test_preprocess.PreprocessStage2Test.PREPROCESS,
-                                 str(self.training_path),
-                                 str(self.testing_path),
-                                 str(self.validation_path),
-                                 str(test_ingest_raw_uci_data.INGESTED_DIR),
-                                 'ingest_raw_uci_data1',
-                                 '--test-fraction', '0.15',
-                                 '--features'] + test_preprocess.PreprocessStage2Test.SUBSET_COLUMNS)
+        subprocess.check_call([test_preprocess.PreprocessStage2Test.PREPROCESS,
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
+                               str(test_ingest_raw_uci_data.INGESTED_DIR),
+                               'ingest_raw_uci_data1',
+                               '--test-fraction', '0.15',
+                               '--features'] + test_preprocess.PreprocessStage2Test.SUBSET_COLUMNS)
 
         exit_code = gen_model.main([str(self.output_path),
                                     str(self.training_path),
