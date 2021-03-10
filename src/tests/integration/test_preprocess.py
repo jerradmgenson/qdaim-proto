@@ -79,6 +79,10 @@ class PreprocessStage2Test(unittest.TestCase):
         actual_training_dataset = pd.read_csv(self.training_path)
         actual_validation_dataset = pd.read_csv(self.validation_path)
 
+        self.assertEqual(actual_testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_validation_dataset.isna().sum().sum(), 0)
+
         total_rows = (len(actual_testing_dataset)
                       + len(actual_training_dataset)
                       + len(actual_validation_dataset))
@@ -115,6 +119,10 @@ class PreprocessStage2Test(unittest.TestCase):
         actual_training_dataset = pd.read_csv(self.training_path)
         actual_validation_dataset = pd.read_csv(self.validation_path)
 
+        self.assertEqual(actual_testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_validation_dataset.isna().sum().sum(), 0)
+
         total_rows = (len(actual_testing_dataset)
                       + len(actual_training_dataset)
                       + len(actual_validation_dataset))
@@ -150,6 +158,10 @@ class PreprocessStage2Test(unittest.TestCase):
         actual_testing_dataset = pd.read_csv(self.testing_path)
         actual_training_dataset = pd.read_csv(self.training_path)
         actual_validation_dataset = pd.read_csv(self.validation_path)
+
+        self.assertEqual(actual_testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_validation_dataset.isna().sum().sum(), 0)
 
         total_rows = (len(actual_testing_dataset)
                       + len(actual_training_dataset)
@@ -200,6 +212,9 @@ class PreprocessStage2Test(unittest.TestCase):
         actual_testing_dataset = pd.read_csv(self.testing_path)
         actual_training_dataset = pd.read_csv(self.training_path)
 
+        self.assertEqual(actual_testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_training_dataset.isna().sum().sum(), 0)
+
         total_rows = len(actual_testing_dataset) + len(actual_training_dataset)
         self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS)
 
@@ -231,6 +246,10 @@ class PreprocessStage2Test(unittest.TestCase):
         actual_testing_dataset = pd.read_csv(self.testing_path)
         actual_training_dataset = pd.read_csv(self.training_path)
         actual_validation_dataset = pd.read_csv(self.validation_path)
+
+        self.assertEqual(actual_testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_validation_dataset.isna().sum().sum(), 0)
 
         total_rows = (len(actual_testing_dataset)
                       + len(actual_training_dataset)
@@ -265,20 +284,13 @@ class PreprocessStage2Test(unittest.TestCase):
                                '--random-state', RANDOM_SEED,
                                '--features'] + self.SUBSET_COLUMNS)
 
-        original_dataset = pd.read_csv(self.MISSING_VALUES_INGEST_DIR / 'imputation.csv')
-        original_dataset = original_dataset[self.SUBSET_COLUMNS]
         testing_dataset = pd.read_csv(self.testing_path)
-        original_nans = original_dataset.isnull().sum().sum()
-        testing_nans = testing_dataset.isnull().sum().sum()
-        self.assertGreater(original_nans, testing_nans)
-
         training_dataset = pd.read_csv(self.training_path)
-        training_nans = training_dataset.isnull().sum().sum()
-        self.assertEqual(training_nans, 0)
-
         validation_dataset = pd.read_csv(self.validation_path)
-        validation_nans = validation_dataset.isnull().sum().sum()
-        self.assertEqual(validation_nans, 0)
+
+        self.assertEqual(testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(validation_dataset.isna().sum().sum(), 0)
 
         total_rows = (len(testing_dataset)
                       + len(training_dataset)
@@ -303,20 +315,13 @@ class PreprocessStage2Test(unittest.TestCase):
                                '--random-state', "2",
                                '--features'] + self.SUBSET_COLUMNS)
 
-        original_dataset = pd.read_csv(self.MISSING_VALUES_INGEST_DIR / 'imputation.csv')
-        original_dataset = original_dataset[self.SUBSET_COLUMNS]
         testing_dataset = pd.read_csv(self.testing_path)
-        original_nans = original_dataset.isnull().sum().sum()
-        testing_nans = testing_dataset.isnull().sum().sum()
-        self.assertGreater(original_nans, testing_nans)
-
         training_dataset = pd.read_csv(self.training_path)
-        training_nans = training_dataset.isnull().sum().sum()
-        self.assertEqual(training_nans, 0)
-
         validation_dataset = pd.read_csv(self.validation_path)
-        validation_nans = validation_dataset.isnull().sum().sum()
-        self.assertEqual(validation_nans, 0)
+
+        self.assertEqual(testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(validation_dataset.isna().sum().sum(), 0)
 
         total_rows = (len(testing_dataset)
                       + len(training_dataset)
@@ -343,20 +348,13 @@ class PreprocessStage2Test(unittest.TestCase):
                                '--random-state', "2",
                                '--features'] + self.SUBSET_COLUMNS)
 
-        original_dataset = pd.read_csv(self.MISSING_VALUES_INGEST_DIR / 'imputation.csv')
-        original_dataset = original_dataset[self.SUBSET_COLUMNS]
         testing_dataset = pd.read_csv(self.testing_path)
-        original_nans = original_dataset.isnull().sum().sum()
-        testing_nans = testing_dataset.isnull().sum().sum()
-        self.assertGreater(original_nans, testing_nans)
-
         training_dataset = pd.read_csv(self.training_path)
-        training_nans = training_dataset.isnull().sum().sum()
-        self.assertEqual(training_nans, 0)
-
         validation_dataset = pd.read_csv(self.validation_path)
-        validation_nans = validation_dataset.isnull().sum().sum()
-        self.assertEqual(validation_nans, 0)
+
+        self.assertEqual(testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(validation_dataset.isna().sum().sum(), 0)
 
         total_rows = (len(testing_dataset)
                       + len(training_dataset)
@@ -384,8 +382,12 @@ class PreprocessStage2Test(unittest.TestCase):
         testing_dataset = pd.read_csv(self.testing_path)
         training_dataset = pd.read_csv(self.training_path)
         validation_dataset = pd.read_csv(self.validation_path)
-        self.assertEqual(len(testing_dataset), 3)
 
+        self.assertEqual(testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(validation_dataset.isna().sum().sum(), 0)
+
+        self.assertEqual(len(testing_dataset), 3)
         total_rows = (len(testing_dataset)
                       + len(training_dataset)
                       + len(validation_dataset))
@@ -421,8 +423,12 @@ class PreprocessStage2Test(unittest.TestCase):
         testing_dataset = pd.read_csv(self.testing_path)
         training_dataset = pd.read_csv(self.training_path)
         validation_dataset = pd.read_csv(self.validation_path)
-        self.assertEqual(len(testing_dataset), 3)
 
+        self.assertEqual(testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(validation_dataset.isna().sum().sum(), 0)
+
+        self.assertEqual(len(testing_dataset), 3)
         total_rows = (len(testing_dataset)
                       + len(training_dataset)
                       + len(validation_dataset))
