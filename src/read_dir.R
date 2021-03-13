@@ -1,7 +1,4 @@
-## A collection of various utility functions that are not related to the core
-## algorithms or another, more specific library. At the present time, this
-## includes a function for reading all csv files from a directory into a
-## common dataframe.
+## Read all CSV files from a directory into a common dataframe.
 ##
 ## Copyright 2020, 2021 Jerrad M. Genson
 ##
@@ -10,7 +7,7 @@
 ## file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 read_dir <- function(path, features = NULL, test_pool = "") {
-    ## Read all CSV files in a directory into a common dataframe.
+    ## Read all CSV files from a directory into a common dataframe.
     ## Args:
     ##   path: Path to the directory to read from.
     ##   features: The features to select from the input datasets.

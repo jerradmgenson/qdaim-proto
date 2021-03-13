@@ -100,7 +100,7 @@ Preprocessing steps performed by this script include:
 - Split data into test, train, and validation sets."
 
 git_root <- system2("git", args = c("rev-parse", "--show-toplevel"), stdout = TRUE)
-source(file.path(git_root, "src/util.R"))
+source(file.path(git_root, "src/read_dir.R"))
 
 
 parse_command_line <- function(argv) {
