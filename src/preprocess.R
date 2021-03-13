@@ -4,8 +4,8 @@
 ##        [--impute-multiple] [--opts OPTS] [--random-state RANDOM-STATE]
 ##        [--classification-type CLASSIFICATION-TYPE] [--test-fraction
 ##        TEST-FRACTION] [--validation-fraction VALIDATION-FRACTION]
-##        [--features FEATURES] training testing validation source
-##        test-pool
+##        [--features FEATURES] [--impute-methods IMPUTE-METHODS] training
+##        testing validation source test-pool
 
 ## Clean, standardize, and impute missing data so that it can be modelled.
 
@@ -65,6 +65,9 @@
 ##                              0.2]
 ##   -f, --features             Features to select from the input
 ##                              datasets.
+##   --impute-methods           Methods to use for imputation. Methods
+##                              must correspond to --features (if given)
+##                              or columns of the input datasets.
 
 library(argparser)
 library(mice)
@@ -173,6 +176,9 @@ set.seed(command_line_arguments$random_state)
 ## Convert optional parameter from NA to NULL if it wasn't given.
 features  <- if (!is.na(command_line_arguments$features)) command_line_arguments$features else NULL
 impute_methods  <- if (!is.na(command_line_arguments$impute_methods)) command_line_arguments$impute_methods else NULL
+if (!is.null(impute_methods) && !command_line_arguments$impute_missing && !command_line_arguments$impute_multiple) {
+    cat("Warning message:\n--impute-methods has no effect if --impute-missing or --impute-multiple is not given.\n")
+}
 
 ## Read all CSV files from the given directory into a single dataframe.
 uci_dataset <- read_dir(command_line_arguments$source,
