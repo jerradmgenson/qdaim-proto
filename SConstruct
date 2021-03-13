@@ -57,7 +57,6 @@ def build_preprocess(target, source, env):
             str(target[2]),
             str(INGEST_DIR),
 	    model_gen_config['test_pool'],
-	    '--impute-missing',
             '--random-state', str(model_gen_config['random_state']),
             '--features']
 
@@ -67,6 +66,12 @@ def build_preprocess(target, source, env):
         methods = [x or '""' for x in model_gen_config['impute_methods']]
         args.append('--impute-methods')
         args.extend(methods)
+
+    if model_gen_config.get('impute_missing'):
+        args.append('--impute-missing')
+
+    if model_gen_config.get('impute_multiple'):
+        args.append('--impute-multiple')
 
     return subprocess.call(args)
 
