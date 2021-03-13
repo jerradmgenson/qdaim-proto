@@ -63,8 +63,10 @@ def build_preprocess(target, source, env):
 
     args.extend(model_gen_config['features'])
     if 'impute_methods' in model_gen_config:
+        # Ensure that empty strings will show up when passed on the command line.
+        methods = [x or '""' for x in model_gen_config['impute_methods']]
         args.append('--impute-methods')
-        args.extend(model_gen_config['impute_methods'])
+        args.extend(methods)
 
     return subprocess.call(args)
 
