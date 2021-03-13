@@ -185,12 +185,15 @@ uci_dataset$df <- subset(uci_dataset$df, uci_dataset$df$trestbps != 0)
 uci_dataset$test <- subset(uci_dataset$test, uci_dataset$test$trestbps != 0)
 cat(sprintf("Omitted %d rows where trestbps is 0\n", trestbps0_rows))
 
-## Convert chol values == 0 to NA.
-chol0_rows <- sum(uci_dataset$df$chol == 0, na.rm = TRUE)
-chol0_rows <- chol0_rows + sum(uci_dataset$test$chol == 0, na.rm = TRUE)
-uci_dataset$df <- replace_with_na(uci_dataset$df, replace = list(chol = 0))
-uci_dataset$test <- replace_with_na(uci_dataset$test, replace = list(chol = 0))
-cat(sprintf("Replaced %d rows where chol is 0 with NA\n", chol0_rows))
+chol_present <- "chol" %in% colnames(uci_dataset$df)
+if (chol_present) {
+    ## Convert chol values == 0 to NA.
+    chol0_rows <- sum(uci_dataset$df$chol == 0, na.rm = TRUE)
+    chol0_rows <- chol0_rows + sum(uci_dataset$test$chol == 0, na.rm = TRUE)
+    uci_dataset$df <- replace_with_na(uci_dataset$df, replace = list(chol = 0))
+    uci_dataset$test <- replace_with_na(uci_dataset$test, replace = list(chol = 0))
+    cat(sprintf("Replaced %d rows where chol is 0 with NA\n", chol0_rows))
+}
 
 ## Calculate number of rows to use for testing and validation.
 if (command_line_arguments$impute_multiple) {
