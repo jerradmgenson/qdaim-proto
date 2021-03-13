@@ -152,6 +152,10 @@ parse_command_line <- function(argv) {
                            flag = TRUE,
                            help = "Impute rows with multiple NAs in the training and validation datasets. --impute-missing has no effect when --impute-multiple is present.")
 
+    parser <- add_argument(parser, "--impute-methods",
+                           nargs = Inf,
+                           help = "Methods to use for imputation. Methods must correspond to --features (if given) or columns of the input datasets.")
+
     parse_args(parser, argv = argv)
 }
 
@@ -168,6 +172,7 @@ set.seed(command_line_arguments$random_state)
 
 ## Convert optional parameter from NA to NULL if it wasn't given.
 features  <- if (!is.na(command_line_arguments$features)) command_line_arguments$features else NULL
+impute_methods  <- if (!is.na(command_line_arguments$impute_methods)) command_line_arguments$impute_methods else NULL
 
 ## Read all CSV files from the given directory into a single dataframe.
 uci_dataset <- read_dir(command_line_arguments$source,
@@ -249,13 +254,22 @@ if (command_line_arguments$impute_missing || command_line_arguments$impute_multi
     cat(sprintf("NAs before imputation: %d\n", sum(!complete.cases(uci_dataset$df))))
     uci_dataset$df$restecg <- as.factor(uci_dataset$df$restecg)
     uci_dataset$df$fbs <- as.factor(uci_dataset$df$fbs)
-    uci_mids <- mice(uci_dataset$df,
-                     seed = command_line_arguments$random_state,
-                     method = c("", "", "", "", "logreg", "polyreg", "", "", "pmm", "pmm", ""),
-                     visit = "monotone",
-                     maxit = 60,
-                     m = 1,
-                     print = FALSE)
+    if (!is.null(impute_methods)) {
+        uci_mids <- mice(uci_dataset$df,
+                         seed = command_line_arguments$random_state,
+                         method = impute_methods,
+                         visit = "monotone",
+                         maxit = 60,
+                         m = 1,
+                         print = FALSE)
+    } else {
+        uci_mids <- mice(uci_dataset$df,
+                         seed = command_line_arguments$random_state,
+                         visit = "monotone",
+                         maxit = 60,
+                         m = 1,
+                         print = FALSE)
+    }
 
     uci_dataset$df <- complete(uci_mids, 1)
     uci_dataset$df$restecg <- as.numeric(uci_dataset$df$restecg)

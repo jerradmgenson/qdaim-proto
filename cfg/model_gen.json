@@ -8,5 +8,6 @@
     "training_dataset": "training.csv",
     "validation_dataset": "validation.csv",
     "test_dataset": "test.csv",
-    "test_pool": "cleveland"
+    "test_pool": "cleveland",
+    "impute_methods": ["", "", "", "", "logreg", "polyreg", "", "", "pmm", "pmm", "''"]
 }
