@@ -99,7 +99,10 @@ Preprocessing steps performed by this script include:
 
 - Split data into test, train, and validation sets."
 
-git_root <- system2("git", args = c("rev-parse", "--show-toplevel"), stdout = TRUE)
+git_root <- system2("git",
+                    args = c("rev-parse", "--show-toplevel"),
+                    stdout = TRUE)
+
 source(file.path(git_root, "src/read_dir.R"))
 
 
@@ -174,9 +177,17 @@ command_line_arguments <- parse_command_line(commandArgs(trailingOnly = TRUE))
 set.seed(command_line_arguments$random_state)
 
 ## Convert optional parameter from NA to NULL if it wasn't given.
-features  <- if (!is.na(command_line_arguments$features)) command_line_arguments$features else NULL
-impute_methods  <- if (!is.na(command_line_arguments$impute_methods)) command_line_arguments$impute_methods else NULL
-if (!is.null(impute_methods) && !command_line_arguments$impute_missing && !command_line_arguments$impute_multiple) {
+features  <- if (!is.na(command_line_arguments$features)) {
+                 command_line_arguments$features
+             } else { NULL }
+
+impute_methods  <- if (!is.na(command_line_arguments$impute_methods)) {
+                       command_line_arguments$impute_methods
+                   } else { NULL }
+
+if (!is.null(impute_methods)
+    && !command_line_arguments$impute_missing
+    && !command_line_arguments$impute_multiple) {
     cat("Warning message:\n--impute-methods has no effect if --impute-missing or --impute-multiple is not given.\n")
 }
 
@@ -191,7 +202,9 @@ stopifnot(nrow(uci_dataset$test) > 0)
 
 ## Remove rows where trestbps is 0.
 trestbps0_rows <- sum(uci_dataset$df$trestbps == 0, na.rm = TRUE)
-trestbps0_rows <- trestbps0_rows + sum(uci_dataset$test$trestbps == 0, na.rm = TRUE)
+trestbps0_rows <- trestbps0_rows + sum(uci_dataset$test$trestbps == 0,
+                                       na.rm = TRUE)
+
 uci_dataset$df <- subset(uci_dataset$df, uci_dataset$df$trestbps != 0)
 uci_dataset$test <- subset(uci_dataset$test, uci_dataset$test$trestbps != 0)
 cat(sprintf("Omitted %d rows where trestbps is 0\n", trestbps0_rows))
@@ -202,7 +215,9 @@ if (chol_present) {
     chol0_rows <- sum(uci_dataset$df$chol == 0, na.rm = TRUE)
     chol0_rows <- chol0_rows + sum(uci_dataset$test$chol == 0, na.rm = TRUE)
     uci_dataset$df <- replace_with_na(uci_dataset$df, replace = list(chol = 0))
-    uci_dataset$test <- replace_with_na(uci_dataset$test, replace = list(chol = 0))
+    uci_dataset$test <- replace_with_na(uci_dataset$test,
+                                        replace = list(chol = 0))
+
     cat(sprintf("Replaced %d rows where chol is 0 with NA\n", chol0_rows))
 }
 
@@ -211,14 +226,18 @@ if (command_line_arguments$impute_multiple) {
     total_rows <- nrow(uci_dataset$df) + nrow(uci_dataset$test)
 
 } else if (command_line_arguments$impute_missing) {
-    total_rows <- nrow(multi_na.omit(uci_dataset$df)) + nrow(multi_na.omit(uci_dataset$test))
+    total_rows <-
+        (nrow(multi_na.omit(uci_dataset$df))
+            + nrow(multi_na.omit(uci_dataset$test)))
 
 } else {
-    total_rows <- nrow(na.omit(uci_dataset$df)) + nrow(na.omit(uci_dataset$test))
+    total_rows <-
+        nrow(na.omit(uci_dataset$df)) + nrow(na.omit(uci_dataset$test))
 }
 
 test_rows <- ceiling(total_rows * command_line_arguments$test_fraction)
-validation_rows <- ceiling(total_rows * command_line_arguments$validation_fraction)
+validation_rows <-
+    ceiling(total_rows * command_line_arguments$validation_fraction)
 
 ## Check that the number of test rows doesn't exceed the number of rows in the
 ## specified test dataset if one was given.
@@ -241,7 +260,7 @@ cat(sprintf("Constructed testing dataset from %s data with %d samples\n",
 ## Merge remaining samples from test pool into the main dataframe.
 all_indices <- as.numeric(rownames(uci_dataset$test))
 non_test_indices <- setdiff(all_indices, test_indices)
-uci_dataset$df <- rbind(uci_dataset$df, uci_dataset$test[non_test_indices,])
+uci_dataset$df <- rbind(uci_dataset$df, uci_dataset$test[non_test_indices, ])
 
 ## Now shuffle the source dataframe.
 uci_dataset$df <- uci_dataset$df[sample(nrow(uci_dataset$df)), ]
@@ -251,13 +270,17 @@ if (!command_line_arguments$impute_multiple) {
     rows_before <- nrow(uci_dataset$df)
     uci_dataset$df <- multi_na.omit(uci_dataset$df)
     rows_after <- nrow(uci_dataset$df)
-    cat(sprintf("Omitted %d rows with multiple NAs\n", rows_before - rows_after))
+    cat(sprintf("Omitted %d rows with multiple NAs\n",
+                rows_before - rows_after))
 }
 
-if (command_line_arguments$impute_missing || command_line_arguments$impute_multiple) {
+if (command_line_arguments$impute_missing
+    || command_line_arguments$impute_multiple) {
     ## Impute missing data using single imputation.
     cat("Imputing missing data...\n")
-    cat(sprintf("NAs before imputation: %d\n", sum(!complete.cases(uci_dataset$df))))
+    cat(sprintf("NAs before imputation: %d\n",
+                sum(!complete.cases(uci_dataset$df))))
+
     uci_dataset$df$restecg <- as.factor(uci_dataset$df$restecg)
     uci_dataset$df$fbs <- as.factor(uci_dataset$df$fbs)
     if (!is.null(impute_methods)) {
@@ -281,7 +304,8 @@ if (command_line_arguments$impute_missing || command_line_arguments$impute_multi
     uci_dataset$df$restecg <- as.numeric(uci_dataset$df$restecg)
     uci_dataset$df$fbs <- as.numeric(uci_dataset$df$fbs)
     cat("Imputation complete\n")
-    cat(sprintf("NAs after imputation: %d\n", sum(!complete.cases(uci_dataset$df))))
+    cat(sprintf("NAs after imputation: %d\n",
+                sum(!complete.cases(uci_dataset$df))))
 }
 
 nan_count <- sum(!complete.cases(uci_dataset$df))
@@ -339,7 +363,9 @@ if (command_line_arguments$classification_type == "binary") {
 
 if (validation_rows > 0) {
     validation_data <- uci_dataset$df[1:validation_rows, ]
-    training_data <- uci_dataset$df[(validation_rows + 1):nrow(uci_dataset$df), ]
+    training_data <-
+        uci_dataset$df[(validation_rows + 1):nrow(uci_dataset$df), ]
+
 } else {
     validation_data <- uci_dataset$df[FALSE, ]
     training_data <- uci_dataset$df
