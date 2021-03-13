@@ -51,15 +51,29 @@ ingest_cleveland_data_builder = Builder(action=build_ingest_cleveland_data,
 def build_preprocess(target, source, env):
     print(f'source: {source}')
     print(f'target: {target}')
-    return subprocess.call(['src/preprocess.R',
-                            str(target[0]),
-                            str(target[1]),
-                            str(target[2]),
-                            str(INGEST_DIR),
-			    model_gen_config['test_pool'],
-			    '--impute-missing',
-                            '--random-state', str(model_gen_config['random_state']),
-                            '--features'] + model_gen_config['features'])
+    args = ['src/preprocess.R',
+            str(target[0]),
+            str(target[1]),
+            str(target[2]),
+            str(INGEST_DIR),
+	    model_gen_config['test_pool'],
+            '--random-state', str(model_gen_config['random_state']),
+            '--features']
+
+    args.extend(model_gen_config['features'])
+    if 'impute_methods' in model_gen_config:
+        # Ensure that empty strings will show up when passed on the command line.
+        methods = [x or '""' for x in model_gen_config['impute_methods']]
+        args.append('--impute-methods')
+        args.extend(methods)
+
+    if model_gen_config.get('impute_missing'):
+        args.append('--impute-missing')
+
+    if model_gen_config.get('impute_multiple'):
+        args.append('--impute-multiple')
+
+    return subprocess.call(args)
 
 preprocess_builder = Builder(action=build_preprocess)
 

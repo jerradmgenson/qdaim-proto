@@ -1,7 +1,4 @@
-## A collection of various utility functions that are not related to the core
-## algorithms or another, more specific library. At the present time, this
-## includes a function for reading all csv files from a directory into a
-## common dataframe.
+## Read all CSV files from a directory into a common dataframe.
 ##
 ## Copyright 2020, 2021 Jerrad M. Genson
 ##
@@ -10,7 +7,7 @@
 ## file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 read_dir <- function(path, features = NULL, test_pool = "") {
-    ## Read all CSV files in a directory into a common dataframe.
+    ## Read all CSV files from a directory into a common dataframe.
     ## Args:
     ##   path: Path to the directory to read from.
     ##   features: The features to select from the input datasets.
@@ -25,7 +22,7 @@ read_dir <- function(path, features = NULL, test_pool = "") {
     ##   data from all CSVs in `path` except the test pool, and `test`, which is
     ##   the test pool dataframe.
 
-    csv_files <- dir(path, pattern=".csv")
+    csv_files <- dir(path, pattern = ".csv")
     df <- data.frame()
     test <- data.frame()
     for (csv_file in csv_files) {
@@ -34,7 +31,9 @@ read_dir <- function(path, features = NULL, test_pool = "") {
         if (!is.null(features)) {
             data_subset <- data_subset[features]
         }
-        test_set_match <- test_pool == unlist(strsplit(csv_file, split = ".csv"))
+        test_set_match <- test_pool == unlist(strsplit(csv_file,
+                                                       split = ".csv"))
+
         if (test_set_match) {
             test <- data_subset
         } else if (!nrow(df)) {
@@ -44,7 +43,7 @@ read_dir <- function(path, features = NULL, test_pool = "") {
         }
     }
     if (!nrow(df)) {
-        df <- test[FALSE,]
+        df <- test[FALSE, ]
     }
     list(df = df, test = test)
 }

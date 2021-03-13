@@ -517,6 +517,123 @@ class PreprocessStage2Test(unittest.TestCase):
         self.assertTrue(testing_dataset <= cleveland1_dataset)
         self.assertTrue(testing_dataset)
 
+    def test_calling_preprocessor_without_chol(self):
+        """
+        Test calling the preprocessor without the 'chol' feature.
+
+        """
+
+        args = [str(self.PREPROCESS),
+                str(self.training_path),
+                str(self.testing_path),
+                str(self.validation_path),
+                str(test_ingest_raw_uci_data.INGESTED_DIR),
+                'cleveland1',
+                '--test-fraction', '0.15',
+                '--random-state', RANDOM_SEED,
+                '--features']
+
+        args.extend(['age', 'sex', 'cp', 'trestbps', 'fbs', 'restecg',
+                     'thalach', 'exang', 'oldpeak', 'target'])
+
+        subprocess.check_call(args)
+
+        actual_testing_dataset = pd.read_csv(self.testing_path)
+        actual_training_dataset = pd.read_csv(self.training_path)
+        actual_validation_dataset = pd.read_csv(self.validation_path)
+
+        self.assertNotIn('chol', actual_testing_dataset.columns.values)
+        self.assertNotIn('chol', actual_training_dataset.columns.values)
+        self.assertNotIn('chol', actual_validation_dataset.columns.values)
+
+        self.assertEqual(actual_testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_validation_dataset.isna().sum().sum(), 0)
+
+        total_rows = (len(actual_testing_dataset)
+                      + len(actual_training_dataset)
+                      + len(actual_validation_dataset))
+
+        self.assertEqual(total_rows, 17)
+
+        testing_set = frozenset(actual_testing_dataset.apply(tuple, axis=1))
+        training_set = frozenset(actual_training_dataset.apply(tuple, axis=1))
+        validation_set = frozenset(actual_validation_dataset.apply(tuple, axis=1))
+        self.assertFalse(testing_set & training_set)
+        self.assertFalse(testing_set & validation_set)
+        self.assertFalse(training_set & validation_set)
+        self.assertEqual(len(testing_set | training_set | validation_set), total_rows)
+
+    def test_calling_preprocessor_with_impute_methods(self):
+        """
+        Test calling the preprocessor with the --impute-methods argument.
+
+        """
+
+        args = [str(self.PREPROCESS),
+                str(self.training_path),
+                str(self.testing_path),
+                str(self.validation_path),
+                str(test_ingest_raw_uci_data.INGESTED_DIR),
+                'cleveland1',
+                '--impute-missing',
+                '--test-fraction', '0.15',
+                '--random-state', RANDOM_SEED,
+                '--features']
+
+        args.extend(self.SUBSET_COLUMNS)
+        args.extend(['--impute-methods', "", "", "", "", "logreg", "polyreg",
+                     "", "", "pmm", "pmm", "''"])
+
+        subprocess.check_call(args)
+
+        actual_testing_dataset = pd.read_csv(self.testing_path)
+        actual_training_dataset = pd.read_csv(self.training_path)
+        actual_validation_dataset = pd.read_csv(self.validation_path)
+
+        self.assertEqual(actual_testing_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_training_dataset.isna().sum().sum(), 0)
+        self.assertEqual(actual_validation_dataset.isna().sum().sum(), 0)
+
+        total_rows = (len(actual_testing_dataset)
+                      + len(actual_training_dataset)
+                      + len(actual_validation_dataset))
+
+        self.assertEqual(total_rows, 17)
+
+        testing_set = frozenset(actual_testing_dataset.apply(tuple, axis=1))
+        training_set = frozenset(actual_training_dataset.apply(tuple, axis=1))
+        validation_set = frozenset(actual_validation_dataset.apply(tuple, axis=1))
+        self.assertFalse(testing_set & training_set)
+        self.assertFalse(testing_set & validation_set)
+        self.assertFalse(training_set & validation_set)
+        self.assertEqual(len(testing_set | training_set | validation_set), total_rows)
+
+    def test_calling_preprocessor_with_mismatched_impute_methods(self):
+        """
+        Test calling the preprocessor with impute-methods that don't match the
+        number of features.
+
+        """
+
+        args = [str(self.PREPROCESS),
+                str(self.training_path),
+                str(self.testing_path),
+                str(self.validation_path),
+                str(test_ingest_raw_uci_data.INGESTED_DIR),
+                'cleveland1',
+                '--impute-missing',
+                '--test-fraction', '0.15',
+                '--random-state', RANDOM_SEED,
+                '--features']
+
+        args.extend(self.SUBSET_COLUMNS)
+        args.extend(['--impute-methods', "", "", "", "", "logreg", "polyreg",
+                     "", "", "pmm", "pmm", "", "''"])
+
+        with self.assertRaises(subprocess.CalledProcessError):
+            subprocess.check_call(args)
+
 
 # Define setUp and tearDown functions outside of the class so that they are
 # callable from other TestCase classes.
