@@ -4,4 +4,4 @@ description: 'Run testcases for QDAIM'
 runs:
   using: 'docker'
   image: '../../../Dockerfile'
-  entrypoint: 'src/run_tests.py'
+  entrypoint: '.github/actions/run-tests/run_tests.sh'
