@@ -1,4 +1,4 @@
 #!/usr/bin/sh
 
 scons
-python src/run_tests.py --include-system
+python3 src/run_tests.py --include-system
