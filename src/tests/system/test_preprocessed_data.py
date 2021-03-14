@@ -31,3 +31,16 @@ class PreprocessedDataTest(unittest.TestCase):
         datasets = [self.training_data, self.validation_data, self.test_data]
         datasets = pd.concat(datasets)
         self.assertFalse(datasets.duplicated().any())
+
+    def test_testing_training_validation_ratios(self):
+        """
+        Check that the testing, training, and validation ratios are correct.
+
+        """
+
+        total_samples = (len(self.training_data)
+                         + len(self.validation_data)
+                         + len(self.test_data))
+
+        self.assertGreaterEqual(len(self.test_data) / total_samples, 0.2)
+        self.assertGreaterEqual(len(self.validation_data) / total_samples, 0.2)
