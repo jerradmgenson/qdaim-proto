@@ -1,6 +1,0 @@
-# action.yml
-name: 'build_model'
-description: 'Build the QDAIM model'
-runs:
-  using: 'docker'
-  image: '../../../Dockerfile'

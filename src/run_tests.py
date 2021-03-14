@@ -2,7 +2,7 @@
 """
 Run all unit and integration tests and report the results.
 
-Copyright 2020 Jerrad M. Genson
+Copyright 2020, 2021 Jerrad M. Genson
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,6 +18,7 @@ import enum
 import time
 import unittest
 import subprocess
+import argparse
 from pathlib import Path
 
 from coverage import Coverage
@@ -29,6 +30,7 @@ SRC_PATH = GIT_ROOT / Path('src')
 TESTS_PATH = SRC_PATH / Path('tests')
 UNIT_PATH = TESTS_PATH / Path('unit')
 INTEGRATION_PATH = TESTS_PATH / Path('integration')
+SYSTEM_PATH = TESTS_PATH / Path('system')
 
 # The minimum coverage percentage required for the coverage test to pass.
 MIN_COVERAGE_PERCENT = 100
@@ -48,7 +50,8 @@ class Verdict(enum.Enum):
     UNEXPECTED_SUCCESS = enum.auto()
 
 
-def main():
+def main(argv):
+    cl_args = parse_command_line(argv)
     start_time = time.time()
     coverage_files = get_files_with_extension(SRC_PATH,
                                               '.py',
@@ -64,8 +67,12 @@ def main():
     integration_testsuite = unittest.defaultTestLoader.discover(INTEGRATION_PATH,
                                                                 top_level_dir=SRC_PATH)
 
-    testcases = (extract_tests(unit_testsuite)
-                 + extract_tests(integration_testsuite))
+    testcases = extract_tests(unit_testsuite) + extract_tests(integration_testsuite)
+    if cl_args.include_system:
+        system_testsuite = unittest.defaultTestLoader.discover(SYSTEM_PATH,
+                                                               top_level_dir=SRC_PATH)
+
+        testcases += extract_tests(system_testsuite)
 
     verdicts = list(map(run_test, testcases))
     coverage.stop()
@@ -241,5 +248,14 @@ def get_files_with_extension(path, extension, exclude=None):
     return matching_files
 
 
+def parse_command_line(argv):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--include-system',
+                        action='store_true',
+                        help='Include system tests in the testsuites to be run.')
+
+    return parser.parse_args(argv)
+
+
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(main(sys.argv[1:]))

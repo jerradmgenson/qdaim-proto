@@ -200,6 +200,14 @@ source_datasets_rows <- nrow(uci_dataset$df) + nrow(uci_dataset$test)
 cat(sprintf("Read %d rows from source datasets\n", source_datasets_rows))
 stopifnot(nrow(uci_dataset$test) > 0)
 
+## Remove duplicates from source datasets.
+uci_dataset$df <- uci_dataset$df[!duplicated(uci_dataset$df), ]
+uci_dataset$test <- uci_dataset$test[!duplicated(uci_dataset$test), ]
+uci_dataset$df <- setdiff(uci_dataset$df, uci_dataset$test)
+unique_rows <- nrow(uci_dataset$df) + nrow(uci_dataset$test)
+cat(sprintf("Omitted %d duplicate rows from source datasets\n",
+            source_datasets_rows - unique_rows))
+
 ## Remove rows where trestbps is 0.
 trestbps0_rows <- sum(uci_dataset$df$trestbps == 0, na.rm = TRUE)
 trestbps0_rows <- trestbps0_rows + sum(uci_dataset$test$trestbps == 0,
@@ -261,6 +269,7 @@ cat(sprintf("Constructed testing dataset from %s data with %d samples\n",
 all_indices <- as.numeric(rownames(uci_dataset$test))
 non_test_indices <- setdiff(all_indices, test_indices)
 uci_dataset$df <- rbind(uci_dataset$df, uci_dataset$test[non_test_indices, ])
+stopifnot(nrow(intersect(uci_dataset$df, uci_dataset$test)) == 0)
 
 ## Now shuffle the source dataframe.
 uci_dataset$df <- uci_dataset$df[sample(nrow(uci_dataset$df)), ]
@@ -303,6 +312,7 @@ if (command_line_arguments$impute_missing
     uci_dataset$df <- complete(uci_mids, 1)
     uci_dataset$df$restecg <- as.numeric(uci_dataset$df$restecg)
     uci_dataset$df$fbs <- as.numeric(uci_dataset$df$fbs)
+
     cat("Imputation complete\n")
     cat(sprintf("NAs after imputation: %d\n",
                 sum(!complete.cases(uci_dataset$df))))
@@ -333,8 +343,8 @@ uci_dataset$df$exang[uci_dataset$df$exang == 0] <- -1
 test_data$exang[test_data$exang == 0] <- -1
 uci_dataset$df$fbs[uci_dataset$df$fbs == 1] <- -1
 uci_dataset$df$fbs[uci_dataset$df$fbs == 2] <- 1
-test_data$fbs[test_data$fbs == 1] <- -1
-test_data$fbs[test_data$fbs == 2] <- 1
+test_data$fbs[test_data$fbs == 0] <- -1
+test_data$fbs[test_data$fbs == 1] <- 1
 cat("Rescaled binary and ternary classes to have range (-1, 1)\n")
 
 if (command_line_arguments$classification_type == "binary") {
@@ -361,6 +371,14 @@ if (command_line_arguments$classification_type == "binary") {
                  command_line_arguments$classification_type))
 }
 
+## Remove duplicates rows created during preprocessing.
+rows_before <- nrow(uci_dataset$df) + nrow(test_data)
+uci_dataset$df <- uci_dataset$df[!duplicated(uci_dataset$df), ]
+test_data <- test_data[!duplicated(test_data), ]
+rows_after <- nrow(uci_dataset$df) + nrow(test_data)
+cat(sprintf("Omitted %d duplicate rows created during preprocessing\n",
+            rows_before - rows_after))
+
 if (validation_rows > 0) {
     validation_data <- uci_dataset$df[1:validation_rows, ]
     training_data <-
@@ -372,17 +390,12 @@ if (validation_rows > 0) {
 }
 
 ## Perform sanity checks on the datasets before writing them to disk.
-## Check that each dataset is distinct from all other datasets.
-distinct <- function(df1, df2) {
-    intersect_df <- intersect(df1, df2)
-    ## We have to check the dimensions also due to a bug in R.
-    ## Sometimes intersect returns garbage on dataframes.
-    (nrow(intersect_df) == 0) || (all(dim(df1) != dim(intersect_df)))
-}
-
-stopifnot(distinct(training_data, test_data))
-stopifnot(distinct(training_data, validation_data))
-stopifnot(distinct(validation_data, test_data))
+## Check that each datasets don't include any duplicate samples.
+combined_data <- data.frame(training_data)
+combined_data <- rbind(combined_data, validation_data)
+combined_data <- rbind(combined_data, test_data)
+stopifnot(!any(duplicated(combined_data)))
+combined_data <- NULL
 
 ## Check that none of the datasets contain NAs.
 stopifnot(sum(!complete.cases(training_data)) == 0)

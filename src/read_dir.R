@@ -41,6 +41,7 @@ read_dir <- function(path, features = NULL, test_pool = "") {
         } else {
             df <- rbind(df, data_subset)
         }
+
     }
     if (!nrow(df)) {
         df <- test[FALSE, ]
