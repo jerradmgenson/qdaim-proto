@@ -10,6 +10,7 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 """
 
+import json
 import unittest
 import subprocess
 from pathlib import Path
@@ -29,7 +30,7 @@ class PreprocessedDataTest(unittest.TestCase):
 
     def test_duplicate_samples(self):
         """
-        Check for duplicate samples in the testing, training, and
+        Test for duplicate samples in the testing, training, and
         validation datasets.
 
         """
@@ -40,7 +41,7 @@ class PreprocessedDataTest(unittest.TestCase):
 
     def test_testing_training_validation_ratios(self):
         """
-        Check that the testing, training, and validation ratios are correct.
+        Test that the testing, training, and validation ratios are correct.
 
         """
 
@@ -53,7 +54,7 @@ class PreprocessedDataTest(unittest.TestCase):
 
     def test_nas_not_present_in_datasets(self):
         """
-        Check that no NAs are present in datasets.
+        Test that no NAs are present in datasets.
 
         """
 
@@ -63,7 +64,7 @@ class PreprocessedDataTest(unittest.TestCase):
 
     def test_numeric_values_are_plausible(self):
         """
-        Check that the numeric values in the datasets are all plausible.
+        Test that the numeric values in the datasets are all plausible.
 
         """
 
@@ -83,7 +84,7 @@ class PreprocessedDataTest(unittest.TestCase):
 
     def test_categorical_values_are_plausible(self):
         """
-        Check that the categorical values in the datasets are all plausible.
+        Test that the categorical values in the datasets are all plausible.
 
         """
 
@@ -100,3 +101,18 @@ class PreprocessedDataTest(unittest.TestCase):
         datasets = pd.concat(datasets)
         for feature, values in plausible_values.items():
             self.assertTrue(datasets[feature].isin(values).all())
+
+    def test_correct_features(self):
+        """
+        Test that the features in the datasets are correct with regards
+        to model_gen.json.
+
+        """
+
+        with (GIT_ROOT / 'cfg/model_gen.json').open() as model_gen_fp:
+            model_gen = json.load(model_gen_fp)
+
+        features = set(model_gen['features'])
+        self.assertEqual(set(self.training_data.columns), features)
+        self.assertEqual(set(self.validation_data.columns), features)
+        self.assertEqual(set(self.test_data.columns), features)
