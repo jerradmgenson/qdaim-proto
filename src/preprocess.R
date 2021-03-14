@@ -343,8 +343,8 @@ uci_dataset$df$exang[uci_dataset$df$exang == 0] <- -1
 test_data$exang[test_data$exang == 0] <- -1
 uci_dataset$df$fbs[uci_dataset$df$fbs == 1] <- -1
 uci_dataset$df$fbs[uci_dataset$df$fbs == 2] <- 1
-test_data$fbs[test_data$fbs == 1] <- -1
-test_data$fbs[test_data$fbs == 2] <- 1
+test_data$fbs[test_data$fbs == 0] <- -1
+test_data$fbs[test_data$fbs == 1] <- 1
 cat("Rescaled binary and ternary classes to have range (-1, 1)\n")
 
 if (command_line_arguments$classification_type == "binary") {
