@@ -79,8 +79,9 @@ class PreprocessedDataTest(unittest.TestCase):
         datasets = [self.training_data, self.validation_data, self.test_data]
         datasets = pd.concat(datasets)
         for feature, values in plausible_values.items():
-            self.assertTrue((datasets[feature] >= values[0]).all())
-            self.assertTrue((datasets[feature] <= values[1]).all())
+            if feature in datasets.columns:
+                self.assertTrue((datasets[feature] >= values[0]).all())
+                self.assertTrue((datasets[feature] <= values[1]).all())
 
     def test_categorical_values_are_plausible(self):
         """
@@ -100,7 +101,8 @@ class PreprocessedDataTest(unittest.TestCase):
         datasets = [self.training_data, self.validation_data, self.test_data]
         datasets = pd.concat(datasets)
         for feature, values in plausible_values.items():
-            self.assertTrue(datasets[feature].isin(values).all())
+            if feature in datasets.columns:
+                self.assertTrue(datasets[feature].isin(values).all())
 
     def test_correct_features(self):
         """
