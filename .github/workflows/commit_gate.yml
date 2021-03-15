@@ -53,6 +53,8 @@ jobs:
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OUTPUT_DETAILS: detailed
+          IGNORE_GITIGNORED_FILES: true
+          FILTER_REGEX_EXCLUDE: .*src/test.*
           VALIDATE_JSCPD: false
           VALIDATE_PYTHON: false
           VALIDATE_PYTHON_BLACK: false
