@@ -2,11 +2,11 @@ FROM ubuntu:20.04
 COPY . /
 
 ENV DEBIAN_FRONTEND=noninteractive
-RUN apt update
-RUN apt install git python3-pip -y
+RUN apt-get update
+RUN apt-get install git python3-pip -y
 RUN pip3 install -r requirements.txt
 ENV PYTHONPATH=/src
-RUN apt install r-base build-essential libcurl4-gnutls-dev libxml2-dev libssl-dev cloc libgit2-dev -y
+RUN apt-get install r-base build-essential libcurl4-gnutls-dev libxml2-dev libssl-dev cloc libgit2-dev -y
 RUN R -e "install.packages('rcmdcheck')"
 RUN R -e "install.packages('tibble')"
 RUN R -e "install.packages('devtools')"

@@ -170,7 +170,7 @@ multi_na.omit <- function(df) {
     ## Omit rows from the dataframe, df, that contain more than one NA.
     ## Return a copy of the dataframe without the multiple NA rows.
     df[rowSums(is.na(df)) < 2, ]
-
+}
 
 
 command_line_arguments <- parse_command_line(commandArgs(trailingOnly = TRUE))
