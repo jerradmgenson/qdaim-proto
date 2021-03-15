@@ -73,7 +73,8 @@ library(argparser)
 library(mice)
 library(naniar)
 
-help_text <- "Clean, standardize, and impute missing data so that it can be modelled.
+help_text <-
+    "Clean, standardize, and impute missing data so that it can be modelled.
 
 Copyright 2020, 2021 Jerrad M. Genson
 
@@ -127,40 +128,56 @@ parse_command_line <- function(argv) {
     parser <- add_argument(parser, "source",
                            help = "Input directory of CSV data files.")
 
+    help <- "Name of the dataset to draw the test data from."
     parser <- add_argument(parser, "test-pool",
-                           help = "Name of the dataset to draw the test data from.")
+                           help = help)
 
+    help <- "State to initialize random number generators with."
     parser <- add_argument(parser, "--random-state",
                            default = 0,
-                           help = "State to initialize random number generators with.")
+                           help = help)
 
+    help <-
+        "Classification type. Possible values: binary, ternary, multiclass"
     parser <- add_argument(parser, "--classification-type",
                            default = "binary",
-                           help = "Classification type. Possible values: 'binary', 'ternary', 'multiclass'")
+                           help = help)
 
+    help <-
+        "Fraction of data to use for testing as a real number between 0 and 1."
     parser <- add_argument(parser, "--test-fraction",
                            default = 0.2,
-                           help = "Fraction of data to use for testing as a real number between 0 and 1.")
+                           help = help)
 
+    help <- "Fraction of data to use for validation as a real number between
+0 and 1."
     parser <- add_argument(parser, "--validation-fraction",
                            default = 0.2,
-                           help = "Fraction of data to use for validation as a real number between 0 and 1.")
+                           help = help)
 
     parser <- add_argument(parser, "--features",
                            nargs = Inf,
                            help = "Features to select from the input datasets.")
 
+    help <-
+        "Impute rows with single NAs in the training and validation datasets."
     parser <- add_argument(parser, "--impute-missing",
                            flag = TRUE,
-                           help = "Impute rows with single NAs in the training and validation datasets.")
+                           help = help)
 
+    help <-
+        "Impute rows with multiple NAs in the training and validation datasets.
+ --impute-missing has no effect when --impute-multiple is present."
     parser <- add_argument(parser, "--impute-multiple",
                            flag = TRUE,
-                           help = "Impute rows with multiple NAs in the training and validation datasets. --impute-missing has no effect when --impute-multiple is present.")
+                           help = help)
 
+    help <-
+        "Methods to use for imputation. Methods must correspond to --features
+ (if given) or columns of the input datasets."
     parser <- add_argument(parser, "--impute-methods",
                            nargs = Inf,
-                           help = "Methods to use for imputation. Methods must correspond to --features (if given) or columns of the input datasets.")
+                           help = help)
 
     parse_args(parser, argv = argv)
 }
