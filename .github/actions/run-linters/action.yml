@@ -1,7 +1,0 @@
-# action.yml
-name: 'linters'
-description: 'Run linters for QDAIM'
-runs:
-  using: 'docker'
-  image: '../../../Dockerfile'
-  entrypoint: 'src/run_linters.py'

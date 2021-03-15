@@ -1,5 +1,19 @@
-on: [push]
+---
+name: commit gate
 
+#############################
+# Start the job on all push #
+#############################
+on:
+  push:
+    branches-ignore: [master]
+    # Remove the line above to run when pushing to master
+  pull_request:
+    branches: [master]
+
+###############
+# Set the Job #
+###############
 jobs:
   run_tests_job:
     runs-on: ubuntu-latest
@@ -10,13 +24,38 @@ jobs:
       - name: Run testcases
         uses: ./.github/actions/run-tests
         id: run-tests
-
-  run_linters_job:
-    runs-on: ubuntu-latest
+  build:
+    # Name the Job
     name: commit gate (linters)
+    # Set the agent to run on
+    runs-on: ubuntu-latest
+
+    ##################
+    # Load all steps #
+    ##################
     steps:
-      - name: Checkout
+      ##########################
+      # Checkout the code base #
+      ##########################
+      - name: Checkout Code
         uses: actions/checkout@v2
-      - name: Run linters
-        uses: ./.github/actions/run-linters
-        id: run-linters
+        with:
+          # Full git history is needed to get a proper list of changed files within `super-linter`
+          fetch-depth: 0
+
+      ################################
+      # Run Linter against code base #
+      ################################
+      - name: Lint Code Base
+        uses: github/super-linter@v3
+        env:
+          VALIDATE_ALL_CODEBASE: true
+          DEFAULT_BRANCH: master
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OUTPUT_DETAILS: detailed
+          IGNORE_GITIGNORED_FILES: true
+          FILTER_REGEX_EXCLUDE: .*src/test.*
+          VALIDATE_JSCPD: false
+          VALIDATE_PYTHON: false
+          VALIDATE_PYTHON_BLACK: false
+          VALIDATE_PYTHON_ISORT: false

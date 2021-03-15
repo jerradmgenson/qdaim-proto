@@ -73,7 +73,8 @@ library(argparser)
 library(mice)
 library(naniar)
 
-help_text <- "Clean, standardize, and impute missing data so that it can be modelled.
+help_text <-
+    "Clean, standardize, and impute missing data so that it can be modelled.
 
 Copyright 2020, 2021 Jerrad M. Genson
 
@@ -127,46 +128,62 @@ parse_command_line <- function(argv) {
     parser <- add_argument(parser, "source",
                            help = "Input directory of CSV data files.")
 
+    help <- "Name of the dataset to draw the test data from."
     parser <- add_argument(parser, "test-pool",
-                           help = "Name of the dataset to draw the test data from.")
+                           help = help)
 
+    help <- "State to initialize random number generators with."
     parser <- add_argument(parser, "--random-state",
                            default = 0,
-                           help = "State to initialize random number generators with.")
+                           help = help)
 
+    help <-
+        "Classification type. Possible values: binary, ternary, multiclass"
     parser <- add_argument(parser, "--classification-type",
                            default = "binary",
-                           help = "Classification type. Possible values: 'binary', 'ternary', 'multiclass'")
+                           help = help)
 
+    help <-
+        "Fraction of data to use for testing as a real number between 0 and 1."
     parser <- add_argument(parser, "--test-fraction",
                            default = 0.2,
-                           help = "Fraction of data to use for testing as a real number between 0 and 1.")
+                           help = help)
 
+    help <- "Fraction of data to use for validation as a real number between
+0 and 1."
     parser <- add_argument(parser, "--validation-fraction",
                            default = 0.2,
-                           help = "Fraction of data to use for validation as a real number between 0 and 1.")
+                           help = help)
 
     parser <- add_argument(parser, "--features",
                            nargs = Inf,
                            help = "Features to select from the input datasets.")
 
+    help <-
+        "Impute rows with single NAs in the training and validation datasets."
     parser <- add_argument(parser, "--impute-missing",
                            flag = TRUE,
-                           help = "Impute rows with single NAs in the training and validation datasets.")
+                           help = help)
 
+    help <-
+        "Impute rows with multiple NAs in the training and validation datasets.
+ --impute-missing has no effect when --impute-multiple is present."
     parser <- add_argument(parser, "--impute-multiple",
                            flag = TRUE,
-                           help = "Impute rows with multiple NAs in the training and validation datasets. --impute-missing has no effect when --impute-multiple is present.")
+                           help = help)
 
+    help <-
+        "Methods to use for imputation. Methods must correspond to --features
+ (if given) or columns of the input datasets."
     parser <- add_argument(parser, "--impute-methods",
                            nargs = Inf,
-                           help = "Methods to use for imputation. Methods must correspond to --features (if given) or columns of the input datasets.")
+                           help = help)
 
     parse_args(parser, argv = argv)
 }
 
 
-multi_na.omit <- function(df) {
+multi_na_omit <- function(df) {
     ## Omit rows from the dataframe, df, that contain more than one NA.
     ## Return a copy of the dataframe without the multiple NA rows.
     df[rowSums(is.na(df)) < 2, ]
@@ -179,16 +196,23 @@ set.seed(command_line_arguments$random_state)
 ## Convert optional parameter from NA to NULL if it wasn't given.
 features  <- if (!is.na(command_line_arguments$features)) {
                  command_line_arguments$features
-             } else { NULL }
+             } else {
+                 NULL
+             }
 
 impute_methods  <- if (!is.na(command_line_arguments$impute_methods)) {
                        command_line_arguments$impute_methods
-                   } else { NULL }
+                   } else {
+                       NULL
+                   }
 
 if (!is.null(impute_methods)
     && !command_line_arguments$impute_missing
     && !command_line_arguments$impute_multiple) {
-    cat("Warning message:\n--impute-methods has no effect if --impute-missing or --impute-multiple is not given.\n")
+    warning <-
+        "Warning message:\n--impute-methods has no effect if --impute-missing
+ or --impute-multiple is not given.\n"
+    cat(warning)
 }
 
 ## Read all CSV files from the given directory into a single dataframe.
@@ -235,8 +259,8 @@ if (command_line_arguments$impute_multiple) {
 
 } else if (command_line_arguments$impute_missing) {
     total_rows <-
-        (nrow(multi_na.omit(uci_dataset$df))
-            + nrow(multi_na.omit(uci_dataset$test)))
+        (nrow(multi_na_omit(uci_dataset$df))
+            + nrow(multi_na_omit(uci_dataset$test)))
 
 } else {
     total_rows <-
@@ -251,7 +275,10 @@ validation_rows <-
 ## specified test dataset if one was given.
 original_test_rows <- nrow(na.omit(uci_dataset$test))
 if (test_rows > original_test_rows) {
-    stop(sprintf("Too few samples in %s to create test set. Need %d samples but only found %d.",
+    error <-
+        "Too few samples in %s to create test set. Need %d samples but only
+ found %d."
+    stop(sprintf(error,
                  command_line_arguments$test_pool,
                  test_rows,
                  original_test_rows))
@@ -277,7 +304,7 @@ cat("Shuffled remaining data\n")
 
 if (!command_line_arguments$impute_multiple) {
     rows_before <- nrow(uci_dataset$df)
-    uci_dataset$df <- multi_na.omit(uci_dataset$df)
+    uci_dataset$df <- multi_na_omit(uci_dataset$df)
     rows_after <- nrow(uci_dataset$df)
     cat(sprintf("Omitted %d rows with multiple NAs\n",
                 rows_before - rows_after))
