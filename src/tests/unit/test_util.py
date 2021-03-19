@@ -10,9 +10,10 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """
 
 import os
+import tempfile
 import unittest
-from pathlib import Path
 from unittest.mock import patch
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -79,6 +80,35 @@ class SplitTargetTests(unittest.TestCase):
         data = pd.DataFrame([[0, 0, 0], [0, 1, 1], [1, 0, 1], [1, 1, 0]])
         inputs = util.split_target(data)
         self.assertTrue((inputs == np.array([0, 1, 1, 0])).all())
+
+
+class GetCommitHashTests(unittest.TestCase):
+    """
+    Tests for util.get_commit_hash
+
+    """
+
+    def test_get_commit_hash_with_valid_commit_hash_file(self):
+        """
+        Test get_commit_hash() with a valid commit_hash file.
+
+        """
+
+        expected_commit_hash = '367138724bb7f51500b9e64cf5536d6836c4a619'
+        commit_hash_file_old = util.COMMIT_HASH_FILE
+        try:
+            temp_fp, commit_hash_file_mock = tempfile.mkstemp()
+            os.close(temp_fp)
+            util.COMMIT_HASH_FILE = Path(commit_hash_file_mock)
+            with open(commit_hash_file_mock, 'w') as commit_hash_fp:
+                commit_hash_fp.write(expected_commit_hash + '\n')
+
+            commit_hash = util.get_commit_hash()
+            self.assertEqual(commit_hash, expected_commit_hash)
+
+        finally:
+            util.COMMIT_HASH_FILE = commit_hash_file_old
+            os.remove(commit_hash_file_mock)
 
 
 if __name__ == '__main__':
