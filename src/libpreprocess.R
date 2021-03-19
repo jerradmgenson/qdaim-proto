@@ -305,9 +305,10 @@ check_impute_methods <- function(impute_methods,
     ## Check that --impute-methods is not present without --impute-missing
     ## or --impute-multiple.
     if (length(impute_methods) && !impute_missing && !impute_multiple) {
-        warning <- "Warning message:\n--impute-methods has no effect if
- --impute-missing or --impute-multiple is not given.\n"
-        cat(warning)
+        msg <- paste("--impute-methods has no effect if --impute-missing or",
+                     "--impute-multiple is not given")
+
+        warning(msg)
     }
 }
 
