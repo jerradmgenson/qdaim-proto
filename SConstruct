@@ -20,10 +20,10 @@ GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
 BUILD_DIR = GIT_ROOT / 'build'
 INGEST_DIR = BUILD_DIR / 'ingest'
 CFG_DIR = GIT_ROOT / 'cfg'
-MODEL_GEN_CONFIG = CFG_DIR / 'model_gen.json'
+GENERAL_CONFIG = CFG_DIR / 'general.json'
 PARAMETER_GRID = CFG_DIR / 'grid_search.json'
 
-with MODEL_GEN_CONFIG.open() as model_gen_config_fp:
+with GENERAL_CONFIG.open() as model_gen_config_fp:
     model_gen_config = json.load(model_gen_config_fp)
 
 training_dataset = str(BUILD_DIR / model_gen_config['training_dataset'])
