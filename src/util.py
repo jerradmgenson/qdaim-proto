@@ -234,7 +234,8 @@ def parse_command_line(argv):
 
     """
 
-    description = 'Generate a probabalistic classification model.'
+    description = 'Generate a customizable classification model with a wide '
+    description += 'variety of preprocessing and model configurations.'
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('target',
                         type=Path,

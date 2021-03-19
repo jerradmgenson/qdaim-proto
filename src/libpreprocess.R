@@ -184,7 +184,8 @@ main <- function(argv) {
     stopifnot(!has_nas(test_data))
 
     ## Check that testing data was drawn exclusively from the test pool.
-    stopifnot(nrow(union(test_data, uci_dataset$test)) == nrow(uci_dataset$test))
+    stopifnot(nrow(union(test_data, uci_dataset$test))
+              == nrow(uci_dataset$test))
 
     ## Check that the datasets contain the number of samples expected.
     stopifnot(nrow(test_data) == test_rows)

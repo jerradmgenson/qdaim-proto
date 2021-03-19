@@ -1,11 +1,13 @@
 #!/usr/bin/python3
 """
-usage: gen_model.py [-h] [--cpu CPU] [--log-level {critical,error,warning,info,debug}] [--cross-validate CROSS_VALIDATE] [--outlier-scores] [--model {svm,rfc,etc,gbc,sgd,rrc,lrc,nbc,lda,qda,dtc,knn,rnc}]
-                    [--preprocessing {standard scaling,robust scaling,quantile transformer,power transformer,normalize,pca,ica,isomap,lle,feature agglomeration,nca,factor analysis} [{standard scaling,robust scaling,quantile transformer,power transformer,normalize,pca,ica,isomap,lle,feature agglomeration,nca,factor analysis} ...]]
-                    [--scoring {accuracy,precision,sensitivity,specificity,informedness,mcc,recall,f1_score,ami,dor,lr_plus,lr_minus,roc_auc}] [--random-state RANDOM_STATE] [--parameter-grid PARAMETER_GRID] [--print-hyperparameters]
-                    target training validation
+Generate a customizable classification model with a wide variety of
+preprocessing and model configurations.
 
-Generate a probabalistic classification model.
+Copyright 2020, 2021 Jerrad M. Genson
+
+This Source Code Form is subject to the terms of the Mozilla Public
+License, v. 2.0. If a copy of the MPL was not distributed with this
+file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 positional arguments:
   target                Output path to save the model to.
@@ -22,22 +24,40 @@ optional arguments:
   --outlier-scores      Score model on outliers in the testing data.
   --model {svm,rfc,etc,gbc,sgd,rrc,lrc,nbc,lda,qda,dtc,knn,rnc}
                         Algorithm to use to generate the model.
-  --preprocessing {standard scaling,robust scaling,quantile transformer,power transformer,normalize,pca,ica,isomap,lle,feature agglomeration,nca,factor analysis} [{standard scaling,robust scaling,quantile transformer,power transformer,normalize,pca,ica,isomap,lle,feature agglomeration,nca,factor analysis} ...]
+  --preprocessing {standard scaling,
+                   robust scaling,
+                   quantile transformer,
+                   power transformer,
+                   normalize,
+                   pca,
+                   ica,
+                   isomap,
+                   lle,
+                   feature agglomeration,
+                   nca,
+                   factor analysis} [...]
                         Preprocessing methods to use in the generated model.
-  --scoring {accuracy,precision,sensitivity,specificity,informedness,mcc,recall,f1_score,ami,dor,lr_plus,lr_minus,roc_auc}
+  --scoring {accuracy,
+             precision,
+             sensitivity,
+             specificity,
+             informedness,
+             mcc,
+             recall,
+             f1_score,
+             ami,
+             dor,
+             lr_plus,
+             lr_minus,
+             roc_auc}
                         Scoring method to use for model hyperparameter tuning.
   --random-state RANDOM_STATE
                         State to initialize random number generators with.
   --parameter-grid PARAMETER_GRID
-                        Parameter grid to use with grid search (as a json string).
+                        Parameter grid to use with grid search
+                        (as a json string).
   --print-hyperparameters
                         Print hyperparameter values of the final model.
-
-Copyright 2020, 2021 Jerrad M. Genson
-
-This Source Code Form is subject to the terms of the Mozilla Public
-License, v. 2.0. If a copy of the MPL was not distributed with this
-file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 """
 
