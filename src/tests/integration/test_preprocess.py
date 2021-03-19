@@ -95,7 +95,6 @@ class PreprocessStage2Test(unittest.TestCase):
         self.assertFalse(testing_set & validation_set)
         self.assertFalse(training_set & validation_set)
         self.assertEqual(len(testing_set | training_set | validation_set), total_rows)
-        import pdb; pdb.set_trace()
 
     def test_ternary_classification_datasets(self):
         """
