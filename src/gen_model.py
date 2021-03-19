@@ -1,76 +1,43 @@
 #!/usr/bin/python3
 """
-Generate a machine learning model to classify subjects as positive or
-negative for ischemic heart disease. Full reproducibility is provided by
-placing all configuration parameters, datasets, and random number
-generator seeds in the repository and associating the generated model
-with the commit hash.
+usage: gen_model.py [-h] [--cpu CPU] [--log-level {critical,error,warning,info,debug}] [--cross-validate CROSS_VALIDATE] [--outlier-scores] [--model {svm,rfc,etc,gbc,sgd,rrc,lrc,nbc,lda,qda,dtc,knn,rnc}]
+                    [--preprocessing {standard scaling,robust scaling,quantile transformer,power transformer,normalize,pca,ica,isomap,lle,feature agglomeration,nca,factor analysis} [{standard scaling,robust scaling,quantile transformer,power transformer,normalize,pca,ica,isomap,lle,feature agglomeration,nca,factor analysis} ...]]
+                    [--scoring {accuracy,precision,sensitivity,specificity,informedness,mcc,recall,f1_score,ami,dor,lr_plus,lr_minus,roc_auc}] [--random-state RANDOM_STATE] [--parameter-grid PARAMETER_GRID] [--print-hyperparameters]
+                    target training validation
+
+Generate a probabalistic classification model.
+
+positional arguments:
+  target                Output path to save the model to.
+  training              Path to the training dataset.
+  validation            Path to the validation dataset.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --cpu CPU             Number of processes to use for training models.
+  --log-level {critical,error,warning,info,debug}
+                        Log level to configure logging with.
+  --cross-validate CROSS_VALIDATE
+                        Cross-validate the model using the specified number of folds.
+  --outlier-scores      Score model on outliers in the testing data.
+  --model {svm,rfc,etc,gbc,sgd,rrc,lrc,nbc,lda,qda,dtc,knn,rnc}
+                        Algorithm to use to generate the model.
+  --preprocessing {standard scaling,robust scaling,quantile transformer,power transformer,normalize,pca,ica,isomap,lle,feature agglomeration,nca,factor analysis} [{standard scaling,robust scaling,quantile transformer,power transformer,normalize,pca,ica,isomap,lle,feature agglomeration,nca,factor analysis} ...]
+                        Preprocessing methods to use in the generated model.
+  --scoring {accuracy,precision,sensitivity,specificity,informedness,mcc,recall,f1_score,ami,dor,lr_plus,lr_minus,roc_auc}
+                        Scoring method to use for model hyperparameter tuning.
+  --random-state RANDOM_STATE
+                        State to initialize random number generators with.
+  --parameter-grid PARAMETER_GRID
+                        Parameter grid to use with grid search (as a json string).
+  --print-hyperparameters
+                        Print hyperparameter values of the final model.
 
 Copyright 2020, 2021 Jerrad M. Genson
 
 This Source Code Form is subject to the terms of the Mozilla Public
 License, v. 2.0. If a copy of the MPL was not distributed with this
 file, You can obtain one at https://mozilla.org/MPL/2.0/.
-
-
-Configuration
-=============
-All configuration parameters that may affect the behavior of the model
-are located in the file 'config.json' located in the root directory of
-the reposistory. The parameters in this file are described individually
-below.
-
-- training_dataset: the path to the training dataset starting from the
-  root of the repository.
-
-- validation_dataset: the path to the validation dataset starting from the
-  root of the reposistory.
-
-- random_seed: an integer to seed the random number generators with.
-
-- scoring: the method to use for scoring candidate models during model
-  generation. Possible values are 'accuracy', 'precision', 'sensitivity',
-  'specificity', and 'informedness' (Youden's J statistic).
-
-- algorithm: the machine learning algorithm to use for generating the
-  model. Possible values are 'svm' (support vector machine),
-  'knn' (k-nearest neighbors), 'rfc' (random forest classifier), and
-  'sgd' (stochastic gradient descent).
-
-- algorithm_parameters: a list of parameter dicts that is used during
-  grid search to tune the hyperparameters of the model. A complete list
-  of available parameters and their values can be found in the
-  scikit-learn user manual located at:
-  https://scikit-learn.org/stable/supervised_learning.html
-  This parameter can be omitted if you wish to use the default values
-  for the model's hyperparameters.
-
-
-Command Line Arguments
-======================
-In addition to the parameters in the configuration file, some additional
-arguments may be supplied via the command line. These are described below.
-None of these parameters affect the behavior of the generated model.
-
-usage: build_model.py [-h] [-o OUTPUT_PATH] [--cpu CPU]
-                      [--log_level {critical,error,warning,info,debug}]
-
-  -h, --help            show this help message and exit
-  -o OUTPUT_PATH, --output_path OUTPUT_PATH
-                        Path to output the heart disease model to.
-  --cpu CPU             Number of processes to use for training models.
-  --log_level {critical,error,warning,info,debug}
-                        Log level to configure logging with.
-
-
-Output Path
-===========
-By default, the output path for generated models is (starting from the
-reposistory root): build/heart_disease_model.dat
-A CSV file containing the generated model's predictions appended to the
-validation dataset is saved alongside the model. This file is given the same
-name as the model, with '.dat' replaced by '_validation.csv' (by default,
-'heart_disease_model_validation.csv').
 
 """
 
