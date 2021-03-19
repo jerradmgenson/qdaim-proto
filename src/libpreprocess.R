@@ -1,3 +1,7 @@
+## A library of functions used to preprocess the UCI heart disease datasets
+## prior to training a predictive model, including a "main" function to run
+## the entire preprocessing procedure.
+
 ## Copyright 2020, 2021 Jerrad M. Genson
 
 ## This Source Code Form is subject to the terms of the Mozilla Public
@@ -9,7 +13,7 @@ library(mice)
 library(naniar)
 
 help_text <-
-    "Clean, standardize, and impute missing data so that it can be modelled.
+    "Clean, scale, and impute missing data so that it can be modelled.
 
 Copyright 2020, 2021 Jerrad M. Genson
 
@@ -20,6 +24,10 @@ file, You can obtain one at https://mozilla.org/MPL/2.0/.
 Preprocessing steps performed by this script include:
 
 - Omit all rows where trestbps is equal to 0.
+
+- Omit duplicate values in the datasets.
+
+- Replace values where chol is 0 with NA.
 
 - Omit rows containing NA or impute them using mice.
 

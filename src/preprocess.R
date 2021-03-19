@@ -1,5 +1,7 @@
 #!/usr/bin/Rscript
 
+## This file is the CLI front-end to libpreprocess.R.
+
 ## usage: preprocess.R [--] [--help] [--impute-missing]
 ##        [--impute-multiple] [--opts OPTS] [--random-state RANDOM-STATE]
 ##        [--classification-type CLASSIFICATION-TYPE] [--test-fraction
@@ -7,7 +9,7 @@
 ##        [--features FEATURES] [--impute-methods IMPUTE-METHODS] training
 ##        testing validation source test-pool
 
-## Clean, standardize, and impute missing data so that it can be modelled.
+## Clean, scale, and impute missing data so that it can be modelled.
 
 ## Copyright 2020, 2021 Jerrad M. Genson
 
@@ -18,6 +20,10 @@
 ## Preprocessing steps performed by this script include:
 
 ## - Omit all rows where trestbps is equal to 0.
+
+## - Omit duplicate values in the datasets.
+
+## - Replace values where chol is 0 with NA.
 
 ## - Omit rows containing NA or impute them using mice.
 
@@ -55,8 +61,8 @@
 ##   -r, --random-state         State to initialize random number
 ##                              generators with. [default: 0]
 ##   -c, --classification-type  Classification type. Possible values:
-##                              'binary', 'ternary', 'multiclass'
-##                              [default: binary]
+##                              binary, ternary, multiclass [default:
+##                              binary]
 ##   -t, --test-fraction        Fraction of data to use for testing as a
 ##                              real number between 0 and 1. [default:
 ##                              0.2]
