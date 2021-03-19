@@ -44,11 +44,11 @@ class GeneratedModelTest(unittest.TestCase):
     def test_correct_pipeline_steps(self):
         """
         Test that the model's pipeline steps are correct with respect to what is
-        specified in model_gen.json.
+        specified in general.json.
 
         """
 
-        with (GIT_ROOT / 'cfg/model_gen.json').open() as model_gen_fp:
+        with (GIT_ROOT / 'cfg/general.json').open() as model_gen_fp:
             model_gen = json.load(model_gen_fp)
 
         for index, method in enumerate(model_gen['preprocessing'], start=1):

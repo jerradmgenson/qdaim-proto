@@ -40,6 +40,9 @@ import scoring
 GIT_ROOT = subprocess.check_output(['git', 'rev-parse', '--show-toplevel'])
 GIT_ROOT = Path(GIT_ROOT.decode('utf-8').strip())
 
+# Path to the commit hash file.
+COMMIT_HASH_FILE = GIT_ROOT / 'build/commit_hash'
+
 # Identifies a machine learning algorithm's name and sklearn class.
 MLAlgorithm = namedtuple('MLAlgorithm', 'name class_')
 
@@ -209,10 +212,10 @@ def get_commit_hash():
 
     logger = logging.getLogger(__name__)
     try:
-        if run_command('git diff'):
-            return ''
+        with COMMIT_HASH_FILE.open() as commit_hash_fd:
+            commit_hash = commit_hash_fd.read().strip()
 
-        return run_command('git rev-parse --verify HEAD')
+        return commit_hash
 
     except FileNotFoundError as file_not_found_error:
         logger.debug(file_not_found_error)
@@ -231,7 +234,8 @@ def parse_command_line(argv):
 
     """
 
-    description = 'Generate a probabalistic classification model.'
+    description = 'Generate a customizable classification model with a wide '
+    description += 'variety of preprocessing and model configurations.'
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument('target',
                         type=Path,
