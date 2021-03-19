@@ -111,7 +111,7 @@ class PreprocessedDataTest(unittest.TestCase):
 
         """
 
-        with (GIT_ROOT / 'cfg/model_gen.json').open() as model_gen_fp:
+        with (GIT_ROOT / 'cfg/general.json').open() as model_gen_fp:
             model_gen = json.load(model_gen_fp)
 
         features = set(model_gen['features'])
