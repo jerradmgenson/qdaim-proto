@@ -666,6 +666,38 @@ class PreprocessStage2Test(unittest.TestCase):
         self.assertTrue(combined_data['fbs'].isin((-1, 1)).all())
         self.assertTrue(combined_data['target'].isin((-1, 1)).all())
 
+    def test_categorical_values_are_heterogeneous(self):
+        """
+        Test that categorical values are heterogeneous (i.e. not all one value).
+
+        """
+
+        subprocess.check_call([str(self.PREPROCESS),
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
+                               str(self.MISSING_VALUES_INGEST_DIR),
+                               'imputation',
+                               '--impute-multiple',
+                               '--test-fraction', '0.15',
+                               '--random-state', "2",
+                               '--features'] + self.SUBSET_COLUMNS)
+
+        testing_dataset = pd.read_csv(self.testing_path)
+        training_dataset = pd.read_csv(self.training_path)
+        validation_dataset = pd.read_csv(self.validation_path)
+
+        combined_data = pd.concat([testing_dataset,
+                                   training_dataset,
+                                   validation_dataset])
+
+        self.assertFalse((combined_data['cp'] == -1).all())
+        self.assertFalse((combined_data['restecg'] == -1).all())
+        self.assertFalse((combined_data['sex'] == -1).all())
+        self.assertFalse((combined_data['exang'] == -1).all())
+        self.assertFalse((combined_data['fbs'] == -1).all())
+        self.assertFalse((combined_data['target'] == -1).all())
+
 
 # Define setUp and tearDown functions outside of the class so that they are
 # callable from other TestCase classes.

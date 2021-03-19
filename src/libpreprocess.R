@@ -64,11 +64,7 @@ main <- function(argv) {
     ## Make sure the test pool is not empty.
     stopifnot(nrow(uci_dataset$test) > 0)
 
-    ## Remove duplicate values within both dataframes.
-    remove_duplicates(uci_dataset$df)
-    remove_duplicates(uci_dataset$test)
-
-    ## Also remove duplicate values between the dataframes.
+    ## Remove duplicate values between the dataframes.
     uci_dataset$df <- setdiff(uci_dataset$df, uci_dataset$test)
 
     unique_rows <- nrow(uci_dataset$df) + nrow(uci_dataset$test)
@@ -97,6 +93,9 @@ main <- function(argv) {
     ## Omit rows containing only NAs.
     uci_dataset$df <- complete_na_omit(uci_dataset$df)
     uci_dataset$test <- complete_na_omit(uci_dataset$test)
+
+    ## Shuffle the test pool.
+    uci_dataset$test <- uci_dataset$test[sample(nrow(uci_dataset$test)), ]
 
     ## Create the test set.
     packed_data <- split_test_data(uci_dataset, test_rows)
@@ -539,9 +538,22 @@ complete_na_omit <- function(df) {
 }
 
 
+restecg_to_binary <- function(restecg) {
+    ## Convert a restecg list to binary values by treating all values other than
+    ## 1 (ST-T segment abnormalites) as false/-1.
+    restecg[restecg != 1] <- -1
+    restecg
+}
+
+
+rescale_binary_list <- function(l) {
+    ## Rescale a list of values in the range (0, 1) to the range (-1, 1).
+    l[l == 0] <- -1
+    l
+}
+
+
 remove_duplicates <- function(x) x <- x[!duplicated(x), ]
-restecg_to_binary <- function(restecg) restecg[restecg != 1] <- -1
-rescale_binary_list <- function(l) l[l == 0] <- -1
 remove_duplicates <- function(df) df[!duplicated(df), ]
 has_nas <- function(df) sum(!complete.cases(df)) > 0
 multi_na_omit <- function(df) df[rowSums(is.na(df)) < 2, ]
