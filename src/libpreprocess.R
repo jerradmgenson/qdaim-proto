@@ -44,10 +44,10 @@ main <- function(argv) {
 
     ## Convert optional parameter from NA to NULL if it wasn't given.
     features  <-
-        if (!is.na(cl_args$features)) cl_args$features else c()
+        if (!sum(is.na(cl_args$features))) cl_args$features else c()
 
     impute_methods  <-
-        if (!is.na(cl_args$impute_methods)) cl_args$impute_methods else c()
+        if (!sum(is.na(cl_args$impute_methods))) cl_args$impute_methods else c()
 
     check_impute_methods(impute_methods,
                          cl_args$impute_missing,
@@ -80,11 +80,11 @@ main <- function(argv) {
     trestbps0_rows <- trestbps0_rows + sum(uci_dataset$test$trestbps == 0,
                                            na.rm = TRUE)
 
-    uci_dataset$df <- subset(uci_dataset$df, uci_dataset$df$trestbps != 0)
-    uci_dataset$test <- subset(uci_dataset$test, uci_dataset$test$trestbps != 0)
+    uci_dataset$df <- uci_dataset$df[uci_dataset$df$trestbps != 0, ]
+    uci_dataset$test <- uci_dataset$test[uci_dataset$test$trestbps != 0, ]
     cat(sprintf("Omitted %d rows where trestbps is 0\n", trestbps0_rows))
 
-    replace_chol0_with_na(uci_dataset)
+    uci_dataset <- replace_chol0_with_na(uci_dataset)
     estimated_rows <- estimate_total_rows(uci_dataset,
                                           cl_args$impute_missing,
                                           cl_args$impute_multiple)
@@ -92,8 +92,13 @@ main <- function(argv) {
     ## Calculate number of rows to use for testing and validation.
     test_rows <- ceiling(estimated_rows * cl_args$test_fraction)
     validation_rows <- ceiling(estimated_rows * cl_args$validation_fraction)
-
     check_test_rows(uci_dataset$test, test_rows)
+
+    ## Omit rows containing only NAs.
+    uci_dataset$df <- complete_na_omit(uci_dataset$df)
+    uci_dataset$test <- complete_na_omit(uci_dataset$test)
+
+    ## Create the test set.
     packed_data <- split_test_data(uci_dataset, test_rows)
     test_data <- packed_data$test
     nontest_data <- packed_data$nontest
@@ -115,7 +120,7 @@ main <- function(argv) {
     ## Impute missing values if that option was given.
     if (cl_args$impute_missing || cl_args$impute_multiple) {
         nontest_data <- impute(nontest_data,
-                               method = cl_args$impute_methods,
+                               method = impute_methods,
                                random_state = cl_args$random_state)
     }
 
@@ -127,27 +132,27 @@ main <- function(argv) {
     }
 
     ## Convert chest pain to a binary class.
-    cp_to_binary(test_data)
-    cp_to_binary(nontest_data)
+    test_data$cp <- cp_to_binary(test_data$cp)
+    nontest_data$cp <- cp_to_binary(nontest_data$cp)
     cat("Converted cp to binary class\n")
 
     ## Convert resting ECG to a binary class.
-    restecg_to_binary(test_data)
-    restecg_to_binary(nontest_data)
+    test_data$restecg <- restecg_to_binary(test_data$restecg)
+    nontest_data$restecg <- restecg_to_binary(nontest_data$restecg)
     cat("Converted restecg to binary class\n")
 
     ## Rescale binary/ternary classes to range from -1 to 1.
-    rescale_binary_list(test_data$sex)
-    rescale_binary_list(nontest_data$sex)
-    rescale_binary_list(test_data$exang)
-    rescale_binary_list(nontest_data$exang)
-    rescale_binary_list(test_data$fbs)
-    rescale_binary_list(nontest_data$fbs)
+    test_data$sex <- rescale_binary_list(test_data$sex)
+    nontest_data$sex <- rescale_binary_list(nontest_data$sex)
+    test_data$exang <- rescale_binary_list(test_data$exang)
+    nontest_data$exang <- rescale_binary_list(nontest_data$exang)
+    test_data$fbs <- rescale_binary_list(test_data$fbs)
+    nontest_data$fbs <- rescale_binary_list(nontest_data$fbs)
     cat("Rescaled binary and ternary classes to have range (-1, 1)\n")
 
     ## Convert target to the specified classification type.
-    target_to_class(test_data, cl_args$classification_type)
-    target_to_class(nontest_data, cl_args$classification_type)
+    test_data <- target_to_class(test_data, cl_args$classification_type)
+    nontest_data <- target_to_class(nontest_data, cl_args$classification_type)
 
     ## Remove duplicates rows created during preprocessing.
     rows_before <- nrow(nontest_data) + nrow(test_data)
@@ -194,9 +199,18 @@ main <- function(argv) {
               quote = FALSE,
               row.names = FALSE)
 
-    cat(sprintf("Wrote testing data to %s\n", cl_args$testing))
-    cat(sprintf("Wrote validation data to %s\n", cl_args$validation))
-    cat(sprintf("Wrote training data to %s\n", cl_args$training))
+    cat(sprintf("Wrote testing data with %d rows to %s\n",
+                nrow(test_data),
+                cl_args$testing))
+
+    cat(sprintf("Wrote validation data with %d rows to %s\n",
+                nrow(validation_data),
+                cl_args$validation))
+
+    cat(sprintf("Wrote training data with %d rows to %s\n",
+                nrow(training_data),
+                cl_args$training))
+
     cat(sprintf("Total samples written in all datasets: %d\n",
                 test_rows + validation_rows + nrow(training_data)))
 }
@@ -293,7 +307,6 @@ check_impute_methods <- function(impute_methods,
 
 replace_chol0_with_na <- function(uci_dataset) {
     ## Convert chol values == 0 to NA if chol is present in dataset.
-    ## This is an in-place (destructive) operation.
     if ("chol" %in% colnames(uci_dataset$df)) {
         chol0_rows <-
             sum(uci_dataset$df$chol == 0, na.rm = TRUE)
@@ -309,6 +322,7 @@ replace_chol0_with_na <- function(uci_dataset) {
 
         cat(sprintf("Replaced %d rows where chol is 0 with NA\n", chol0_rows))
     }
+    uci_dataset
 }
 
 
@@ -337,10 +351,9 @@ check_test_rows <- function(test_pool, test_rows) {
     test_pool_rows <- nrow(na.omit(test_pool))
     if (test_rows > test_pool_rows) {
         error <-
-            "Too few samples in %s to create test set. Need %d samples but only
- found %d."
+            "Too few samples in test pool to create test set. Need %d samples
+ but only found %d."
         stop(sprintf(error,
-                     cl_args$test_pool,
                      test_rows,
                      test_pool_rows))
     }
@@ -367,7 +380,7 @@ split_test_data <- function(uci_dataset, test_rows) {
 }
 
 
-read_dir <- function(path, features = NULL, test_pool = "") {
+read_dir <- function(path, features = c(), test_pool = "") {
     ## Read all CSV files from a directory into a common dataframe.
     ##
     ## Args:
@@ -379,7 +392,7 @@ read_dir <- function(path, features = NULL, test_pool = "") {
     ##             the dataframe. It should be the name of the file
     ##             without the '.csv' extension.
     ##
-    ## Returns:
+    ## Returns:p
     ##   A named list with components `df`, a dataframe with the combined
     ##   data from all CSVs in `path` except the test pool, and `test`, which is
     ##   the test pool dataframe.
@@ -390,7 +403,7 @@ read_dir <- function(path, features = NULL, test_pool = "") {
     for (csv_file in csv_files) {
         full_path <- file.path(path, csv_file)
         data_subset <- utils::read.csv(full_path)
-        if (!is.null(features)) {
+        if (length(features)) {
             data_subset <- data_subset[features]
         }
         test_set_match <- test_pool == unlist(strsplit(csv_file,
@@ -412,7 +425,7 @@ read_dir <- function(path, features = NULL, test_pool = "") {
 }
 
 
-impute <- function(df, method = NULL, random_state = 1) {
+impute <- function(df, method = c(), random_state = 1) {
     ## Impute missing values in a dataframe using single imputation.
     ##
     ## Args:
@@ -422,7 +435,6 @@ impute <- function(df, method = NULL, random_state = 1) {
     ##
     ## Returns:
     ##   A new dataframe with imputed values.
-
     cat("Imputing missing data...\n")
     cat(sprintf("NAs before imputation: %d\n",
                 sum(!complete.cases(df))))
@@ -430,7 +442,7 @@ impute <- function(df, method = NULL, random_state = 1) {
     imputed_data <- data.frame(df)
     imputed_data$restecg <- as.factor(imputed_data$restecg)
     imputed_data$fbs <- as.factor(imputed_data$fbs)
-    if (!is.null(method)) {
+    if (length(method)) {
         uci_mids <- mice(imputed_data,
                          seed = random_state,
                          method = method,
@@ -460,24 +472,23 @@ impute <- function(df, method = NULL, random_state = 1) {
 
     cat("Imputation complete\n")
     cat(sprintf("NAs after imputation: %d\n",
-                sum(!complete.cases(df))))
+                sum(!complete.cases(imputed_data))))
 
     imputed_data
 }
 
-cp_to_binary <- function(df) {
-    ## Convert all values in the cp column of the given dataframe to a binary
-    ## class. Convert all categories in which chest pain (of any kind) is
+cp_to_binary <- function(cp) {
+    ## Convert all values in the given cp list to a binary class.
+    ## Convert all categories in which chest pain (of any kind) is
     ## present to 1, and categories in which chest pain is absent to -1.
-    ## Mutates the dataframe in-place (destructively).
-    df$cp[df$cp != 4] <- 1
-    df$cp[df$cp == 4] <- -1
+    cp[cp != 4] <- 1
+    cp[cp == 4] <- -1
+    cp
 }
 
 target_to_class <- function(df, class_type) {
     ## Convert all values in the target column of the given dataframe to the
     ## specified classification types ('binary', 'ternary', or 'multiclass').
-    ## Mutates the dataframe in-place (destructively).
     if (class_type == "binary") {
         ## Convert target (heart disease class) to a binary class.
         df$target[df$target != 0] <- 1
@@ -494,6 +505,7 @@ target_to_class <- function(df, class_type) {
         stop(sprintf("Unknown classification type `%s`.",
                      class_type))
     }
+    df
 }
 
 split_validation <- function(df, validation_rows) {
@@ -520,8 +532,15 @@ has_duplicates <- function(training, validation, testing) {
 }
 
 
+complete_na_omit <- function(df) {
+    ## Remove rows that are completely filled with NAs from a dataframe.
+    ## Return a new dataframe without the complete NA rows.
+    df[rowSums(is.na(df)) < ncol(df), ]
+}
+
+
 remove_duplicates <- function(x) x <- x[!duplicated(x), ]
-restecg_to_binary <- function(df) df$restecg[df$restecg != 1] <- -1
+restecg_to_binary <- function(restecg) restecg[restecg != 1] <- -1
 rescale_binary_list <- function(l) l[l == 0] <- -1
 remove_duplicates <- function(df) df[!duplicated(df), ]
 has_nas <- function(df) sum(!complete.cases(df)) > 0

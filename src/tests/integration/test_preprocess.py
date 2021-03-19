@@ -43,7 +43,6 @@ class PreprocessStage2Test(unittest.TestCase):
     MULTICLASS_TRAINING_DATASET = TEST_DATA / 'multiclass_training_dataset.csv'
     MULTICLASS_VALIDATION_DATASET = TEST_DATA / 'multiclass_validation_dataset.csv'
     PREPROCESS = GIT_ROOT / 'src/preprocess.R'
-    EXPECTED_TOTAL_ROWS = 16
     EXPECTED_TOTAL_ROWS_RAW_UCI = 6
     SUBSET_COLUMNS = ['age', 'sex', 'cp', 'trestbps', 'fbs', 'restecg', 'thalach',
                       'exang', 'oldpeak', 'chol', 'target']
@@ -87,7 +86,7 @@ class PreprocessStage2Test(unittest.TestCase):
                       + len(actual_training_dataset)
                       + len(actual_validation_dataset))
 
-        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS)
+        self.assertEqual(total_rows, 16)
 
         testing_set = frozenset(actual_testing_dataset.apply(tuple, axis=1))
         training_set = frozenset(actual_training_dataset.apply(tuple, axis=1))
@@ -96,6 +95,7 @@ class PreprocessStage2Test(unittest.TestCase):
         self.assertFalse(testing_set & validation_set)
         self.assertFalse(training_set & validation_set)
         self.assertEqual(len(testing_set | training_set | validation_set), total_rows)
+        import pdb; pdb.set_trace()
 
     def test_ternary_classification_datasets(self):
         """
@@ -127,7 +127,7 @@ class PreprocessStage2Test(unittest.TestCase):
                       + len(actual_training_dataset)
                       + len(actual_validation_dataset))
 
-        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS)
+        self.assertEqual(total_rows, 16)
 
         testing_set = frozenset(actual_testing_dataset.apply(tuple, axis=1))
         training_set = frozenset(actual_training_dataset.apply(tuple, axis=1))
@@ -167,7 +167,7 @@ class PreprocessStage2Test(unittest.TestCase):
                       + len(actual_training_dataset)
                       + len(actual_validation_dataset))
 
-        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS)
+        self.assertEqual(total_rows, 16)
 
         testing_set = frozenset(actual_testing_dataset.apply(tuple, axis=1))
         training_set = frozenset(actual_training_dataset.apply(tuple, axis=1))
@@ -216,7 +216,7 @@ class PreprocessStage2Test(unittest.TestCase):
         self.assertEqual(actual_training_dataset.isna().sum().sum(), 0)
 
         total_rows = len(actual_testing_dataset) + len(actual_training_dataset)
-        self.assertEqual(total_rows, self.EXPECTED_TOTAL_ROWS)
+        self.assertEqual(total_rows, 16)
 
         testing_set = frozenset(actual_testing_dataset.apply(tuple, axis=1))
         training_set = frozenset(actual_training_dataset.apply(tuple, axis=1))
@@ -633,6 +633,39 @@ class PreprocessStage2Test(unittest.TestCase):
 
         with self.assertRaises(subprocess.CalledProcessError):
             subprocess.check_call(args)
+
+    def test_categorical_values_are_plausible(self):
+        """
+        Test that the values for all categorical features fall within the
+        expected ranges.
+
+        """
+
+        subprocess.check_call([str(self.PREPROCESS),
+                               str(self.training_path),
+                               str(self.testing_path),
+                               str(self.validation_path),
+                               str(self.MISSING_VALUES_INGEST_DIR),
+                               'imputation',
+                               '--impute-multiple',
+                               '--test-fraction', '0.15',
+                               '--random-state', "2",
+                               '--features'] + self.SUBSET_COLUMNS)
+
+        testing_dataset = pd.read_csv(self.testing_path)
+        training_dataset = pd.read_csv(self.training_path)
+        validation_dataset = pd.read_csv(self.validation_path)
+
+        combined_data = pd.concat([testing_dataset,
+                                   training_dataset,
+                                   validation_dataset])
+
+        self.assertTrue(combined_data['cp'].isin((-1, 1)).all())
+        self.assertTrue(combined_data['restecg'].isin((-1, 1)).all())
+        self.assertTrue(combined_data['sex'].isin((-1, 1)).all())
+        self.assertTrue(combined_data['exang'].isin((-1, 1)).all())
+        self.assertTrue(combined_data['fbs'].isin((-1, 1)).all())
+        self.assertTrue(combined_data['target'].isin((-1, 1)).all())
 
 
 # Define setUp and tearDown functions outside of the class so that they are
