@@ -1,9 +1,4 @@
 [
-  {
-      "preprocessing2__n_components": [8],
-      "preprocessing2__svd_method": ["lapack"],
-	    "model__n_neighbors": [40],
-	    "model__weights": ["uniform"],
-	    "model__p": [2]
-	}
+    {"model__C": [0.01, 0.1, 1, 10, 100, 1000], "model__kernel": ["linear"], "model__random_state": [22938]},
+    {"model__C": [0.01, 0.1, 1, 10, 100, 1000], "model__gamma": [0.001, 0.0001], "model__kernel": ["rbf"], "model__random_state": [22938]}
 ]
