@@ -10,6 +10,6 @@
     "test_dataset": "test.csv",
     "test_pool": "cleveland",
     "impute_missing": true,
-    "impute_multiple": true,
+    "impute_multiple": false,
     "impute_methods": ["", "", "", "", "logreg", "polyreg", "", "", "pmm", "pmm", ""]
 }
