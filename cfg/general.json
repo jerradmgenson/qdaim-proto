@@ -3,7 +3,7 @@
     "features": ["age", "sex", "cp", "trestbps", "fbs", "restecg", "thalach", "exang", "oldpeak", "chol", "target"],
     "model": "rnc",
     "preprocessing": ["robust scaling"],
-    "random_state": 35223,
+    "random_state": 22938,
     "scoring": "mcc",
     "training_dataset": "training.csv",
     "validation_dataset": "validation.csv",
