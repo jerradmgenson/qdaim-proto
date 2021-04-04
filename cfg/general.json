@@ -1,6 +1,6 @@
 {
     "cross_validation_folds": 20,
-    "features": ["age", "sex", "cp", "trestbps", "fbs", "restecg", "thalach", "exang", "oldpeak", "chol", "target"],
+    "features": ["age", "sex", "cp", "trestbps", "fbs", "restecg", "thalach", "exang", "oldpeak", "target"],
     "model": "qda",
     "preprocessing": ["power transformer"],
     "random_state": 35223,
@@ -11,5 +11,5 @@
     "test_pool": "cleveland",
     "impute_missing": false,
     "impute_multiple": false,
-    "impute_methods": ["", "", "", "", "logreg", "polyreg", "", "", "pmm", "pmm", ""]
+    "impute_methods": ["", "", "", "", "logreg", "polyreg", "", "", "pmm", ""]
 }
