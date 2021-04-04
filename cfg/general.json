@@ -9,7 +9,7 @@
     "validation_dataset": "validation.csv",
     "test_dataset": "test.csv",
     "test_pool": "cleveland",
-    "impute_missing": true,
-    "impute_multiple": false,
+    "impute_missing": false,
+    "impute_multiple": true,
     "impute_methods": ["", "", "", "", "logreg", "polyreg", "", "", "pmm", ""]
 }
