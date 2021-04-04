@@ -1,7 +1,8 @@
 [
-    {
-	"model__n_neighbors": [10, 15, 20, 25, 30, 40, 50, 60, 70, 80],
-	"model__weights": ["uniform", "distance"],
-	"model__p": [1, 2]
-    }
+  {
+      "model__radius": [1, 2, 3, 4, 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+      "model__weights": ["uniform", "distance"],
+      "model__p": [1, 2],
+      "model__outlier_label": [-1]
+  }
 ]
