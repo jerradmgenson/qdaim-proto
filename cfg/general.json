@@ -2,7 +2,7 @@
     "cross_validation_folds": 20,
     "features": ["age", "sex", "cp", "trestbps", "fbs", "restecg", "thalach", "exang", "oldpeak", "chol", "target"],
     "model": "rfc",
-    "preprocessing": ["robust scaling", "pca"],
+    "preprocessing": ["robust scaling", "isomap"],
     "random_state": 22961,
     "scoring": "mcc",
     "training_dataset": "training.csv",
