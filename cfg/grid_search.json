@@ -1,7 +1,8 @@
 [
     {
+	"preprocessing2__whiten": [true, false],
+	"preprocessing2__n_components": [2, 3, 4, 5, 6, 7, 8, 9],
 	"model__n_estimators": [200],
-	"model__max_features": [2, 3, 4, 5, 6, 7, 8, null],
 	"model__criterion": ["gini", "entropy"],
 	"model__min_samples_split": [4, 6, 8, 10, 12],
 	"model__max_depth": [2, 3, 4, 5, 6, 7, 8, null],
