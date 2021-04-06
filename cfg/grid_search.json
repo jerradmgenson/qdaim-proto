@@ -1,13 +1,8 @@
 [
-    {
-	"preprocessing2__n_neighbors": [80],
-	"preprocessing2__n_components": [2, 3, 4, 5, 6, 7, 8],
-	"preprocessing2__method": ["hessian"],
-	"preprocessing2__eigen_solver": ["dense"],
-	"model__learning_rate": [0.0125, 0.025, 0.05, 0.1],
-	"model__n_estimators": [400],
-	"model__subsample": [0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
-	"model__min_samples_split": [2, 3, 4, 5],
-	"model__random_state": [22938]
-    }
+  {
+      "model__radius": [1, 2, 3, 4, 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+      "model__weights": ["uniform", "distance"],
+      "model__p": [1, 2],
+      "model__outlier_label": [-1]
+  }
 ]
