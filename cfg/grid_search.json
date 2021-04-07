@@ -1,10 +1,6 @@
 [
     {
-	"preprocessing2__n_neighbors": [40],
-	"preprocessing2__n_components": [6],
-	"preprocessing2__p": [2],
-	"model__C": [0.1],
-	"model__kernel": ["linear"],
-	"model__random_state": [22938]
+	"preprocessing2__n_components": [2],
+	"preprocessing2__whiten": [false]
     }
 ]
