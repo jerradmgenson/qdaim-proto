@@ -1,6 +1,12 @@
 [
     {
-	"preprocessing2__n_components": [2],
-	"preprocessing2__whiten": [false]
+	"preprocessing2__whiten": [true],
+	"preprocessing2__n_components": [9],
+	"model__n_estimators": [200],
+	"model__criterion": ["gini"],
+	"model__min_samples_split": [4],
+	"model__max_depth": [4],
+	"model__class_weight": ["balanced"],
+	"model__random_state": [22961]
     }
 ]
