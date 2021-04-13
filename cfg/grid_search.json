@@ -1,6 +1,6 @@
 [
     {
 	"preprocessing2__n_components": [2],
-	"preprocessing2__whiten": [false]
+	"preprocessing2__whiten": [true]
     }
 ]
