@@ -31,7 +31,7 @@ cleveland = env.Ingest_cleveland_data(str(INGEST_DIR / 'cleveland'),
 preprocessed = env.Preprocess([training_dataset, test_dataset, validation_dataset],
                               [hungarian, long_beach, switzerland, cleveland])
 
-qdaim = env.Gen_model('qdaim', [training_dataset, validation_dataset])
+qdaim = env.Gen_model('qdaim', [training_dataset, test_dataset])
 Depends(qdaim, preprocessed)
 Clean(qdaim, 'gen_model_config.json')
 NoClean(qdaim)

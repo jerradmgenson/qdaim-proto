@@ -57,6 +57,7 @@ def build_preprocess(target, source, env):
             str(target[2]),
             str(INGEST_DIR),
 	    model_gen_config['test_pool'],
+	    '--validation-fraction', '0',
             '--random-state', str(model_gen_config['random_state']),
             '--features']
 
@@ -83,9 +84,7 @@ def build_gen_model(target, source, env):
                            '--random-state', str(model_gen_config['random_state']),
                            '--scoring', model_gen_config['scoring'],
                            '--parameter-grid', parameter_grid,
-                           '--cross-validate', str(model_gen_config['cross_validation_folds']),
                            '--outlier-scores',
-			   '--print-hyperparameters',
                            '--preprocessing'] + model_gen_config['preprocessing'])
 
 gen_model_builder = Builder(action=build_gen_model,
