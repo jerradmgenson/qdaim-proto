@@ -1,9 +1,6 @@
 [
-  {
-      "preprocessing2__n_components": [8],
-      "preprocessing2__svd_method": ["lapack"],
-	    "model__n_neighbors": [40],
-	    "model__weights": ["uniform"],
-	    "model__p": [2]
-	}
+    {
+	"preprocessing2__n_components": [2],
+	"preprocessing2__whiten": [false]
+    }
 ]
